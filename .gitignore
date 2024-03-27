@@ -1,3 +1,6 @@
-ckpt/
+*.cfg
+*.data
+*.names
+*.weights
 __pycache__
 *.dll
