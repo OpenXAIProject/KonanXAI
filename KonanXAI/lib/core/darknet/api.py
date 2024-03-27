@@ -8,7 +8,7 @@ cwd = os.path.dirname(__file__)
 if os.name == "posix":
     lib = ct.CDLL(cwd + "/darknet.so", ct.RTLD_GLOBAL)
 elif os.name == "nt":
-    cwd = "D:/github/AlexeyAB/darknet/build/darknet/x64/"
+    cwd = "D:/xai_darknet/build/darknet/x64/"
     lib = ct.CDLL(cwd + "/yolo_cpp_dll_no_gpu.dll", winmode=0, mode=ct.RTLD_GLOBAL)
 else:
     lib = None

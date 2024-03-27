@@ -1,6 +1,21 @@
 import KonanXAI as XAI
 from KonanXAI.lib.core import darknet
 import cv2
+def get_yolo_box_test(x, bias, n, index, i, j, lw, lh, w, h, stride, new_coords):
+    box = {}
+    if new_coords != 0:
+        pass
+    else:
+        box['x'] = (i + x[index + 0 * stride]) / lw
+        box['y'] = (j + x[index + 1 * stride]) / lh
+        box['w'] = math.exp(x[index + 2 * stride]) * bias[2 * n] / w
+        box['h'] = math.exp(x[index + 3 * stride]) * bias[2 * n + 1] / h
+    return box['x'], box['y'], box['w'], box['h']
+
+def entry_index(l, batch, location, entry, classes):
+    n = location // (l['w']*l['h'])
+    loc = location % (l['w']*l['h'])
+    return int(batch*(l['w']*l['h']*l['c']) + n * l['w'] * l['h'] * (4+classes+1) + entry*l['w']*l['h'] + loc)
 
 # model 
 mtype = XAI.ModelType.Yolov4Tiny
@@ -15,12 +30,12 @@ xai = XAI.XAI()
 xai.load_model_support(mtype, platform, pretrained=True)
 # xai.load_dataset_support(dtype, maxlen=10, shuffle=False)
 print(xai.model)
-img = darknet.open_image("D:/Gitlab/xai_re/test.jpg", (416, 416))
+img = darknet.open_image(r"D:\xai_refactoring\test.jpg", (416, 416))
 net: darknet.Network = xai.model.net
 results = net.predict_using_gradient_hook(img)
 print(results)
-yolo2 = results['layers_output']['layer_37']['data']
-
+yolo2 = results['layers_output']['layer_30']['data']
+# yolo2 = results['layers_output']['layer_37']['data']
 # def yolo2xywh(width, height, annotation):
 #     # yolo: center_x, center_y, object_w, object_h  ex) 0.123 0.3123, 0.412, 0.787
 #     # xywh: min_x, min_y, object_w, object_h        ex) 482, 374, 800, 340
@@ -36,29 +51,31 @@ def yolo2xyxy(width, height, bbox):
     YOLO format use relative coordinates for annotation
     x = center_x, y = center_y
     """
-    cx, cy, bw, bh = bbox
+    cx, cy, bw, bh = bbox[:]
     x1, y1 = cx - bw/2, cy - bh/2
     x2, y2 = cx + bw/2, cy + bh/2
 
     x1, y1, x2, y2 = list(map(lambda x: round(x), (x1*width, y1*height, x2*width, y2*height)))
     return x1, y1, x2, y2
 
-img = cv2.imread("D:/Gitlab/xai_re/test.jpg")
+img = cv2.imread(r"D:\xai_refactoring\test.jpg")
 # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = cv2.resize(img, (416, 416))
 thres = 0.9
 
 coord = 4
 prob = 1
-width = 26
-height = 26
-# width = 13
-# height = 13
+netw = 416
+neth = 416
+# width = 26
+# height = 26
+width = 13
+height = 13
 size2d = width*height
 classes = 80
 features = coord + prob + classes
-# anchor_offset = 3
-anchor_offset = 1
+anchor_offset = 3
+# anchor_offset = 1
 anchor_box = [
     (10,14),
     (23,27),
@@ -83,14 +100,34 @@ def get_yolo_box(feature, l, i, n):
     return box['x'], box['y'], box['w'], box['h']
 
 
-l = results['layers_output']['layer_37']
+# l = results['layers_output']['layer_37']
+l = results['layers_output']['layer_30']
 max_box = None
-box2, n = net.get_network_boxes(416, 416, thresh=0.9)
+box2, n = net.get_network_boxes(416, 416, thresh=thres)
 for _ in range(n):
     dbbox = box2[_].bbox
-    dbbox.x = dbbox.x - 30
-    dbbox.y = dbbox.y - 50
-    cv2.rectangle(img, pt1=(int(dbbox.x), int(dbbox.y)), pt2=(int(dbbox.x + dbbox.w), int(dbbox.y + dbbox.h)), color=(255, 0, 0), thickness=2)
+    dbbox.x = dbbox.x
+    dbbox.y = dbbox.y
+    whalf = dbbox.w / 2
+    hhalf = dbbox.h / 2
+    cv2.rectangle(img, pt1=(int(dbbox.x - whalf), int(dbbox.y - hhalf)), pt2=(int(dbbox.x + whalf), int(dbbox.y + hhalf)), color=(255, 0, 0), thickness=2)
+
+
+for i in range(size2d):
+   row = i // l['w']
+   col = i % l['w']
+   for n in range(3):
+       obj_index = entry_index(l, 0, n * l['w'] * l['h'] + i, 4, classes)
+       objectness = l['data'][obj_index]
+       if (objectness > thres):
+           box_index = entry_index(l, 0, n*l['w']*l['h'] + i, 0, classes)
+           bbox = get_yolo_box_test(l['data'], l['bias'], anchor_offset + n, box_index, col, row, l['w'], l['h'], netw, neth, size2d, 0)
+           bbox += (objectness, box_index)
+           x1, y1, x2, y2 = yolo2xyxy(416, 416, bbox[:4])
+           cv2.rectangle(img, (x1, y1), (x2, y2), color=(0,0,255),thickness=1)
+       
+        
+"""    
 for n in range(3):
     abox = anchor_box[n + anchor_offset]
     for i in range(size2d):
@@ -124,7 +161,7 @@ for n in range(3):
         #     max_box = (box, score)
 
         # print(idx, f)
-
+"""
 resized = cv2.resize(img, (640, 480))
 cv2.imshow('Image', img)
 cv2.waitKey(0)
