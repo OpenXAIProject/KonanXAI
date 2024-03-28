@@ -31,7 +31,7 @@ xai = XAI.XAI()
 xai.load_model_support(mtype, platform, pretrained=True)
 # xai.load_dataset_support(dtype, maxlen=10, shuffle=False)
 print(xai.model)
-img = darknet.open_image(r"D:\xai_refactoring\test.jpg", (416, 416))
+img = darknet.open_image(r"test.jpg", (416, 416))
 net: darknet.Network = xai.model.net
 results = net.predict_using_gradient_hook(img)
 print(results)

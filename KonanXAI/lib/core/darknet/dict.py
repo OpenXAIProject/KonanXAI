@@ -55,6 +55,12 @@ class Dict:
         elif dtype == DTYPES.IntPtr:
             ptr = ct.cast(value, ct.POINTER(ct.c_int))
             data = ptr
+        elif dtype == DTYPES.IntDPtr:
+            ptr = ct.cast(value, ct.POINTER(ct.POINTER(ct.c_int)))
+            data = ptr
+        elif dtype == DTYPES.FloatDPtr:
+            ptr = ct.cast(value, ct.POINTER(ct.POINTER(ct.c_float)))
+            data = ptr
         elif dtype == DTYPES.FloatArray:
             ptr = ct.cast(value, ct.POINTER(ct.c_float))
             data = []

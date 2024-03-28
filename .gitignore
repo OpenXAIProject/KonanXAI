@@ -4,3 +4,13 @@
 *.weights
 __pycache__
 *.dll
+.vs
+*.exp
+*.lib
+*.pdb
+*.obj
+*.tlog
+x64
+x86
+.vscode
+*.jpg
