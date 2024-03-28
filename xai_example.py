@@ -1,6 +1,7 @@
 import KonanXAI as XAI
 from KonanXAI.lib.core import darknet
 import cv2
+import numpy as np
 def get_yolo_box_test(x, bias, n, index, i, j, lw, lh, w, h, stride, new_coords):
     box = {}
     if new_coords != 0:
@@ -34,7 +35,7 @@ img = darknet.open_image(r"D:\xai_refactoring\test.jpg", (416, 416))
 net: darknet.Network = xai.model.net
 results = net.predict_using_gradient_hook(img)
 print(results)
-yolo2 = results['layers_output']['layer_30']['data']
+# yolo2 = results['layers_output']['layer_30']['data']
 # yolo2 = results['layers_output']['layer_37']['data']
 # def yolo2xywh(width, height, annotation):
 #     # yolo: center_x, center_y, object_w, object_h  ex) 0.123 0.3123, 0.412, 0.787
@@ -61,20 +62,23 @@ def yolo2xyxy(width, height, bbox):
 img = cv2.imread(r"D:\xai_refactoring\test.jpg")
 # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = cv2.resize(img, (416, 416))
-thres = 0.9
+thres = 0.2
 
 coord = 4
 prob = 1
 netw = 416
 neth = 416
+box_wh = [13,26]
 # width = 26
 # height = 26
-width = 13
-height = 13
-size2d = width*height
+# width = 13
+# height = 13
+# size2d = width*height
+size2d = [box_wh[0]**2,box_wh[1]**2]
 classes = 80
 features = coord + prob + classes
-anchor_offset = 3
+anchor_offset= [3,1]
+# anchor_offset = 3
 # anchor_offset = 1
 anchor_box = [
     (10,14),
@@ -101,7 +105,9 @@ def get_yolo_box(feature, l, i, n):
 
 
 # l = results['layers_output']['layer_37']
-l = results['layers_output']['layer_30']
+l_30 = results['layers_output']['layer_30']
+l_37 = results['layers_output']['layer_37']
+layers = [l_30, l_37]
 max_box = None
 box2, n = net.get_network_boxes(416, 416, thresh=thres)
 for _ in range(n):
@@ -111,21 +117,32 @@ for _ in range(n):
     whalf = dbbox.w / 2
     hhalf = dbbox.h / 2
     cv2.rectangle(img, pt1=(int(dbbox.x - whalf), int(dbbox.y - hhalf)), pt2=(int(dbbox.x + whalf), int(dbbox.y + hhalf)), color=(255, 0, 0), thickness=2)
+box_li = []
+for k, l in enumerate(layers):
+    for i in range(size2d[k]):
+        row = i // l['w']
+        col = i % l['w']
+        for n in range(3):
+            obj_index = entry_index(l, 0, n * l['w'] * l['h'] + i, 4, classes)
+            objectness = l['data'][obj_index]
+            if (objectness > thres):
+                box_index = entry_index(l, 0, n*l['w']*l['h'] + i, 0, classes)
+                bbox = get_yolo_box_test(l['data'], l['bias'], anchor_offset[k] + n, box_index, col, row, l['w'], l['h'], netw, neth, size2d[k], 0)
+                x1, y1, x2, y2 = yolo2xyxy(416, 416, bbox[:4])
+                if k ==0:
+                    cv2.rectangle(img, (x1, y1), (x2, y2), color=(0,0,255),thickness=1)
+                else:
+                    cv2.rectangle(img, (x1, y1), (x2, y2), color=(0,255,0),thickness=1)
+                    
+                probs = np.zeros(classes)
+                for j in range(classes):
+                    class_index = entry_index(l, 0, n*l['w']*l['h'] + i, 4 + 1 + j, classes)
+                    prob = objectness * l['data'][class_index]
+                    if prob > thres:
+                        probs[j] = prob
+                        bbox += (objectness,j, probs)
+                box_li.append(bbox)
 
-
-for i in range(size2d):
-   row = i // l['w']
-   col = i % l['w']
-   for n in range(3):
-       obj_index = entry_index(l, 0, n * l['w'] * l['h'] + i, 4, classes)
-       objectness = l['data'][obj_index]
-       if (objectness > thres):
-           box_index = entry_index(l, 0, n*l['w']*l['h'] + i, 0, classes)
-           bbox = get_yolo_box_test(l['data'], l['bias'], anchor_offset + n, box_index, col, row, l['w'], l['h'], netw, neth, size2d, 0)
-           bbox += (objectness, box_index)
-           x1, y1, x2, y2 = yolo2xyxy(416, 416, bbox[:4])
-           cv2.rectangle(img, (x1, y1), (x2, y2), color=(0,0,255),thickness=1)
-       
         
 """    
 for n in range(3):
