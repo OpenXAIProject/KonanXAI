@@ -2,9 +2,10 @@ from .api import *
 import cv2
 
 class Image:
-    def __init__(self, w: int, h: int, c: int, raw: bytes):
+    def __init__(self, w: int, h: int, c: int, raw):
         self.struct: IMAGE = make_image(w, h, c)
-        self._memset(raw)
+        self.raw = raw
+        self._memset(raw.tobytes())
 
     def _memset(self, byte_data: bytes):
         copy_image_from_bytes(self.struct, byte_data)
@@ -30,5 +31,5 @@ def open_image(img_path: str, size: tuple=None, channel: str='RGB') -> Image:
     if size is not None:
         raw = cv2.resize(raw, size)
     h, w, c = raw.shape
-    img = Image(w, h, c, raw.tobytes())
+    img = Image(w, h, c, raw)
     return img

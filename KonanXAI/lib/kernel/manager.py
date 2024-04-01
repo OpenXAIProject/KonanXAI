@@ -9,7 +9,7 @@ def _calculate(algorithm, model, dataset, platform) -> list:
     explain: Algorithm = algorithm(model, dataset, platform)
     for data in dataset:
         explain.target_input = data
-        results.append(explain.calculate())
+        results.append((explain.calculate(), data.raw))
     return results
 
 # Kernel API
@@ -22,7 +22,7 @@ def request_algorithm(xai) -> ExplainData:
     explain = xai.algorithm
     
     # results
-    results = []
+    results = {}
     for algorithm in explain:
         explain_class = None
         if algorithm == ExplainType.GradCAM:
@@ -30,6 +30,6 @@ def request_algorithm(xai) -> ExplainData:
         # elif algorithm == ExplainType.GradCAMpp:
         #     explain_class = GradCAMpp
         assert explain_class is not None, "Unsupported XAI algorithm."
-        results.append(_calculate(explain_class, xai.model, dataset, platform))
+        results[explain_class.__name__] = _calculate(explain_class, xai.model, dataset, platform)
 
-    return results#ExplainData(results)
+    return ExplainData(results)

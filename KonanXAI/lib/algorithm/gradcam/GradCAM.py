@@ -12,7 +12,7 @@ class GradCAM(Algorithm):
         super().__init__(model, dataset, platform)
         
     def calculate(self) -> list:
-        self.result = []
+        self.result = None
         mtype = self.model.mtype
         # Input
         X = self.target_input
@@ -26,12 +26,21 @@ class GradCAM(Algorithm):
             self._yolo_backward()
             # GradCAM
             heatmaps = self._gradcam()
-            self.result.append(heatmaps)
+            self.result = heatmaps
             
         return self.result
     
     def _relu(self, x):
         return np.where(x > 0, x, 0)
+    
+    def _normalized(self, saliency_map):
+        smin, smax = saliency_map.min(), saliency_map.max()
+        if (smax - smin != 0):
+            saliency = (saliency_map - smin) / (smax - smin)
+        else:
+            saliency = saliency_map
+            
+        return saliency
     
     def _get_heatmap(self, feature, weight, size=(416, 416)):
         mul = feature * weight
@@ -39,7 +48,10 @@ class GradCAM(Algorithm):
         saliency_map = self._relu(summation)
         # Normalize
         smin, smax = saliency_map.min(), saliency_map.max()
-        saliency = (saliency_map - smin) / (smax - smin)
+        if (smax - smin != 0):
+            saliency = (saliency_map - smin) / (smax - smin)
+        else:
+            saliency = saliency_map
         # Heatmap
         heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
         # Resize
@@ -112,9 +124,9 @@ class GradCAM(Algorithm):
                 gradient = np.array(target.get_delta())
                 stride = target.out_w * target.out_h
                 # Reshape
-                feature = feature.reshape((-1, stride))
+                feature = feature.reshape((-1, target.out_w, target.out_h))
                 gradient = gradient.reshape((-1, stride)).mean(1)
-                weight = gradient.reshape((-1, 1))
+                weight = gradient.reshape((-1, 1, 1))
                 # Append
                 gradcam.append((feature, weight))
             self.gradcam.append(gradcam)
