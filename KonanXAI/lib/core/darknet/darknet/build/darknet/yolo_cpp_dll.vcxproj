@@ -33,7 +33,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -52,7 +52,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.3\extras\visual_studio_integration\MSBuildExtensions\CUDA 11.3.props" />
+    <Import Project="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.2.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -200,6 +200,7 @@
     <ClCompile Include="..\..\src\detection_layer.c" />
     <ClCompile Include="..\..\src\detector.c" />
     <ClCompile Include="..\..\src\dice.c" />
+    <ClCompile Include="..\..\src\dict.c" />
     <ClCompile Include="..\..\src\dropout_layer.c" />
     <ClCompile Include="..\..\src\gaussian_yolo_layer.c" />
     <ClCompile Include="..\..\src\gemm.c" />
@@ -268,6 +269,7 @@
     <ClInclude Include="..\..\src\deconvolutional_layer.h" />
     <ClInclude Include="..\..\src\demo.h" />
     <ClInclude Include="..\..\src\detection_layer.h" />
+    <ClInclude Include="..\..\src\dict.h" />
     <ClInclude Include="..\..\src\dropout_layer.h" />
     <ClInclude Include="..\..\src\gaussian_yolo_layer.h" />
     <ClInclude Include="..\..\src\gemm.h" />
@@ -308,6 +310,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.3\extras\visual_studio_integration\MSBuildExtensions\CUDA 11.3.targets" />
+    <Import Project="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\extras\visual_studio_integration\MSBuildExtensions\CUDA 12.2.targets" />
   </ImportGroup>
 </Project>

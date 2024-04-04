@@ -1787,11 +1787,11 @@ void* network_predict_using_gradient_hook(network* net, image im)
         state.delta = cuda_make_array(NULL, input_size);
         forward_network_gpu(*net, state);
         out = get_network_output(*net);
-        set_hook_outputs(net, hook);
+        //set_hook_outputs(net, hook);
         //state.delta = cuda_make_array(NULL, output_size);
         backward_network_gpu(*net, state);
         cuda_pull_array(*(net->input_gpu), im.data, input_size);
-        set_hook_gradients(net, hook);
+        //set_hook_gradients(net, hook);
         // cudaFree delta ÇÊ¿ä 
         // cuda_free(state.delta);
         free(y_temp);
@@ -1881,25 +1881,83 @@ void* get_network_layers(network* net) {
 void network_forward_image(network* net, image im) {
     network_state state = { 0 };
     set_batch_network(net, 1);
-    net->input = im.data;
-    state.net = *net;
-    state.index = 0;
-    state.input = net->input;
-    state.truth = 0;
-    state.train = 0;
-    state.delta = 0;
-    forward_network(*net, state);
+#ifdef GPU
+    cuda_set_device(net->gpu_index);
+    if (gpu_index >= 0) {
+        if (!*(net->input_gpu)) {
+            // Make GPU Memory
+            *(net->input_gpu) = cuda_make_array(im.data, net->inputs);
+        }
+        else {
+            // Push GPU
+            cuda_push_array(*(net->input_gpu), im.data, net->inputs);
+        }
+        state.net = *net;
+        state.index = 0;
+        state.input = *(net->input_gpu);
+        state.truth = 0;
+        state.train = 0;
+        state.delta = 0;
+        forward_network_gpu(*net, state);
+        // pull GPU output
+        for (int i = 0; i < net->n; i++) {
+            layer l = net->layers[i];
+            cuda_pull_array(l.output_gpu, l.output, l.outputs);
+        }
+    }
+    else {
+#endif
+        net->input = im.data;
+        state.net = *net;
+        state.index = 0;
+        state.input = net->input;
+        state.truth = 0;
+        state.train = 0;
+        state.delta = 0;
+        forward_network(*net, state);
+#ifdef GPU
+    }
+#endif
 }
 
 void network_backward(network* net) {
     network_state state = { 0 };
-    state.net = *net;
-    state.index = 0;
-    state.input = net->input;
-    state.truth = 0;
-    state.train = 0;
-    state.delta = 0;
-    backward_network(*net, state);
+#ifdef GPU
+    cuda_set_device(net->gpu_index);
+    if (gpu_index >= 0) {
+        // initialize GPU Delta
+        for (int i = 0; i < net->n; i++) {
+            layer l = net->layers[i];
+            if (!l.delta_gpu)
+                l.delta_gpu = cuda_make_array(l.delta, l.outputs);
+            else
+                cuda_push_array(l.delta_gpu, l.delta, l.outputs);
+        }
+        state.net = *net;
+        state.index = 0;
+        state.input = *(net->input_gpu);
+        state.truth = 0;
+        state.train = 0;
+        state.delta = 0;
+        backward_network_gpu(*net, state);
+        // pull GPU Delta
+        for (int i = 0; i < net->n; i++) {
+            layer l = net->layers[i];
+            cuda_pull_array(l.delta_gpu, l.delta, l.outputs);
+        }
+    }
+    else {
+#endif
+        state.net = *net;
+        state.index = 0;
+        state.input = net->input;
+        state.truth = 0;
+        state.train = 0;
+        state.delta = 0;
+        backward_network(*net, state);
+#ifdef GPU
+    }
+#endif
 }
 
 void network_zero_delta(network* net) {

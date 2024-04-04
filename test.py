@@ -1,11 +1,30 @@
+"""import KonanXAI as XAI
+from KonanXAI.lib.core import darknet
+mtype = XAI.ModelType.Yolov4Tiny
+# platform
+platform = XAI.PlatformType.Darknet
+# dataset
+dtype = XAI.DatasetType.COCO
+# explain
+etype = XAI.ExplainType.GradCAM
+xai = XAI.XAI()
+
+xai.load_model_support(mtype, platform, pretrained=True)
+
+net: darknet.Network = xai.model.net
+img = darknet.open_image(r"test.jpg", (416, 416))
+
+net.forward_image(img)
+net.backward()
+print(net)
+pass"""
+
 import KonanXAI as XAI
 from KonanXAI.lib.core import darknet
 import cv2
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
 from KonanXAI.lib.algorithm import *
 
 
@@ -23,8 +42,9 @@ xai.load_model_support(mtype, platform, pretrained=True)
 xai.load_dataset_support(dtype)
 xai.set_explain_mode([XAI.ExplainType.GradCAM])
 explain = xai.explain()
-explain.save_heatmap("D:/xai_refactoring/heatmap/")
+explain.save_heatmap("heatmap/")
 pass
+"""
 
 # img = darknet.open_image(r"test.jpg", (416, 416))
 # net: darknet.Network = xai.model.net
@@ -66,7 +86,7 @@ pass
 #                       use_rgb: bool = False,
 #                       colormap: int = cv2.COLORMAP_JET,
 #                       image_weight: float = 0.5) -> np.ndarray:
-#     """ This function overlays the cam mask on the image as an heatmap.
+#     This function overlays the cam mask on the image as an heatmap.
 #     By default the heatmap is in BGR format.
 
 #     :param img: The base image in RGB or BGR format.
@@ -75,7 +95,7 @@ pass
 #     :param colormap: The OpenCV colormap to be used.
 #     :param image_weight: The final result is image_weight * img + (1-image_weight) * mask.
 #     :returns: The default image with the cam overlay.
-#     """
+#    
 #     heatmap = cv2.applyColorMap(np.uint8(255 * mask).squeeze(), colormap)
 #     if use_rgb:
 #         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
@@ -175,4 +195,4 @@ pass
 #     compose_heatmap_image(sum_map, dimg, save_path=f"./sum_{entry}.jpg")
     
 
-#     pass
+#     pass"""

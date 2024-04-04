@@ -169,7 +169,7 @@ void backward_network_gpu(network net, network_state state)
     for(i = net.n-1; i >= 0; --i){
         state.index = i;
         layer l = net.layers[i];
-        if (l.stopbackward == 1) break;
+        if (l.stopbackward) break;
         if (l.stopbackward > get_current_iteration(net)) break;
         if(i == 0){
             state.input = original_input;

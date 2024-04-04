@@ -11,8 +11,9 @@ elif os.name == "nt":
     cwd = cwd.replace("\\", "/")
     src = "/darknet/build/darknet/x64/"
     cpu = "yolo_cpp_dll_no_gpu.dll"
-    gpu = "yolo_cpp.dll"
-    lib = ct.CDLL(cwd + src + cpu, winmode=0, mode=ct.RTLD_GLOBAL)
+    gpu = "yolo_cpp_dll.dll"
+    # lib = ct.CDLL(cwd + src + cpu, winmode=0, mode=ct.RTLD_GLOBAL)
+    lib = ct.CDLL(cwd + src + gpu, winmode=0, mode=ct.RTLD_GLOBAL)
 else:
     lib = None
     print("Unsupported OS")

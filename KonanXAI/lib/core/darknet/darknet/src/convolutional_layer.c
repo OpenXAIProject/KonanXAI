@@ -584,9 +584,10 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
     l.activation = activation;
 
     l.output = (float*)xcalloc(total_batch*l.outputs, sizeof(float));
-#ifndef GPU
-    if (train) l.delta = (float*)xcalloc(total_batch*l.outputs, sizeof(float));
-#endif  // not GPU
+//#ifndef GPU
+    //if (train)
+    l.delta = (float*)xcalloc(total_batch*l.outputs, sizeof(float));
+//#endif  // not GPU
 
     l.forward = forward_convolutional_layer;
     l.backward = backward_convolutional_layer;
