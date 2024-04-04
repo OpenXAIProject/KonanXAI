@@ -23,7 +23,7 @@ xai.load_model_support(mtype, platform, pretrained=True)
 xai.load_dataset_support(dtype)
 xai.set_explain_mode([XAI.ExplainType.GradCAM])
 explain = xai.explain()
-explain.save_heatmap("heatmap/")
+explain.save_heatmap("D:/xai_refactoring/heatmap/")
 pass
 
 # img = darknet.open_image(r"test.jpg", (416, 416))

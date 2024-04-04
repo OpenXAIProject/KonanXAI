@@ -45,19 +45,28 @@ class GradCAM(Algorithm):
     def _get_heatmap(self, feature, weight, size=(416, 416)):
         mul = feature * weight
         summation = np.sum(mul, axis=0)
-        saliency_map = self._relu(summation)
+        # saliency_map = self._relu(summation)
+        heatmap = self._relu(summation)
         # Normalize
-        smin, smax = saliency_map.min(), saliency_map.max()
-        if (smax - smin != 0):
-            saliency = (saliency_map - smin) / (smax - smin)
-        else:
-            saliency = saliency_map
-        # Heatmap
-        heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
+        # smin, smax = saliency_map.min(), saliency_map.max()
+        # if (smax - smin != 0):
+        #     saliency = (saliency_map - smin) / (smax - smin)
+        # else:
+        #     saliency = saliency_map
+        # # Heatmap
+        # heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
         # Resize
         # TODO - Size 는 정해졌다고 가정, 임시
         resized = cv2.resize(heatmap, dsize=size, interpolation=cv2.INTER_LINEAR)
         return resized
+    def _norm_heatmap(self, maps):
+        heatmap = sum(maps)
+        smin, smax = heatmap.min(), heatmap.max()
+        if (smax - smin != 0):
+            saliency = (heatmap - smin) / (smax - smin)
+        else:
+            saliency = heatmap
+        return saliency
     
     def _gradcam(self):
         heatmaps = []
@@ -68,7 +77,9 @@ class GradCAM(Algorithm):
                 for (feature, weight) in gradcam:
                     heatmap = self._get_heatmap(feature, weight)
                     maps.append(heatmap)
-                heatmap = sum(maps)
+                saliency = self._norm_heatmap(maps)
+                # Heatmap
+                heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
             else:
                 feature, weight = gradcam
                 heatmap = self._get_heatmap(feature, weight)
@@ -105,7 +116,7 @@ class GradCAM(Algorithm):
         net: darknet.Network = self.model.net
         self.gradcam = []
         # TODO - Target Layer 는 정해졌다고 가정
-        target_layer = [net.layers[29], net.layers[36]]
+        target_layer = [net.layers[30], net.layers[37]]
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
             layer = net.layers[i]
