@@ -6,7 +6,7 @@
 #include "darknet.h"
 
 #ifdef __cplusplus
-exturn "C" {
+extern "C" {
 #endif
 typedef enum dtypes {
     Char = 0,

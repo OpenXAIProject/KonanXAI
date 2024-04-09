@@ -10,10 +10,10 @@ def load_model(config: Configuration, mtype: ModelType, platform: PlatformType):
     # TODO 임시로 아래 내용 사용
     net = None
     if platform == PlatformType.Darknet:
-        #base = "./ckpt/darknet/yolov4tiny/"
-        #name = "1175"
-        base = "./ckpt/darknet/yolov4/"
-        name = "1766"
+        base = "./ckpt/darknet/yolov4tiny/"
+        name = "1175"
+        #base = "./ckpt/darknet/yolov4/"
+        #name = "1766"
         path = base + name
         net = darknet.Network()
         net.load_model_custom(f"{path}.cfg", f"{path}.weights")
