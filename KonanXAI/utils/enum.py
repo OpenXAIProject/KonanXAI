@@ -21,6 +21,7 @@ class DatasetType(enum.Enum):
 class ExplainType(enum.Enum):
     GradCAM         = enum.auto()
     GradCAMpp       = enum.auto()
+    EigenCAM        = enum.auto()
     LRP             = enum.auto()
     IG              = enum.auto()
 

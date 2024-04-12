@@ -42,7 +42,7 @@ class GradCAM(Algorithm):
             
         return saliency
     
-    def _get_heatmap(self, feature, weight, size=(416, 416)):#size=(640, 640)):
+    def _get_heatmap(self, feature, weight, size=(608, 608)):#size=(640, 640)):
         mul = feature * weight
         summation = np.sum(mul, axis=0)
         # saliency_map = self._relu(summation)
@@ -106,6 +106,7 @@ class GradCAM(Algorithm):
                 boxes = layer.get_bboxes(threshold=0.9)
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
+                    print(f"where is box: {i}")
                 # Concat
                 self.bboxes += boxes
         # TODO - NMS, 여기도 Threshold 정적
@@ -116,8 +117,10 @@ class GradCAM(Algorithm):
         net: darknet.Network = self.model.net
         self.gradcam = []
         # TODO - Target Layer 는 정해졌다고 가정
-        #target_layer = [net.layers[138], net.layers[149], net.layers[160]]
-        target_layer = [net.layers[30], net.layers[37]]
+        # target_layer = [net.layers[138], net.layers[149], net.layers[160]]
+        # target_layer = [net.layers[30], net.layers[37]]
+        select_layer = set(list(self.bbox_layer.values()))
+        target_layer = [net.layers[index-1] for index in select_layer]
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
             layer = net.layers[i]

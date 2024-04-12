@@ -27,8 +27,10 @@ def request_algorithm(xai) -> ExplainData:
         explain_class = None
         if algorithm == ExplainType.GradCAM:
             explain_class = GradCAM
-        # elif algorithm == ExplainType.GradCAMpp:
-        #     explain_class = GradCAMpp
+        elif algorithm == ExplainType.GradCAMpp:
+            explain_class = GradCAMpp
+        elif algorithm == ExplainType.EigenCAM:
+            explain_class = EigenCAM
         assert explain_class is not None, "Unsupported XAI algorithm."
         results[explain_class.__name__] = _calculate(explain_class, xai.model, dataset, platform)
 
