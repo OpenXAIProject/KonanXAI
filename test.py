@@ -34,13 +34,13 @@ platform = XAI.PlatformType.Darknet
 # dataset
 dtype = XAI.DatasetType.COCO
 # explain
-etype = XAI.ExplainType.GradCAMpp
+etype = XAI.ExplainType.EigenCAM
 
 xai = XAI.XAI()
 xai.load_model_support(mtype, platform, pretrained=True)
 # xai.load_dataset_support(dtype, maxlen=10, shuffle=False)
 xai.load_dataset_support(dtype)
-xai.set_explain_mode([XAI.ExplainType.GradCAMpp])
+xai.set_explain_mode([XAI.ExplainType.EigenCAM])
 explain = xai.explain()
 explain.save_heatmap("heatmap/")
 pass

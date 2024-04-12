@@ -18,6 +18,7 @@ class GradCAMpp(GradCAM):
         # target_layer = [net.layers[138], net.layers[149], net.layers[160]]
         select_layer = set(list(self.bbox_layer.values()))
         target_layer = [net.layers[index-1] for index in select_layer]
+        print(f"select_layer: {select_layer}")
         # target_layer = [net.layers[30], net.layers[37]]
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]

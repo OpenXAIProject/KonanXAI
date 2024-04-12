@@ -106,7 +106,7 @@ class GradCAM(Algorithm):
                 boxes = layer.get_bboxes(threshold=0.9)
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
-                    print(f"where is box: {i}")
+                    # print(f"where is box: {i}")
                 # Concat
                 self.bboxes += boxes
         # TODO - NMS, 여기도 Threshold 정적
@@ -121,6 +121,7 @@ class GradCAM(Algorithm):
         # target_layer = [net.layers[30], net.layers[37]]
         select_layer = set(list(self.bbox_layer.values()))
         target_layer = [net.layers[index-1] for index in select_layer]
+        print(f"select_layer: {select_layer}")
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
             layer = net.layers[i]

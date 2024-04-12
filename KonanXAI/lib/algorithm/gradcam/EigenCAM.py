@@ -76,6 +76,7 @@ class EigenCAM(GradCAM):
         # TODO - Target Layer 는 정해졌다고 가정
         select_layer = set(list(self.bbox_layer.values()))
         target_layer = [net.layers[index-1] for index in select_layer]
+        print(f"select_layer: {select_layer}")
         gradcam = []
         for target in target_layer:
             feature = np.array(target.get_output())
