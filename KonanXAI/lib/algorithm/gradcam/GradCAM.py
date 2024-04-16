@@ -28,7 +28,7 @@ class GradCAM(Algorithm):
             heatmaps = self._gradcam()
             self.result = heatmaps
             
-        return self.result
+        return self.result, self.bboxes
     
     def _relu(self, x):
         return np.where(x > 0, x, 0)
@@ -42,7 +42,7 @@ class GradCAM(Algorithm):
             
         return saliency
     
-    def _get_heatmap(self, feature, weight, size=(608, 608)):#size=(640, 640)):
+    def _get_heatmap(self, feature, weight, size=(640, 640)):#size=(640, 640)):
         mul = feature * weight
         summation = np.sum(mul, axis=0)
         # saliency_map = self._relu(summation)
@@ -103,7 +103,7 @@ class GradCAM(Algorithm):
         for i, layer in enumerate(net.layers):
             if layer.type == darknet.LAYER_TYPE.YOLO:
                 # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
-                boxes = layer.get_bboxes(threshold=0.9)
+                boxes = layer.get_bboxes(threshold=0.5)
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
                     # print(f"where is box: {i}")
@@ -117,7 +117,7 @@ class GradCAM(Algorithm):
         net: darknet.Network = self.model.net
         self.gradcam = []
         # TODO - Target Layer 는 정해졌다고 가정
-        # target_layer = [net.layers[138], net.layers[149], net.layers[160]]
+        # target_layer = [net.layers[149], net.layers[149], net.layers[160]]
         # target_layer = [net.layers[30], net.layers[37]]
         select_layer = set(list(self.bbox_layer.values()))
         target_layer = [net.layers[index-1] for index in select_layer]

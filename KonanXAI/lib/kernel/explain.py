@@ -1,4 +1,6 @@
 from abc import *
+
+from KonanXAI.lib.core.darknet.yolo import BBox
 from ...utils import compose_heatmap_image
 import cv2
 
@@ -14,8 +16,12 @@ class ExplainData:
         for algorithm, datasets in self.explain.items():
             for i, data in enumerate(datasets):
                 results, origin_image = data
-                for j, saliency in enumerate(results):
+                for j, saliency in enumerate(results[0]):
                     saliency_path = f"{save_path}{algorithm}_saliency_{i}-{j}{ext}"
                     compose_path = f"{save_path}{algorithm}_compose_{i}-{j}{ext}"
-                    cv2.imwrite(saliency_path, saliency)
-                    compose_heatmap_image(saliency, origin_image, save_path=compose_path)
+                    cv2.imwrite(saliency_path, saliency)        
+                    t = results[1][j]            
+                    bbox = BBox(t.in_w, t.in_h,t.cx,t.cy,t.w,t.h,t.entry,t.class_idx,t.class_probs,t.probs)
+                    print(bbox.class_idx)
+                    bbox = bbox.to_xyxy()
+                    compose_heatmap_image(saliency, origin_image,bbox, save_path=compose_path)

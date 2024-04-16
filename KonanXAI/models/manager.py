@@ -12,8 +12,8 @@ def load_model(config: Configuration, mtype: ModelType, platform: PlatformType):
     if platform == PlatformType.Darknet:
         # base = "./ckpt/darknet/yolov4tiny/"
         # name = "1175"
-        base = "./ckpt/darknet/yolov4_origin/"
-        name = "1171"
+        base = "./ckpt/darknet/yolov4_5class/"
+        name = "1093"
         path = base + name
         net = darknet.Network()
         net.load_model_custom(f"{path}.cfg", f"{path}.weights")

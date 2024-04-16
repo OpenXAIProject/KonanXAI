@@ -27,7 +27,7 @@ class EigenCAM(GradCAM):
             result = np.float32(img)
             return result
     
-    def _get_heatmap(self,feature,size=(608,608)):
+    def _get_heatmap(self,feature,size=(640,640)):
         cam_per_target_layer = []
         cam = np.maximum(feature, 0)
         scaled = self.scale_image(cam, target_size=size)
@@ -54,7 +54,7 @@ class EigenCAM(GradCAM):
                 cam_per_target_layer = np.concatenate(maps, axis=0)
                 # cam_per_target_layer = np.maximum(cam_per_target_layer, 0)
                 result = np.sum(cam_per_target_layer, axis=0)
-                saliency = self.scale_image(result,target_size=(608,608))
+                saliency = self.scale_image(result,target_size=(640,640))
                 saliency = saliency#[0,:,:]
                 saliency = self._norm_heatmap(saliency)
                     # if index == 0:
