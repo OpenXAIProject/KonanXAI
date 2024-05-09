@@ -25,7 +25,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from KonanXAI.lib.algorithm import *
+from KonanXAI.lib.attribution import *
 
 
 mtype = XAI.ModelType.Yolov4Tiny

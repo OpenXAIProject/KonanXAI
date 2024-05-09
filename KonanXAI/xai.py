@@ -3,7 +3,7 @@ from .utils import *
 from .models import XAIModel, load_model
 from .datasets import *
 from .lib import kernel
-from .lib.algorithm import *
+from .lib.attribution import *
 
 class XAI:
     def __init__(self):

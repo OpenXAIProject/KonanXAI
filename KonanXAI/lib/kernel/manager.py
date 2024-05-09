@@ -1,5 +1,5 @@
 from ...utils import *
-from ...lib.algorithm import *
+from ...lib.attribution import *
 from ...models import XAIModel
 from .explain import ExplainData
 
