@@ -14,7 +14,7 @@ dtype = XAI.DatasetType.COCO
 etype = XAI.ExplainType.GradCAM
 
 xai = XAI.XAI()
-xai.load_model_support(mtype, platform, pretrained=True)
+# xai.load_model_support(mtype, platform, pretrained=True)
 # xai.load_dataset_support(dtype, maxlen=10, shuffle=False)
 
 #print(xai.model.net)
