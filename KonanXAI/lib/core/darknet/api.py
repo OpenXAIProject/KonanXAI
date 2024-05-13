@@ -8,8 +8,12 @@ cwd = os.path.dirname(__file__)
 if os.name == "posix":
     lib = ct.CDLL(cwd + "/darknet.so", ct.RTLD_GLOBAL)
 elif os.name == "nt":
-    cwd = "D:/xai_darknet/build/darknet/x64/"
-    lib = ct.CDLL(cwd + "/yolo_cpp_dll_no_gpu.dll", winmode=0, mode=ct.RTLD_GLOBAL)
+    cwd = cwd.replace("\\", "/")
+    src = "/darknet/build/darknet/x64/"
+    cpu = "yolo_cpp_dll_no_gpu.dll"
+    gpu = "yolo_cpp_dll.dll"
+    # lib = ct.CDLL(cwd + src + cpu, winmode=0, mode=ct.RTLD_GLOBAL)
+    lib = ct.CDLL(cwd + src + gpu, winmode=0, mode=ct.RTLD_GLOBAL)
 else:
     lib = None
     print("Unsupported OS")
@@ -67,6 +71,8 @@ class DTYPES:
     DictPtr = 7
     IntArray = 8
     FloatArray = 9
+    IntDPtr = 10
+    FloatDPtr = 11
     
 class LAYER_TYPE:
     CONVOLUTIONAL = 0
@@ -201,7 +207,29 @@ del_key_dict = lib.del_key_dict
 del_key_dict.argtypes = (ct.POINTER(LINKED_KEY_LIST), ct.c_char_p)
 
 #=====================================
-# hook
+# hook -> 지울 예정
 network_predict_using_gradient_hook = lib.network_predict_using_gradient_hook
 network_predict_using_gradient_hook.argtypes = (ct.c_void_p, IMAGE)
 network_predict_using_gradient_hook.restype = ct.POINTER(LINKED_KEY_LIST)
+
+# get_network_info
+get_network_info = lib.get_network_info
+get_network_info.argtypes = (ct.c_void_p, )
+get_network_info.restype = ct.POINTER(LINKED_KEY_LIST)
+
+# get_network_layers
+get_network_layers = lib.get_network_layers
+get_network_layers.argtypes = (ct.c_void_p, )
+get_network_layers.restype = ct.POINTER(LINKED_KEY_LIST)
+
+# network_forward_image
+network_forward_image = lib.network_forward_image
+network_forward_image.argtypes = (ct.c_void_p, IMAGE)
+
+# network_backward_delta
+network_backward = lib.network_backward
+network_backward.argtypes = (ct.c_void_p, )
+
+# network_zero_delta
+network_zero_delta = lib.network_zero_delta
+network_zero_delta.argtypes = (ct.c_void_p, )
