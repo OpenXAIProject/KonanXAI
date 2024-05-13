@@ -15,9 +15,9 @@ class XAI:
 
     #----------------------------------------------------
     # Model Import 
-    def load_model_support(self, mtype: ModelType, platform: PlatformType, pretrained=False):
+    def load_model_support(self, mtype: ModelType, platform: PlatformType, pretrained=False, **kwargs):
         config = Configuration()
-        self.model = load_model(config, mtype, platform)
+        self.model = load_model(config, mtype, platform, **kwargs)
 
     def load_model_custom(self, ):
         pass
