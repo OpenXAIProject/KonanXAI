@@ -35,8 +35,10 @@ def load_model(config: Configuration, mtype: ModelType, platform: PlatformType, 
                 repo = kwargs['repo']
         else:
             repo = repository[mtype]
-        
+        source = 'github'
+        if 'source' in kwargs:
+            source = kwargs['source']
         model_name = mtype.name.lower()
-        net = torch.hub.load(repo, model_name)
+        net = torch.hub.load(repo, model_name, source=source)
     model = XAIModel(config, mtype, platform, net)
     return model
