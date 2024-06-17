@@ -103,7 +103,7 @@ class GradCAM(Algorithm):
         for i, layer in enumerate(net.layers):
             if layer.type == darknet.LAYER_TYPE.YOLO:
                 # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
-                boxes = layer.get_bboxes(threshold=0.5)
+                boxes = layer.get_bboxes(threshold=0.9)
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
                     # print(f"where is box: {i}")
@@ -124,7 +124,7 @@ class GradCAM(Algorithm):
         print(f"select_layer: {select_layer}")
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
-            layer = net.layers[i]
+            layer = net.layers[i -1]
             out = layer.get_output()
             net.zero_grad()
             # feature index
@@ -135,16 +135,18 @@ class GradCAM(Algorithm):
             net.backward()
             # Get Features
             gradcam = []
-            for target in target_layer:
-                feature = np.array(target.get_output())
-                gradient = np.array(target.get_delta())
-                stride = target.out_w * target.out_h
-                # Reshape
-                feature = feature.reshape((-1, target.out_w, target.out_h))
-                gradient = gradient.reshape((-1, stride)).mean(1)
-                weight = gradient.reshape((-1, 1, 1))
-                # Append
-                gradcam.append((feature, weight))
+            # box.layer_idx
+            target = layer
+            # for target in target_layer:
+            feature = np.array(target.get_output())
+            gradient = np.array(target.get_delta())
+            stride = target.out_w * target.out_h
+            # Reshape
+            feature = feature.reshape((-1, target.out_w, target.out_h))
+            gradient = gradient.reshape((-1, stride)).mean(1)
+            weight = gradient.reshape((-1, 1, 1))
+            # Append
+            gradcam.append((feature, weight))
             self.gradcam.append(gradcam)
 
 
