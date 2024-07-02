@@ -20,7 +20,7 @@ class GradCAM(Algorithm):
         self.target_layer.bwd_out = []
         fwd_handle = self.target_layer.register_forward_hook(self._hwd_hook)
         # register_full_backward_hook  변경 필요
-        bwd_handle = self.target_layer.register_backward_hook(self._bwd_hook)
+        bwd_handle = self.target_layer.register_full_backward_hook(self._bwd_hook)
         return fwd_handle, bwd_handle
     
     def _hwd_hook(self, l, fx, fy):
@@ -78,11 +78,11 @@ class GradCAM(Algorithm):
             
         return saliency
     
-    def _get_heatmap(self, feature, weight, size=(640, 640)):#size=(640, 640)):
+    def _get_heatmap(self, feature, weight):#size=(640, 640)):
         mul = feature * weight
         summation = np.sum(mul, axis=0)
         heatmap = self._relu(summation)
-        resized = cv2.resize(heatmap, dsize=size, interpolation=cv2.INTER_LINEAR)
+        resized = cv2.resize(heatmap, dsize=self.dataset.fit, interpolation=cv2.INTER_LINEAR)
         return resized
     
     def _norm_heatmap(self, maps):

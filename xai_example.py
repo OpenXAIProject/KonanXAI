@@ -20,7 +20,7 @@ xai = XAI.XAI()
 # xai.load_model_support(mtype, platform, weight_path="./ckpt/darknet/yolov4_4582/4582")
 xai.load_model_support(mtype, platform, weight_path="./resnet50-0676ba61.pth")
 # xai.load_dataset_support(dtype, maxlen=10,path = "D:/Datasets/cifar10", fit_size=(640,640))
-xai.load_dataset_support(dtype, maxlen=10,path = "./data", fit_size=(640,640))
+xai.load_dataset_support(dtype, maxlen=10,path = "./data", fit_size=(224,224))
 
 xai.set_explain_mode([XAI.ExplainType.GradCAM])
 explain = xai.explain(target_layer= xai.model.net.layer4[-1].relu)

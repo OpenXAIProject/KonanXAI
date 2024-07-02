@@ -13,17 +13,22 @@ repository = {
 
 # TODO 각 모델 폴더들은 플랫폼 별 실 모델 구현체로 사용하도록
 # Pytorch, DTrain, Darknet 등...
-def load_weights(weight_path, model_name):
+def load_weights(weight_path:str, model_name:str, net):
     pt = torch.load(weight_path)
     state_dict = {}
     if 'yolo' in model_name:
-        pt = pt['model'].model.state_dict()
-        for k, v in pt.items():
-            key = k if k.startswith('model.') else 'model.'+ k[:]
-            state_dict[key] = v
+        try:
+            pt = pt['model'].model.state_dict()
+            for k, v in pt.items():
+                key = k if k.startswith('model.') else 'model.'+ k[:]
+                state_dict[key] = v
+                net.load_state_dict(state_dict)
+        except:
+            net = pt['ema']
     else:
         state_dict = pt
-    return state_dict
+        net.load_state_dict(state_dict)
+    return net
 
 def load_model(config: Configuration, mtype: ModelType, platform: PlatformType,weight_path: str, **kwargs):
     # TODO 임시로 아래 내용 사용
@@ -49,8 +54,8 @@ def load_model(config: Configuration, mtype: ModelType, platform: PlatformType,w
         model_name = mtype.name.lower()
         net = torch.hub.load(repo, model_name, source=source, **kwargs)
         if weight_path is not None:        
-            state_dict = load_weights(weight_path, model_name)
-            net.load_state_dict(state_dict)
+            net = load_weights(weight_path, model_name, net)
+            # net.load_state_dict(state_dict)
         net.to(device)
         model = XAIModel(config, mtype, platform, net)
         for name, param in net.named_parameters():

@@ -42,6 +42,6 @@ class XAI:
 
     #----------------------------------------------------
     # Explain
-    def explain(self, target_layer = None) -> kernel.ExplainData:
+    def explain(self, target_layer:list) -> kernel.ExplainData:
         self.model.target_layer = target_layer
         return kernel.request_algorithm(self)
