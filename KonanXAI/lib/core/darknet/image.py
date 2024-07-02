@@ -23,7 +23,7 @@ class Image:
         return self.struct
 
 def open_image(img_path: str, size: tuple=None, channel: str='RGB') -> Image:
-    raw = cv2.imread(img_path)
+    raw = cv2.imread(img_path[0])
     if channel in ('GRAY', 'GREY'):
         pass
     elif channel in ('RGB'):

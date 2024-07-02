@@ -3,14 +3,34 @@ from ....utils import *
 from ....models import XAIModel
 from ....datasets import Datasets
 from ...core import darknet
-
+import torch
 import numpy as np
 import cv2
 
 class GradCAM(Algorithm):
     def __init__(self, model: XAIModel, dataset: Datasets, platform: PlatformType):
         super().__init__(model, dataset, platform)
+    def get_target_layer(self):
+        self.target_layer = self.model.target_layer
         
+    def set_model_hook(self):
+        self.target_layer.fwd_in = []
+        self.target_layer.fwd_out = []
+        self.target_layer.bwd_in = []
+        self.target_layer.bwd_out = []
+        fwd_handle = self.target_layer.register_forward_hook(self._hwd_hook)
+        # register_full_backward_hook  변경 필요
+        bwd_handle = self.target_layer.register_backward_hook(self._bwd_hook)
+        return fwd_handle, bwd_handle
+    
+    def _hwd_hook(self, l, fx, fy):
+        l.fwd_in.append(fx[0])
+        l.fwd_out.append(fy[0])
+        
+    def _bwd_hook(self, l, bx, by):
+        l.bwd_in.insert(0, bx[0])
+        l.bwd_out.insert(0, by[0])
+    
     def calculate(self) -> list:
         self.result = None
         mtype = self.model.mtype
@@ -27,8 +47,24 @@ class GradCAM(Algorithm):
             # GradCAM
             heatmaps = self._gradcam()
             self.result = heatmaps
-            
-        return self.result, self.bboxes
+            return self.result, self.bboxes
+        else:
+            self.model.net.eval()
+            self.model.net.requires_grad = True
+            # Set target layer
+            self.get_target_layer()
+            fwd_handle, bwd_handle = self.set_model_hook()
+            # Forward
+            self.model.forward(X)
+            # Backward
+            self._torch_backward()
+            # Gradcam
+            heatmaps = self._gradcam()
+            self.result = heatmaps
+            #result
+            fwd_handle.remove()
+            bwd_handle.remove()
+            return self.result
     
     def _relu(self, x):
         return np.where(x > 0, x, 0)
@@ -45,20 +81,10 @@ class GradCAM(Algorithm):
     def _get_heatmap(self, feature, weight, size=(640, 640)):#size=(640, 640)):
         mul = feature * weight
         summation = np.sum(mul, axis=0)
-        # saliency_map = self._relu(summation)
         heatmap = self._relu(summation)
-        # Normalize
-        # smin, smax = saliency_map.min(), saliency_map.max()
-        # if (smax - smin != 0):
-        #     saliency = (saliency_map - smin) / (smax - smin)
-        # else:
-        #     saliency = saliency_map
-        # # Heatmap
-        # heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
-        # Resize
-        # TODO - Size 는 정해졌다고 가정, 임시
         resized = cv2.resize(heatmap, dsize=size, interpolation=cv2.INTER_LINEAR)
         return resized
+    
     def _norm_heatmap(self, maps):
         heatmap = sum(maps)
         smin, smax = heatmap.min(), heatmap.max()
@@ -83,6 +109,8 @@ class GradCAM(Algorithm):
             else:
                 feature, weight = gradcam
                 heatmap = self._get_heatmap(feature, weight)
+                heatmap = self._norm_heatmap([heatmap])
+                heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
             heatmaps.append(heatmap)
         return heatmaps
                 
@@ -90,11 +118,15 @@ class GradCAM(Algorithm):
     def _yolo_get_bbox(self):
         if self.platform == PlatformType.Darknet:
             self._yolo_get_bbox_darknet()
+        elif self.platform == PlatformType.Pytorch:
+            self._yolo_get_bbox_pytorch()
+           
 
     def _yolo_backward(self):
         if self.platform == PlatformType.Darknet:
             self._yolo_backward_darknet()
-    
+        elif self.platform == PlatformType.Pytorch:
+            self._yolo_backward_pytorch()
     # Darknet
     def _yolo_get_bbox_darknet(self):
         net: darknet.Network = self.model.net
@@ -120,11 +152,10 @@ class GradCAM(Algorithm):
         # target_layer = [net.layers[149], net.layers[149], net.layers[160]]
         # target_layer = [net.layers[30], net.layers[37]]
         select_layer = set(list(self.bbox_layer.values()))
-        target_layer = [net.layers[index-1] for index in select_layer]
         print(f"select_layer: {select_layer}")
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
-            layer = net.layers[i]
+            layer = net.layers[i -1]
             out = layer.get_output()
             net.zero_grad()
             # feature index
@@ -134,17 +165,34 @@ class GradCAM(Algorithm):
             layer.delta[idx] = out[idx]
             net.backward()
             # Get Features
-            gradcam = []
-            for target in target_layer:
-                feature = np.array(target.get_output())
-                gradient = np.array(target.get_delta())
-                stride = target.out_w * target.out_h
-                # Reshape
-                feature = feature.reshape((-1, target.out_w, target.out_h))
-                gradient = gradient.reshape((-1, stride)).mean(1)
-                weight = gradient.reshape((-1, 1, 1))
-                # Append
-                gradcam.append((feature, weight))
-            self.gradcam.append(gradcam)
+            target = layer
+            # for target in target_layer:
+            feature = np.array(target.get_output())
+            gradient = np.array(target.get_delta())
+            stride = target.out_w * target.out_h
+            # Reshape
+            feature = feature.reshape((-1, target.out_w, target.out_h))
+            gradient = gradient.reshape((-1, stride)).mean(1)
+            weight = gradient.reshape((-1, 1, 1))
+            # Append
+            self.gradcam.append((feature, weight))
+        # Pytorch
+    def _torch_backward(self):
+        self.gradcam = []
+        preds = self.model.last_outputs
+        label_index = torch.argmax(preds).item()
+        #backward hook 확인.
+        preds[0][label_index].backward()
+        feature = self.target_layer.fwd_in[-1].detach().cpu().numpy()
+        gradient = self.target_layer.bwd_in[-1].detach().cpu().numpy()
+        
+        feature = feature.reshape((-1, feature.shape[-1], feature.shape[-2]))
+        gradient = gradient.reshape((-1, gradient.shape[-1], gradient.shape[-2]))
+        
+        self.gradcam.append((feature, gradient))
+        
+    def _yolo_get_bbox_pytorch(self):
+        pass
 
-
+    def _yolo_backward_pytorch(self):
+        pass

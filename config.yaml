@@ -1,0 +1,10 @@
+# weight_path
+# data_path
+# target_layer
+config:
+  weight_path: weight_path
+  resize_shape: (640,640)
+  data_path: data_path
+  target_layer: {
+    resnet50: [layer4, '2', relu,"2"]
+  }
