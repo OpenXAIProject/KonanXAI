@@ -1,3 +1,4 @@
+from ...core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
 from ..algorithm import Algorithm
 from ....utils import *
 from ....models import XAIModel
@@ -9,18 +10,26 @@ import cv2
 
 class GradCAM(Algorithm):
     def __init__(self, model: XAIModel, dataset: Datasets, platform: PlatformType):
-        super().__init__(model, dataset, platform)
-    def get_target_layer(self):
-        self.target_layer = self.model.target_layer
-        
+        super().__init__(model, dataset, platform)       
+    
     def set_model_hook(self):
-        self.target_layer.fwd_in = []
-        self.target_layer.fwd_out = []
-        self.target_layer.bwd_in = []
-        self.target_layer.bwd_out = []
-        fwd_handle = self.target_layer.register_forward_hook(self._hwd_hook)
-        # register_full_backward_hook  변경 필요
-        bwd_handle = self.target_layer.register_full_backward_hook(self._bwd_hook)
+        self.target_layer = self.model.target_layer
+        if 'yolo' in self.model.mtype.name.lower():
+            fwd_handle, bwd_handle = [],[]
+            for layer in self.target_layer:
+                layer.fwd_in = []
+                layer.fwd_out = []
+                layer.bwd_in = []
+                layer.bwd_out = []
+                fwd_handle.append(layer.register_forward_hook(self._hwd_hook))
+                bwd_handle.append(layer.register_backward_hook(self._bwd_hook))
+        else: 
+            self.target_layer.fwd_in = []
+            self.target_layer.fwd_out = []
+            self.target_layer.bwd_in = []
+            self.target_layer.bwd_out = []
+            fwd_handle = self.target_layer.register_forward_hook(self._hwd_hook)
+            bwd_handle = self.target_layer.register_backward_hook(self._bwd_hook)
         return fwd_handle, bwd_handle
     
     def _hwd_hook(self, l, fx, fy):
@@ -28,6 +37,7 @@ class GradCAM(Algorithm):
         l.fwd_out.append(fy[0])
         
     def _bwd_hook(self, l, bx, by):
+        print("ioninaisdnasd")
         l.bwd_in.insert(0, bx[0])
         l.bwd_out.insert(0, by[0])
     
@@ -36,6 +46,12 @@ class GradCAM(Algorithm):
         mtype = self.model.mtype
         # Input
         X = self.target_input
+        if self.platform.name.lower() =='pytorch':
+            X.requires_grad=True
+            self.model.net.eval()
+            self.model.net.requires_grad = True
+            # Set target layer
+            fwd_handle, bwd_handle = self.set_model_hook()
         # YOLO
         if mtype in (ModelType.Yolov4, ModelType.Yolov4Tiny, ModelType.Yolov5s):
             # Forward
@@ -49,11 +65,6 @@ class GradCAM(Algorithm):
             self.result = heatmaps
             return self.result, self.bboxes
         else:
-            self.model.net.eval()
-            self.model.net.requires_grad = True
-            # Set target layer
-            self.get_target_layer()
-            fwd_handle, bwd_handle = self.set_model_hook()
             # Forward
             self.model.forward(X)
             # Backward
@@ -192,7 +203,17 @@ class GradCAM(Algorithm):
         self.gradcam.append((feature, gradient))
         
     def _yolo_get_bbox_pytorch(self):
-        pass
-
+        self.preds_origin, raw_logit = self.model.last_outputs
+        self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+        with torch.no_grad():
+            self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model.mtype.name)
+        self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
+        
     def _yolo_backward_pytorch(self):
-        pass
+        saliency_maps = []
+        class_index = []
+        for cls, sel_layer in zip(self.preds[0], self.select_layers):
+            self.model.net.zero_grad()
+            self.logits_origin[sel_layer][int(cls[5].item())].backward()
+            box_saliency_maps = []
+            

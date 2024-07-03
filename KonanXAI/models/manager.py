@@ -24,7 +24,7 @@ def load_weights(weight_path:str, model_name:str, net):
                 state_dict[key] = v
                 net.load_state_dict(state_dict)
         except:
-            net = pt['ema']
+            net = pt['ema'].float().fuse().eval()
     else:
         state_dict = pt
         net.load_state_dict(state_dict)

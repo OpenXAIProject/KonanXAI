@@ -23,8 +23,21 @@ class Configuration:
     def get_target_layer(self, model):
         if self.platform_type.lower() == "pytorch":
             self.target_layer = model
-            for layer in self.config['config']['target_layer']:
-                self.target_layer = self.target_layer._modules[layer]
+            target = self.config['config']['target_layer']
+            if isinstance(target,list):
+                for layer in target:
+                    self.target_layer = self.target_layer._modules[layer]
+            elif isinstance(target,dict):
+                self.target_yolo_layer = []
+                for index, layers in target.items():
+                    base_layer = model
+                    for layer in layers:
+                        base_layer = base_layer._modules[layer]
+                    self.target_yolo_layer.append(base_layer)
+                self.target_layer = self.target_yolo_layer
+            else:
+                self.target_layer = None
+                
         elif self.platform_type.lower() == "darknet":
             self.target_layer = None
         
