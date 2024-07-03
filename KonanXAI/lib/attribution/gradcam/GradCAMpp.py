@@ -33,18 +33,18 @@ class GradCAMpp(GradCAM):
             net.backward()
             # Get Features
             gradcam = []
-            for target in target_layer:
-                feature = np.array(target.get_output())
-                gradient = np.array(target.get_delta())
-                stride = target.out_w * target.out_h
+            target = layer
+            feature = np.array(target.get_output())
+            gradient = np.array(target.get_delta())
+            stride = target.out_w * target.out_h
                 # Reshape
-                feature = feature.reshape((-1, target.out_w, target.out_h))            
-                gradient = gradient.reshape((-1, stride)).mean(1)
+            feature = feature.reshape((-1, target.out_w, target.out_h))            
+            gradient = gradient.reshape((-1, stride)).mean(1)
                 #2계3계미분 근사화
-                eq_numerator = np.power(gradient,2) #분자
-                eq_denominator = np.multiply(np.power(gradient,2),2) + (np.multiply(feature.reshape(-1,stride).mean(1), np.power(gradient,3))+1e-7) #분모
-                weight = eq_numerator / (np.where(eq_denominator != 0.0, eq_denominator,0))
-                weight = weight.reshape(-1,1,1)
+            eq_numerator = np.power(gradient,2) #분자
+            eq_denominator = np.multiply(np.power(gradient,2),2) + (np.multiply(feature.reshape(-1,stride).mean(1), np.power(gradient,3))+1e-7) #분모
+            weight = eq_numerator / (np.where(eq_denominator != 0.0, eq_denominator,0))
+            weight = weight.reshape(-1,1,1)
                 # Append
-                gradcam.append((feature, weight))
+            gradcam.append((feature, weight))
             self.gradcam.append(gradcam)

@@ -16,8 +16,10 @@ class PlatformType(enum.Enum):
     DTrain          = enum.auto()
     
 class DatasetType(enum.Enum):
+    MNIST           = enum.auto()
     COCO            = enum.auto()
-    
+    CUSTOM          = enum.auto()
+    CIFAR10        = enum.auto()
 class ExplainType(enum.Enum):
     GradCAM         = enum.auto()
     GradCAMpp       = enum.auto()
