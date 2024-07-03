@@ -12,11 +12,11 @@
 
 config:
   save_path: "./heatmap/"
-  weight_path: "./yolo_base_model.pt"
+  weight_path: "./ckpt/darknet/yolov4_4582/4582"
   data_path: "./data"
   data_resize: [640,640]
-  model_type: yolov5s
-  platform_type: pytorch
+  model_type: yolov4
+  platform_type: darknet
   data_type: CUSTOM
   explain_type: GradCAM
-  target_layer: {'0':[model,'24',m,'0'],'1':[model,'24',m,'1'],'2':[model,'24',m,'2']}
+  target_layer: None

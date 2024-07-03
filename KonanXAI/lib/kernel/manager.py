@@ -40,4 +40,4 @@ def request_algorithm(xai) -> ExplainData:
         assert explain_class is not None, "Unsupported XAI algorithm."
         results[explain_class.__name__] = _calculate(explain_class, xai.model, dataset, platform)
 
-    return ExplainData(results, xai.model.mtype.name.lower())
+    return ExplainData(results, xai.model.mtype.name.lower(), platform.name.lower())

@@ -22,14 +22,14 @@ class GradCAM(Algorithm):
                 layer.bwd_in = []
                 layer.bwd_out = []
                 fwd_handle.append(layer.register_forward_hook(self._hwd_hook))
-                bwd_handle.append(layer.register_backward_hook(self._bwd_hook))
+                bwd_handle.append(layer.register_full_backward_hook(self._bwd_hook))
         else: 
             self.target_layer.fwd_in = []
             self.target_layer.fwd_out = []
             self.target_layer.bwd_in = []
             self.target_layer.bwd_out = []
             fwd_handle = self.target_layer.register_forward_hook(self._hwd_hook)
-            bwd_handle = self.target_layer.register_backward_hook(self._bwd_hook)
+            bwd_handle = self.target_layer.register_full_backward_hook(self._bwd_hook)
         return fwd_handle, bwd_handle
     
     def _hwd_hook(self, l, fx, fy):
@@ -37,7 +37,6 @@ class GradCAM(Algorithm):
         l.fwd_out.append(fy[0])
         
     def _bwd_hook(self, l, bx, by):
-        print("ioninaisdnasd")
         l.bwd_in.insert(0, bx[0])
         l.bwd_out.insert(0, by[0])
     
@@ -63,6 +62,10 @@ class GradCAM(Algorithm):
             # GradCAM
             heatmaps = self._gradcam()
             self.result = heatmaps
+            if self.platform.name.lower() =='pytorch':
+                for fwd, bwd in zip(fwd_handle,bwd_handle):
+                    fwd.remove()
+                    bwd.remove()
             return self.result, self.bboxes
         else:
             # Forward
@@ -91,9 +94,9 @@ class GradCAM(Algorithm):
     
     def _get_heatmap(self, feature, weight):#size=(640, 640)):
         mul = feature * weight
-        summation = np.sum(mul, axis=0)
+        summation = np.sum(mul,axis=0,dtype=np.float32)
         heatmap = self._relu(summation)
-        resized = cv2.resize(heatmap, dsize=self.dataset.fit, interpolation=cv2.INTER_LINEAR)
+        resized = cv2.resize(heatmap, dsize=self.dataset.fit, interpolation=cv2.INTER_CUBIC)
         return resized
     
     def _norm_heatmap(self, maps):
@@ -196,11 +199,13 @@ class GradCAM(Algorithm):
         preds[0][label_index].backward()
         feature = self.target_layer.fwd_in[-1].detach().cpu().numpy()
         gradient = self.target_layer.bwd_in[-1].detach().cpu().numpy()
+        stride = gradient.shape[-1] * gradient.shape[-2]
         
         feature = feature.reshape((-1, feature.shape[-1], feature.shape[-2]))
-        gradient = gradient.reshape((-1, gradient.shape[-1], gradient.shape[-2]))
+        gradient = gradient.reshape((-1, stride)).mean(1)
+        weight = gradient.reshape((-1, 1, 1))
         
-        self.gradcam.append((feature, gradient))
+        self.gradcam.append((feature, weight))
         
     def _yolo_get_bbox_pytorch(self):
         self.preds_origin, raw_logit = self.model.last_outputs
@@ -210,10 +215,20 @@ class GradCAM(Algorithm):
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
     def _yolo_backward_pytorch(self):
-        saliency_maps = []
-        class_index = []
-        for cls, sel_layer in zip(self.preds[0], self.select_layers):
+        self.gradcam = []
+        self.bboxes = []
+        for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.net.zero_grad()
-            self.logits_origin[sel_layer][int(cls[5].item())].backward()
-            box_saliency_maps = []
+            self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
+            layer = self.target_layer[sel_layer_index]
             
+            feature = layer.fwd_out[-1].detach().cpu().numpy()
+            gradient = layer.bwd_out[0].detach().cpu().numpy()
+            stride = gradient.shape[-1] * gradient.shape[-2]
+            
+            feature = feature.reshape((-1, feature.shape[-1], feature.shape[-2]))
+            gradient = gradient.reshape((-1, stride)).mean(1)
+            weight = gradient.reshape((-1, 1, 1))
+            
+            self.bboxes.append(cls[...,:4].detach().cpu().numpy())
+            self.gradcam.append((feature, weight))

@@ -3,6 +3,7 @@ from ..utils import ModelType, PlatformType
 from ..lib.core import darknet
 from .model import XAIModel
 import torch
+import torch.nn as nn
 repository = {
     ModelType.ResNet50: 'pytorch/vision:v0.10.0',
     ModelType.VGG16: 'pytorch/vision:v0.10.0',
@@ -18,11 +19,11 @@ def load_weights(weight_path:str, model_name:str, net):
     state_dict = {}
     if 'yolo' in model_name:
         try:
-            pt = pt['model'].model.state_dict()
-            for k, v in pt.items():
+            model = pt['model'].model.state_dict()
+            for k, v in model.items():
                 key = k if k.startswith('model.') else 'model.'+ k[:]
                 state_dict[key] = v
-                net.load_state_dict(state_dict)
+            net.load_state_dict(state_dict)
         except:
             net = pt['ema'].float().fuse().eval()
     else:
@@ -57,7 +58,12 @@ def load_model(config: Configuration, mtype: ModelType, platform: PlatformType,w
             net = load_weights(weight_path, model_name, net)
             # net.load_state_dict(state_dict)
         net.to(device)
+        # full_backward를 위함 
+        for name, module in net.named_modules():
+            if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
+                module.inplace = False
         model = XAIModel(config, mtype, platform, net)
+        
         for name, param in net.named_parameters():
             model.device = param.dtype
             break

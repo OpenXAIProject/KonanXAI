@@ -3,8 +3,10 @@ from ..lib.core import darknet
 # from ..lib.core import pytorch
 import random
 import cv2
+from PIL import Image
 import numpy as np
 import torch
+from torchvision import transforms
 class Datasets:
     def __init__(self, src_path, label_path=None):
         if label_path is None:
@@ -68,11 +70,17 @@ class Datasets:
                     if isinstance(data,np.ndarray):
                         data = data
                     else:
-                        data = cv2.imread(xp)
+                        data = Image.open(xp)
+                        # data = cv2.imread(xp,cv2.COLOR_BGR2RGB)
                     if self.fit is not None:
-                        data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
-                    data = np.transpose(data, (2, 0, 1))
-                    x = torch.tensor(data, dtype=torch.float32) / 255.
+                        compose_resize = transforms.Compose([
+                            transforms.Resize(self.fit),
+                            transforms.ToTensor()
+                        ])
+                        # data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
+                    # data = np.transpose(data, (2, 0, 1))
+                    # x = torch.tensor(data, dtype=torch.float32) / 255.
+                    x = compose_resize(data)
                     if isinstance(yp, list):
                         y = torch.tensor([yp], dtype=torch.float32)
                     else:
