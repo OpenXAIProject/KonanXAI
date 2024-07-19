@@ -134,7 +134,7 @@ class Graph:
     def __init__(self, model: XAIModel, conf_path: str):
         self.layers: list[Blocks] = []
         self._load_conf(conf_path)
-    
+        
     def _load_conf(self, conf_path:str):
         with open(conf_path, encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
@@ -165,6 +165,7 @@ class Graph:
             n = max(round(n * gd), 1) if n > 1 else n
             idx = i+f if f == -1 else f
             print(f"[{i}]\t\t{idx}\t\t{module.__name__}\t\t{args}")
+            # module = module(n=n, arg_dict.values)
             module = module(n=n, c0=c0, c1=c1, c2=c2, c3=c3)
             print(module)
 

@@ -91,8 +91,18 @@ class Configuration:
         elif self.explain_type.lower() == "eigencam":
             return XAI.ExplainType.EigenCAM
         elif self.explain_type.lower() == "lrp":
-            return XAI.ExplainType.LRP
+            mode = self._check_explain_mode()
+            return XAI.ExplainType.LRP, mode
         elif self.explain_type.lower() == "ig":
             return XAI.ExplainType.IG
         else:
             raise Exception("explain_type_None")
+    def _check_explain_mode(self):
+        try:
+            mode = self.config['config']['explain_mode']
+            if mode.lower() == "epslion":
+                return XAI.LRPRule.Epsilon
+            elif mode.lower() == "alphbeta":
+                return XAI.LRPRule.AlphaBeta
+        except:
+            raise Exception("explain_mode is None")

@@ -3,7 +3,7 @@ from abc import *
 from KonanXAI.lib.core.darknet.yolo import BBox
 from ...utils import compose_heatmap_image
 import cv2
-
+import numpy as np
 class ExplainData:
     def __init__(self, results: dict, mtype: str, platform: str):
         self.explain = results
@@ -24,6 +24,15 @@ class ExplainData:
                 for j, saliency in enumerate(results):
                     saliency_path = f"{save_path}{algorithm}_saliency_{i}-{j}{ext}"
                     compose_path = f"{save_path}{algorithm}_compose_{i}-{j}{ext}"
+                    if algorithm == "LRP":
+                        import torch
+                        import matplotlib
+                        cmap = matplotlib.cm.bwr
+                        saliency = saliency / torch.max(saliency)
+                        saliency = (saliency +1.)/2.
+                        rgb = cmap(saliency.flatten())[...,0:3].reshape([saliency.shape[-2], saliency.shape[-1], 3])
+                        result = np.uint8(rgb*255) 
+                        saliency = cv2.cvtColor(result,cv2.COLOR_BGR2RGB)
                     cv2.imwrite(saliency_path, saliency)   
                     if 'yolo' in self.mtype:
                         draw_box = True

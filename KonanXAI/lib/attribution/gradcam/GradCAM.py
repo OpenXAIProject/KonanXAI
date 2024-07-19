@@ -209,9 +209,13 @@ class GradCAM(Algorithm):
         
     def _yolo_get_bbox_pytorch(self):
         self.preds_origin, raw_logit = self.model.last_outputs
+        # 예측 결과에 대한 class probablity를 저장하기 위함
         self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+        # 예측 결과와 probablity를 통해 어느 anchor박스의 gird x,y 위치 인덱스를 추출
         with torch.no_grad():
             self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model.mtype.name)
+        # 추출된 박스에 대한 target_layer를 설정하기 위한 부분 
+        # ex) yolov5s의 경우 Detect 모듈은 [17,20,23]
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
     def _yolo_backward_pytorch(self):

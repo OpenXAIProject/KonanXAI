@@ -15,3 +15,4 @@ x86
 .vscode
 *.jpg
 *.pt
+*.pth

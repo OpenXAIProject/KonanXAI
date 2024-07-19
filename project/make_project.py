@@ -19,7 +19,7 @@ class make_attirbution(Configuration):
         self.etype = self._check_explain_type()
     
     def set_xai(self):      
-        self.xai.load_model_support(self.mtype, self.platform, weight_path = self.weight_path)
+        self.xai.load_model_support(self.mtype, self.platform, weight_path = self.weight_path)        
         self.xai.load_dataset_support(self.dtype, maxlen=10, path = self.data_path, fit_size = self.data_resize)
         self.xai.set_explain_mode([self.etype])
         
