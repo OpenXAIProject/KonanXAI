@@ -5,7 +5,7 @@ class ModelType(enum.Enum):
     VGG16           = enum.auto()
     VGG19           = enum.auto()
     ResNet50        = enum.auto()
-    EfficientNetB0  = enum.auto()
+    EfficientNet_B0  = enum.auto()
     Yolov4          = enum.auto()
     Yolov4Tiny      = enum.auto()
     Yolov5s         = enum.auto()

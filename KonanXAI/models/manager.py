@@ -5,9 +5,10 @@ from .model import XAIModel
 import torch
 import torch.nn as nn
 repository = {
-    ModelType.ResNet50: 'pytorch/vision:v0.10.0',
-    ModelType.VGG16: 'pytorch/vision:v0.10.0',
-    ModelType.VGG19: 'pytorch/vision:v0.10.0',
+    ModelType.ResNet50: 'pytorch/vision:v0.11.0',
+    ModelType.VGG16: 'pytorch/vision:v0.11.0',
+    ModelType.VGG19: 'pytorch/vision:v0.11.0',
+    ModelType.EfficientNet_B0: 'pytorch/vision:v0.11.0.',
     #ModelType.Yolov4: '',
     ModelType.Yolov5s: 'ultralytics/yolov5',
 }

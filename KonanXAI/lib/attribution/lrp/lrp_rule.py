@@ -436,7 +436,99 @@ class Add(LRPModule):
     
     def __repr__(self):
         return 'Add : ' + str(self.modules)
+
+class Mul(LRPModule):
+    def __init__(self, module1: Sequential, module2: Sequential):
+        def add_forward_hook1(m, input_tensor, output_tensor):
+            self.X[0] = F.relu(output_tensor[0].detach())
+        def add_forward_hook2(m, input_tensor, output_tensor):
+            self.X[1] = F.relu(output_tensor[0].detach())
+        self.X = [None, None]
+        self.handle = []
+        self.modules = [module1, module2]
+        for i, m in enumerate(self.modules):
+            if hasattr(m[-1], 'module') and isinstance(m[-1].module, nn.Module):
+                method = add_forward_hook1 if i == 0 else add_forward_hook2
+                self.handle.append(m[-1].module.register_forward_hook(method))
+            if isinstance(m[-1], Sequential):
+                method = add_forward_hook1 if i == 0 else add_forward_hook2
+                self.handle.append(m[-1][-1].module.register_forward_hook(method))
+            
+    def forward(self, x):
+        return torch.mul(*x)
+    
+    def epsilon(self, R, rule, alpha):
+        for i, m in enumerate(self.modules):
+            if self.X[i] is None:
+                if isinstance(m[-1], Input):
+                    handle = m[-1].handle.pop().id
+                    self.X[i] = m[-1].X[handle].detach()
+                    break
+            elif self.X[-1] is not None:
+                if len(self.modules[-1].modules[0].handle) == 0:
+                    break
+                else:
+                    self.modules[-1].modules[0].handle.pop()
+                    break
+        for x in self.X:
+            x.requires_grad_(True)
         
+        # 차원 맞추기
+        R = R.squeeze()
+
+        Z = self.forward(self.X)
+        S = safe_divide(R, Z)
+        C = self.gradprop(Z, self.X, S)[0]
+        if torch.is_tensor(self.X) == False:
+            outputs = []
+            outputs.append(self.X[0] * C)
+            outputs.append(self.X[1] * C)
+        else:
+            outputs = self.X * (C)
+        R = outputs
+
+        mR = ()
+        for i, m in enumerate(self.modules):
+            mR = mR * (m.backprop(R[i], rule, alpha), )
+
+        return mR
+    
+    def signed_forward(self, x):
+        return self.forward(*x)
+    
+    def alphabeta(self, R, rule, alpha):
+        for i, m in enumerate(self.modules):
+            if self.X[i] is None:
+                if isinstance(m[-1], Input):
+                    self.X[i] = m[-1].X.detach()
+                    break
+        for x in self.X:
+            x.requires_grad_(True)
+
+        R = R.squeeze()
+
+        X = self.X
+        Z = self.forward(self.X)
+        Z_pos = Z.clamp(min=0)
+        Z_neg = Z.clamp(max=0)
+            
+        S_1 = safe_divide(R, Z_pos)
+        S_2 = safe_divide(R, Z_neg)
+
+        C_11 = X[0] * self.gradprop(Z_pos, X[0], S_1)[0]
+        C_21 = X[1] * self.gradprop(Z_pos, X[1], S_1)[0]
+        C_12 = X[0] * self.gradprop(Z_neg, X[0], S_2)[0]
+        C_22 = X[1] * self.gradprop(Z_neg, X[1], S_2)[0]
+
+        mR = ()
+
+        for i, m in enumerate(self.modules):
+            mR = mR + (m.backprop(R[i], rule, alpha), )
+
+        return mR
+    
+    def __repr__(self):
+        return 'Mul : ' + str(self.modules)
     
 class Clone(LRPModule):
     def __init__(self, origin, num=2):

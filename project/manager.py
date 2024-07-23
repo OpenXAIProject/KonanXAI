@@ -48,8 +48,8 @@ class Configuration:
             return XAI.ModelType.VGG16
         elif self.model_type.lower() == "vgg19":
             return XAI.ModelType.VGG19
-        elif self.model_type.lower() == "efficientNetB0":
-            return XAI.ModelType.EfficientNetB0
+        elif self.model_type.lower() == "efficientnet_b0":
+            return XAI.ModelType.EfficientNet_B0
         elif self.model_type.lower() == "yolov4":
             return XAI.ModelType.Yolov4
         elif self.model_type.lower() == "yolov4tiny":
