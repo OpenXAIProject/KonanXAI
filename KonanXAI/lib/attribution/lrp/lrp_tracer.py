@@ -4,7 +4,7 @@ import numpy as np
 from torch.fx.node import Node
 from typing import Dict
 
-from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul
+from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth
 from ....models import XAIModel
 import torch
 import torch.nn as nn
@@ -53,6 +53,17 @@ class Graph:
                 target_module = getattr(target_module,value)
         return target_module
     
+    def _next_layer_name(self, v):
+        layer_names = v.target.split(".")
+        if len(layer_names) == 1:
+            return None
+        else:
+            if layer_names[0][-1].isdigit():
+                name = layer_names[0]
+            else:
+                name = layer_names[0] + layer_names[1]
+            return name
+        
     def _target_layer_name(self, v):
         layer_names = v.target.split(".")
         prev_layer = self._layer_name
@@ -88,6 +99,8 @@ class Graph:
         self.index = 0
         call_func_layer = []
         self.variable = {}
+        self.stocastic = {}
+        self.add = {}
         self.modules = dict(self.model.named_modules())
         for v in gt_graph.nodes:
             if v.op == 'placeholder':
@@ -101,6 +114,12 @@ class Graph:
                         trace_graph.append(Sequential(main_layer))
                         main_layer.clear()
                         call_func_layer.append(target)
+                    # new
+                    # elif len(sub_layer)>0:
+                    #     main_layer.append(Sequential(sub_layer))
+                    #     sub_layer.clear()
+                    #     call_func_layer.append(target)
+                    #
                     else:
                         call_func_layer.append(target)
                 elif is_next_layer == False and self._layer_name == None:
@@ -112,14 +131,38 @@ class Graph:
                         call_func_layer.clear()
                     trace_graph.append(target)
                 elif is_next_layer == False:
-                    if str(v.prev).startswith(("mul", "add")):
-                        sub_layer.append(target)
-                        main_layer.append(Sequential(sub_layer))
-                        sub_layer.clear()
+                    # if str(v.prev).startswith(("mul", "add")):
+                    is_ok = False
+                    for key in sub_layer:
+                        if key.__class__ in (Mul, Add):
+                            is_ok = True
+                            break
+                    if len(self.variable) == 0 and is_ok:
+                        if self._next_layer_name(v.next) != self._layer_name:
+                            sub_layer.append(target)
+                            main_layer.append(Sequential(sub_layer))
+                            sub_layer.clear()
+                            is_ok = False
+                        else:
+                            if len(sub_layer)>0 and len(self.variable)>1:
+                                main_layer.append(Sequential(sub_layer))
+                                sub_layer.clear()
+                                call_func_layer.append(target)
+                            else:
+                                if len(call_func_layer)>0:
+                                    sub_layer.append(Sequential(call_func_layer))
+                                    call_func_layer.clear()
+                                sub_layer.append(target)
+                                is_ok = False
                     else:
                         if len(self.variable)>0:
                             if v.name in str(self.variable.keys()):
                                 self.x0 = Sequential(call_func_layer)
+                                call_func_layer.clear()
+                            elif len(self.variable)>1 and len(sub_layer)>0:
+                                sub_layer.append(Sequential(call_func_layer))
+                                main_layer.append(Sequential(sub_layer))
+                                sub_layer.clear()
                                 call_func_layer.clear()
                             call_func_layer.append(target)
                         else:
@@ -139,6 +182,7 @@ class Graph:
                         self.x1 = Sequential([self.input, m])
                     call_func_layer.clear()           
                     add = Add(self.x0, self.x1)
+                    self.add[str(v.name)] = add
                     sub_layer.append(add)
                     del_variable = list(self.variable.keys())[-1]
                     del self.variable[del_variable]
@@ -153,10 +197,15 @@ class Graph:
                     call_func_layer.clear()           
                     mul = Mul(self.x0, self.x1)
                     sub_layer.append(mul)
-                    del_variable = list(self.variable.keys())[-1]
-                    del self.variable[del_variable]
+                    # del_variable = list(self.variable.keys())[-1]
+                    del self.variable[v]
                 elif v.name.startswith("flatten"):
                     trace_graph.append(Flatten(self.modules[str(v.prev)]))
+                elif v.name.startswith("stochastic_depth"):
+                    layer, p, mod, training = v.args
+                    _module = StochasticDepth(self.modules[str(layer.target)],p,mod,training)
+                    self.stocastic[str(v.name)] = _module
+                    call_func_layer.append(_module)
                     
                 # print("function name: ",v.name, "argument: ",v.args, "usage: ",v.users)
             if len(v.users)>1:
@@ -170,17 +219,25 @@ class Graph:
                 try:
                     clone = Clone(self.modules[str(v.target)], num=len(v.users))
                 except:
-                    clone = Clone(self.modules[str(v.next.target)], num = len(v.users))
+                    # 다른 방법 처리 필요.. stocastic_dept를 어떻게 가져올까...
+                    try:
+                        module = (self.stocastic[str(v.args[0])] , self.modules[v.args[1].target])
+                    except:
+                        module = (self.stocastic[str(v.args[0])] , self.add[str(v.args[1])])
+                    clone = Clone(module, num = len(v.users))
                 next_name = list(v.users.keys())[-1]
                 self.variable[next_name] = v.op
-                sub_layer.append(clone)
+                if self._next_layer_name(v.next) == self._layer_name:
+                    sub_layer.append(clone)
+                else:
+                    sub_layer.append(clone)
         # print(trace_graph)
         if len(call_func_layer)>0:
             trace_graph.append(Sequential(call_func_layer))
-            print("call function layer is not empty")
-        elif len(sub_layer)>0:
-            print("sub layer is not empty")
-        elif len(main_layer)>0:
-            print("main layer is not empty")
+            # print("call function layer is not empty")
+        # elif len(sub_layer)>0:
+        #     # print("sub layer is not empty")
+        # elif len(main_layer)>0:
+        #     # print("main layer is not empty")
             
-        return Sequential(trace_graph)
+        return Sequential(trace_graph) 

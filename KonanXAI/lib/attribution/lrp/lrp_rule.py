@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import sys
-
+import numpy as np
 def safe_divide(relevance_in, z, eps=sys.float_info.epsilon):
     sign = torch.sign(z)     # 여기 이 부분 부터는 따로 함수로 묶어도 될 듯
     sign[z==0] = 1
@@ -212,6 +212,10 @@ class Sequential(LRPModule):
                 self.modules.append(BatchNormNd(module))
             elif isinstance(module, nn.ReLU):
                 self.modules.append(ReLU(module, module.layer_count))
+            elif isinstance(module, nn.SiLU):
+                self.modules.append(SiLU(module, module.layer_count))
+            elif isinstance(module, nn.Sigmoid):
+                self.modules.append(Sigmoid(module, module.layer_count))
             elif isinstance(module, list):
                 self._add_modules(module)
             elif isinstance(module, nn.modules.dropout._DropoutNd):
@@ -343,7 +347,57 @@ class ReLU(LRPModule):
     
     def alphabeta(self, R, rule, alpha):
         return R
+class SiLU(LRPModule):
+    def __init__(self, module, idx):
+        self.module: nn.Module = module
+        self.module.X = []
+        self.module.Y = []
+        self.handle = []
+        self.idx = idx
+        if not hasattr(self.module, 'hook_handle'):
+            def silu_forward_hook(m, input_tensor, output_tensor):
+                m.X.append(input_tensor[0])
+                m.Y.append(output_tensor[0])
+            self.module.hook_handle = self.module.register_forward_hook(silu_forward_hook)
 
+    def epsilon(self, R, rule, alpha):
+        X = self.module.X[self.idx]
+        Z = self.forward(X)
+        S = safe_divide(R, Z)
+        C = self.gradprop(Z, X, S)[0]
+
+        outputs = X * (C)
+
+        return outputs
+    
+    def alphabeta(self, R, rule, alpha):
+        return R
+
+class Sigmoid(LRPModule):
+    def __init__(self, module, idx):
+        self.module: nn.Module = module
+        self.module.X = []
+        self.module.Y = []
+        self.handle = []
+        self.idx = idx
+        if not hasattr(self.module, 'hook_handle'):
+            def sigmoid_forward_hook(m, input_tensor, output_tensor):
+                m.X.append(input_tensor[0])
+                m.Y.append(output_tensor[0])
+            self.module.hook_handle = self.module.register_forward_hook(sigmoid_forward_hook)
+
+    def epsilon(self, R, rule, alpha):
+        X = self.module.X[self.idx]
+        Z = self.forward(X)
+        S = safe_divide(R, Z)
+        C = self.gradprop(Z, X, S)[0]
+
+        outputs = X * (C)
+
+        return outputs
+    
+    def alphabeta(self, R, rule, alpha):
+        return R
 class Add(LRPModule):
     def __init__(self, module1: Sequential, module2: Sequential):
         def add_forward_hook1(m, input_tensor, output_tensor):
@@ -367,7 +421,10 @@ class Add(LRPModule):
     def epsilon(self, R, rule, alpha):
         for i, m in enumerate(self.modules):
             if self.X[i] is None:
-                if isinstance(m[-1], Input):
+                if isinstance(m[-1], StochasticDepth):
+                    self.modules[-1].modules[0].handle.pop()
+                    self.X[i] = m[-1].X.detach()
+                elif isinstance(m[-1], Input):
                     handle = m[-1].handle.pop().id
                     self.X[i] = m[-1].X[handle].detach()
                     break
@@ -474,7 +531,7 @@ class Mul(LRPModule):
             x.requires_grad_(True)
         
         # 차원 맞추기
-        R = R.squeeze()
+        R = R[0].squeeze()
 
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
@@ -489,7 +546,7 @@ class Mul(LRPModule):
 
         mR = ()
         for i, m in enumerate(self.modules):
-            mR = mR * (m.backprop(R[i], rule, alpha), )
+            mR = mR + (m.backprop(R[i], rule, alpha), )
 
         return mR
     
@@ -537,6 +594,8 @@ class Clone(LRPModule):
     # max pool쪽 err 
     def epsilon(self, R, rule, alpha):
         Z = []
+        if isinstance(self.origin, tuple):
+            self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
         if isinstance(self.origin, nn.modules.pooling._MaxPoolNd):
             X = self.origin(self.origin.X[-1]).unsqueeze(0).detach()
         else:
@@ -585,7 +644,27 @@ class Cat(LRPModule):
             out.append(x * c)
         
         return out
+class StochasticDepth(LRPModule):
+    def __init__(self, prev_module, p, mod, training):
+        self.X = None
+        self.p = p
+        def stochastic_forward_hook(m, input_tensor, output_tensor):
+            self.X = output_tensor[0]
+            self.Y = input_tensor[0]
+        self.handle = []
+        self.handle.append(prev_module.register_forward_hook(stochastic_forward_hook))
 
+    def epsilon(self, R, rule, alpha):
+        # R = R.reshape(self.X.shape)
+        scaled_out = self.X * self.p
+        denominator = scaled_out + 1e-7 * torch.sign(scaled_out)
+        relevance_ratio = R / denominator
+        R = self.Y * relevance_ratio
+        return R
+    
+    def alphabeta(self, R, rule, alpha):
+        R = R.reshape(self.X.shape)
+        return R
 class Flatten(LRPModule):
     def __init__(self, prev_module):
     
