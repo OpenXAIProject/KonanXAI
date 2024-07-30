@@ -1,5 +1,6 @@
 
 import torch
+from torchvision.ops import StochasticDepth as stocastic
 import torch.nn.functional as F
 import torch.nn as nn
 import sys
@@ -281,7 +282,6 @@ class Sequential(LRPModule):
             else:
                 pass
                 # print("Output Relevance :", torch.sum(R))
-        
         return R.detach()
     
     def alphabeta(self, R, rule, alpha):
@@ -424,8 +424,26 @@ class Add(LRPModule):
                 if isinstance(m[-1], StochasticDepth):
                     self.modules[-1].modules[0].handle.pop()
                     self.X[i] = m[-1].X.detach()
+                # elif not isinstance(m[-1], StochasticDepth):
+                #     for j, _m in enumerate(reversed(m)):
+                #         if j==0 and isinstance(_m[-1], StochasticDepth):
+                #             continue
+                #         else:
+                #             _m.backprop(R,rule,alpha)
+                #         print(1)
+                elif isinstance(m[-1], Sequential):
+                    if isinstance(m[-1][-1], StochasticDepth):
+                        handle = self.modules[-1].modules[0].handle.pop().id
+                        self.X[i] = self.modules[-1].modules[0].X[handle].detach()
+                    # for sub_module in m.modules:
+                    #     if isinstance(sub_module,Mul):
+                    #         sub_module.backprop(R,rule,alpha)
+                    #         print(1)
                 elif isinstance(m[-1], Input):
-                    handle = m[-1].handle.pop().id
+                    if self.X[0].shape == m[-1].X[m[-1].handle[-2].id].shape:
+                        handle = m[-1].handle.pop(-2).id
+                    else:
+                        handle = m[-1].handle.pop().id
                     self.X[i] = m[-1].X[handle].detach()
                     break
             elif self.X[-1] is not None:
@@ -527,11 +545,12 @@ class Mul(LRPModule):
                 else:
                     self.modules[-1].modules[0].handle.pop()
                     break
+
         for x in self.X:
             x.requires_grad_(True)
         
         # 차원 맞추기
-        R = R[0].squeeze()
+        R = R.squeeze()
 
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
@@ -644,15 +663,17 @@ class Cat(LRPModule):
             out.append(x * c)
         
         return out
+
 class StochasticDepth(LRPModule):
     def __init__(self, prev_module, p, mod, training):
         self.X = None
         self.p = p
+        self.module = stocastic(p,mod)
         def stochastic_forward_hook(m, input_tensor, output_tensor):
             self.X = output_tensor[0]
             self.Y = input_tensor[0]
         self.handle = []
-        self.handle.append(prev_module.register_forward_hook(stochastic_forward_hook))
+        self.handle.append(self.module.register_forward_hook(stochastic_forward_hook))
 
     def epsilon(self, R, rule, alpha):
         # R = R.reshape(self.X.shape)
