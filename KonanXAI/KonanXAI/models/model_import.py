@@ -4,41 +4,94 @@ import torchvision
 import urllib
 import git
 
+import os
+
+# import 경로만 모아놔야 하는데..
+from KonanXAI.models.hubconf import Git, Yolov5, Ultralytics
+
 import KonanXAI._core
 
-#__all__   # model들 리스트 쓰기                       
 
-def _save_in_cache():
+# torch/hub로 torchvision 모델 불러오려고 하니 hubconf.py 없어서 에러 생김
+__version_of_torchvision__ = [
+    'pytorch/vision:v0.10.0'
+]
+
+__torchvision_models__ = [
+    'efficientnet_b0'
+]
+
+
+__repository__ = [
+    'ultralytics/yolov5',
+    'ultralytics/ultralytics'
+]
+
+# 이건 각 source별로 모델 네이밍이 다를 거 같아 좀 생각해봐야..
+__list_of_models__ = [
+    'ResNet50',
+    'VGG19',
+    'EfficientNet-b0'
+]
+
+def load_weight():
     pass
 
-def _save_from_cache():  # torchvision or torch/hub 모델 저장할 때
-    pass
+# def _parsing_git_url(git_url):
 
-def _git_clone(git_url = None, local_path_to_load = None):
-    git.Git(local_path_to_load).clone(git_url)
+#     #return folder_tree
+#     pass
+
+
+
+
+def _local_model_load(local_path, model_name):
+    model = Ultralytics(local_path, model_name)
+    model = model._load()
+    #_get_file_tree(local_path)
+    return model
+
+
+# 그냥 git._load에서 download까지 한꺼번에 하게 할까 분리할까...?
+def _git_repository_load(repo_or_dir, model_name, cache_or_local):
+    git = Git(repo_or_dir, model_name)
+    git._download_from_url(cache_or_local)
+    model = git._load()
     
+    return model
 
 
+
+# main인지 master인지 알아내야하는 코드가 필요하네?
+# branch까지 기재하는걸로 할까?
 def _torch_model_load(
         source = None,
         repo_or_dir = None,
         model_name = None,
-        local_path_to_load = None,
+        cache_or_local = None,
         weight_path = None):
     
     
-    
-    # if source == 'torchvision':
-    #     model = torchvision.models('') #.. model 이름을 속성으로 불러와야되네..
-    #     return model
+    # 다른 기능이 필요한게 있나?
+    if source == 'torchvision':
+        model = torchvision.models.get_model(model_name)
+        return model
     
     # elif source == 'torch/hub':
     #     model = torch.hub()
 
-    # 일단 cache로 저장하고 필요에 따라 로컬도 저장하게 해야할텐데 귀찮네
-    if source == 'github':
-        git_url = 'github.com/' + repo_or_dir
-        _git_clone(git_url = git_url, local_path_to_load = local_path_to_load)
+    # main branch인지 master branch인지 알아내야.. 
+    # 일단 ultralytics/ultralytics 로 테스트 할 거니까 main으로 설정
+    elif source == 'github':
+        model = _git_repository_load(repo_or_dir, model_name, cache_or_local)
+        return model
+
+
+    elif source == 'local':
+        local_path = repo_or_dir
+        model_name = model_name
+        model = _local_model_load(local_path, model_name)
+        return model
 
 
     
@@ -57,14 +110,14 @@ def model_import(
         source = 'github',
         repo_or_dir = None,
         model_name = None,
-        local_path_to_load = None,
+        cache_or_local = None,
         weight_path = None):
     '''
     - posibble framework: 'torch', 'darknet', 'dtrain'
     - source: 'torchvision', 'torch/hub', 'github', 'local'
     - repo_or_dir: 'repository_owner/repository_name' or 'user model path'
     - model_name: ...
-    - local_path_to_load: path which users want to save the model
+    - cache_or_local: 'cache'에 저장 혹은 'local_path'에 저장
     - weight_path: ...
     
     - example for torchvision models load
@@ -81,7 +134,7 @@ def model_import(
     if framework == 'torch':
         model = _torch_model_load(source = source, 
                                   repo_or_dir = repo_or_dir, 
-                                  model_name = model_name, local_path_to_load = local_path_to_load, 
+                                  model_name = model_name, cache_or_local = cache_or_local, 
                                   weight_path = weight_path)
 
 
