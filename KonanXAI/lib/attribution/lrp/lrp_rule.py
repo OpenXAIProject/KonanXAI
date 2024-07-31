@@ -414,37 +414,26 @@ class Add(LRPModule):
             if isinstance(m[-1], Sequential):
                 method = add_forward_hook1 if i == 0 else add_forward_hook2
                 self.handle.append(m[-1][-1].module.register_forward_hook(method))
-            
+            if isinstance(m[-1], StochasticDepth):
+                method = add_forward_hook1 if i == 0 else add_forward_hook2
+                self.handle.append(m[-1].prev_module.register_forward_hook(method))
     def forward(self, x):
         return torch.add(*x)
     
     def epsilon(self, R, rule, alpha):
         for i, m in enumerate(self.modules):
             if self.X[i] is None:
-                if isinstance(m[-1], StochasticDepth):
-                    self.modules[-1].modules[0].handle.pop()
-                    self.X[i] = m[-1].X.detach()
-                # elif not isinstance(m[-1], StochasticDepth):
-                #     for j, _m in enumerate(reversed(m)):
-                #         if j==0 and isinstance(_m[-1], StochasticDepth):
-                #             continue
-                #         else:
-                #             _m.backprop(R,rule,alpha)
-                #         print(1)
-                elif isinstance(m[-1], Sequential):
-                    if isinstance(m[-1][-1], StochasticDepth):
-                        handle = self.modules[-1].modules[0].handle.pop().id
-                        self.X[i] = self.modules[-1].modules[0].X[handle].detach()
-                    # for sub_module in m.modules:
-                    #     if isinstance(sub_module,Mul):
-                    #         sub_module.backprop(R,rule,alpha)
-                    #         print(1)
-                elif isinstance(m[-1], Input):
-                    if self.X[0].shape == m[-1].X[m[-1].handle[-2].id].shape:
-                        handle = m[-1].handle.pop(-2).id
-                    else:
-                        handle = m[-1].handle.pop().id
-                    self.X[i] = m[-1].X[handle].detach()
+                if isinstance(m[-1], Input):
+                    for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
+                        if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
+                            index +=1
+                            handle_x1 = self.modules[-1].modules[0].handle.pop(-index).id
+                            break
+                    # if self.X[0].shape == m[-1].X[m[-1].handle[-3].id].shape:
+                    #     handle = m[-1].handle.pop(-3).id
+                    # else:
+                    # handle = m[-1].handle.pop().id
+                    self.X[i] = m[-1].X[handle_x1].detach()
                     break
             elif self.X[-1] is not None:
                 if len(self.modules[-1].modules[0].handle) == 0:
@@ -536,7 +525,11 @@ class Mul(LRPModule):
         for i, m in enumerate(self.modules):
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
-                    handle = m[-1].handle.pop().id
+                    for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
+                        if self.X[0].shape[0] == m[-1].X[handle_idx.id].squeeze(0).shape[0] or self.X[0].shape[1] == m[-1].X[handle_idx.id].shape[1]:
+                            index +=1
+                            handle = self.modules[-1].modules[0].handle.pop(-index).id
+                            break
                     self.X[i] = m[-1].X[handle].detach()
                     break
             elif self.X[-1] is not None:
@@ -619,6 +612,8 @@ class Clone(LRPModule):
             X = self.origin(self.origin.X[-1]).unsqueeze(0).detach()
         else:
             X = self.origin.X[-1].detach()
+            if len(X.shape) == 3:
+                X = X.unsqueeze(0)
         X.requires_grad = True
         for _ in range(self.num):
             Z.append(X)
@@ -669,18 +664,20 @@ class StochasticDepth(LRPModule):
         self.X = None
         self.p = p
         self.module = stocastic(p,mod)
+        self.prev_module = prev_module
         def stochastic_forward_hook(m, input_tensor, output_tensor):
             self.X = output_tensor[0]
-            self.Y = input_tensor[0]
+            self.Y = input_tensor[0][0]
         self.handle = []
-        self.handle.append(self.module.register_forward_hook(stochastic_forward_hook))
+        self.handle.append(prev_module.register_forward_hook(stochastic_forward_hook))
 
     def epsilon(self, R, rule, alpha):
-        # R = R.reshape(self.X.shape)
+        R = R.reshape(self.X.shape)
         scaled_out = self.X * self.p
         denominator = scaled_out + 1e-7 * torch.sign(scaled_out)
         relevance_ratio = R / denominator
         R = self.Y * relevance_ratio
+        R = R.reshape(self.X.shape)
         return R
     
     def alphabeta(self, R, rule, alpha):

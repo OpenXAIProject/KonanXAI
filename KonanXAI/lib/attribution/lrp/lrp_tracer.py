@@ -122,7 +122,7 @@ class Graph:
                         if len(call_func_layer)>0:
                             sub_layer.append(Sequential(call_func_layer))
                             call_func_layer.clear()
-                        if len(sub_layer)>0 and not isinstance(sub_layer[0],Clone):
+                        if len(sub_layer)>1:
                             main_layer.append(Sequential(sub_layer))
                             sub_layer.clear()
                         trace_graph.append(Sequential(main_layer))
@@ -172,6 +172,9 @@ class Graph:
                         if len(call_func_layer)>0:
                             sub_layer.append(Sequential(call_func_layer))
                         call_func_layer.clear()
+                    elif len(sub_layer)==0 and len(call_func_layer)>0:
+                        sub_layer.append(Sequential(call_func_layer))
+                        call_func_layer.clear()
                     main_layer.append(Sequential(sub_layer))
                     sub_layer.clear()
                 else:
@@ -188,19 +191,22 @@ class Graph:
                             else:
                                 multi_clone.append(value)
                                 del_count+=1
+      
                         del sub_layer[1:1+del_count]
                     x0 = Sequential(self.variable[dict_name].X0)
                     if len(self.variable[dict_name].X1)>0:
                         x1 = Sequential([self.input,Sequential(self.variable[dict_name].X1)])
                     else:
                         x1 = Sequential([self.input])
-                    if len(multi_clone)>0:
-                        multi_clone.append(x0)
-                        x0 = Sequential(multi_clone)
-                        multi_clone.clear()
                     add = Add(x0, x1)
+                    x0 = None
+                    x1 = None
                     self.add[v.name] = add
+                    
                     sub_layer.append(add)
+                    if len(multi_clone)>0:
+                        sub_layer.extend(multi_clone)
+                        multi_clone.clear()
                     del self.variable[dict_name]
                 elif v.name.startswith("mul"):
                     dict_name = self.dict_name.pop()
@@ -219,7 +225,10 @@ class Graph:
                     _module = StochasticDepth(self.modules[str(layer.target)],p,mod,training)
                     # _module = StochasticDepth(v.target)
                     self.stocastic[str(v.name)] = _module
+                    
                     if not v.name in self.variable[self.dict_name[-1]].destination or self.variable[self.dict_name[-1]].next == False:
+                        sub_layer.append(Sequential(self.variable[self.dict_name[-1]].X0))
+                        self.variable[self.dict_name[-1]].X0.clear()
                         self.variable[self.dict_name[-1]].X0.append(_module)
                     else:
                         self.variable[self.dict_name[-1]].X1.append(_module)
@@ -237,13 +246,15 @@ class Graph:
                 self.input.handle.append(self._target_module(v.next).register_forward_pre_hook(input_forward_hook))
                 try:
                     clone = Clone(self.modules[str(v.target)], num=len(v.users))
+                    
                 except:
-                    # 다른 방법 처리 필요.. stocastic_dept를 어떻게 가져올까...
-                    try:
-                        module = (self.stocastic[str(v.args[0])] , self.modules[v.args[1].target])
-                    except:
-                        module = (self.stocastic[str(v.args[0])] , self.add[str(v.args[1])])
-                    clone = Clone(module, num = len(v.users))
+                    # clone에 들어가는 값 찾기(ex add연산 or stocastic depth)
+                    clone = Clone(self.modules[str(v.next.target)],num=len(v.users))
+                    # try:
+                    #     module = (self.stocastic[str(v.args[0])] , self.modules[v.args[1].target])
+                    # except:
+                    #     module = (self.stocastic[str(v.args[0])] , self.add[str(v.args[1])])
+                    # clone = Clone(module, num = len(v.users))
                 next_name = list(v.users.keys())[-1]
                 self.dict_name.append(str(v.name))
                 self.variable[v.name] = SplitFunc()
@@ -270,5 +281,4 @@ class Graph:
         if len(call_func_layer)>0:
             trace_graph.append(Sequential(call_func_layer))
 
-            
         return Sequential(trace_graph) 
