@@ -15,6 +15,17 @@ def safe_divide(relevance_in, z, eps=sys.float_info.epsilon):
     return s
 
 import enum
+def normalize_0_1(tensor):
+    min_val = torch.min(tensor)
+    max_val = torch.max(tensor)
+    if min_val == max_val:
+        return torch.zeros_like(tensor)
+    return (tensor - min_val) / (max_val - min_val)
+
+def z_score_Norm(tensor):
+    mean_value = torch.mean(tensor)
+    std_value = torch.std(tensor)
+    return (tensor-mean_value)/ std_value
 
 def forward_hook(m, input_tensor, output_tensor):
     setattr(m, 'X', input_tensor[0])
@@ -270,7 +281,6 @@ class Sequential(LRPModule):
                 # print("Input Relevance :", torch.sum(R))
 
             R = module.backprop(R, rule, alpha)
-
             if isinstance(R, (list, tuple)):
                 s = None
                 for r in R:
@@ -344,7 +354,7 @@ class ReLU(LRPModule):
         outputs = X * (C)
 
         return outputs
-    
+
     def alphabeta(self, R, rule, alpha):
         return R
 class SiLU(LRPModule):
@@ -446,7 +456,7 @@ class Add(LRPModule):
         
         # 차원 맞추기
         R = R.squeeze()
-
+        R = z_score_Norm(R)
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
         C = self.gradprop(Z, self.X, S)[0]
@@ -544,7 +554,7 @@ class Mul(LRPModule):
         
         # 차원 맞추기
         R = R.squeeze()
-
+        R = z_score_Norm(R)
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
         C = self.gradprop(Z, self.X, S)[0]
@@ -619,8 +629,9 @@ class Clone(LRPModule):
             Z.append(X)
         S = [safe_divide(r, z) for r, z in zip(R, Z)]
         C = self.gradprop(Z, X, S)[0]
+        
         R = X * C
-        return R
+        return z_score_Norm(R)
     
     def alphabeta(self, R, rule, alpha):
         Z = []
@@ -631,6 +642,7 @@ class Clone(LRPModule):
         S = [safe_divide(r, z) for r, z in zip(R, Z)]
         C = self.gradprop(Z, X, S)[0]
         R = X * C
+        
         return R
     
     
@@ -674,7 +686,7 @@ class StochasticDepth(LRPModule):
     def epsilon(self, R, rule, alpha):
         R = R.reshape(self.X.shape)
         scaled_out = self.X * self.p
-        denominator = scaled_out + 1e-7 * torch.sign(scaled_out)
+        denominator = scaled_out + 1e-9 * torch.sign(scaled_out)
         relevance_ratio = R / denominator
         R = self.Y * relevance_ratio
         R = R.reshape(self.X.shape)
