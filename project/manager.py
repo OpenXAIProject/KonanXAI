@@ -92,7 +92,8 @@ class Configuration:
             return XAI.ExplainType.EigenCAM
         elif self.explain_type.lower() == "lrp":
             mode = self._check_explain_mode()
-            return XAI.ExplainType.LRP, mode
+            path = self._check_yaml_path()
+            return XAI.ExplainType.LRP, mode, path
         elif self.explain_type.lower() == "ig":
             return XAI.ExplainType.IG
         else:
@@ -106,3 +107,9 @@ class Configuration:
                 return XAI.LRPRule.AlphaBeta
         except:
             raise Exception("explain_mode is None")
+    def _check_yaml_path(self):
+        try:
+            path = self.config['config']['yaml_path']
+            return path
+        except:
+            return None

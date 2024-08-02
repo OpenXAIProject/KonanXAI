@@ -33,10 +33,8 @@ class Graph:
     def __init__(self, model: XAIModel, conf_path: str = None):
         self.model = model
         self.input = Input()
+        self.conf_path = conf_path
         self._layer_name = None
-        if conf_path is not None:
-            # Yolo
-            self._load_conf(conf_path)
         
     def _load_conf(self, conf_path:str):
         with open(conf_path, encoding='utf-8') as f:
@@ -51,7 +49,7 @@ class Graph:
         anchors = self.data['anchors']
         backbone = self.data['backbone']
         head = self.data['head']
-        
+       
     def _target_module(self, v):
         target = v.target.split(".")
         target_module = self.model
@@ -101,17 +99,31 @@ class Graph:
             Layers of original model stored in module list.
 
         """
-        gt_graph = symbolic_trace(self.model)
+        if self.conf_path == None:
+            gt_graph = symbolic_trace(self.model).nodes
+            self.modules = dict(self.model.named_modules())
+        else:
+            yaml_layer = self._load_conf(self.conf_path)
+            self.modules = dict(self.model.model.named_modules())
+            gt_graph = []
+            for index, m in enumerate(self.model.model):
+                for v in symbolic_trace(m).nodes: 
+                    if index !=0 and v.name=='x':
+                        continue
+                    elif v.name == "output":
+                        continue
+                    else:
+                        gt_graph.append(v)
         trace_graph = []
         main_layer = []
         sub_layer = []
         call_func_layer = []
+        self.concat = []
         self.variable = {}
         self.dict_name = []
         self.stocastic = {}
         self.add = {}
-        self.modules = dict(self.model.named_modules())
-        for v in gt_graph.nodes:
+        for v in gt_graph:
             if v.op == 'placeholder':
                 trace_graph.append(self.input)
             elif v.op == 'call_module':
@@ -246,7 +258,6 @@ class Graph:
                 self.input.handle.append(self._target_module(v.next).register_forward_pre_hook(input_forward_hook))
                 try:
                     clone = Clone(self.modules[str(v.target)], num=len(v.users))
-                    
                 except:
                     # clone에 들어가는 값 찾기(ex add연산 or stocastic depth)
                     clone = Clone(self.modules[str(v.next.target)],num=len(v.users))

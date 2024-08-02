@@ -647,6 +647,7 @@ class Clone(LRPModule):
     
 
 class Cat(LRPModule):
+    # SPP 블록은 module 4개 들어온다... 수정 필요 module 여러개 처리 필요 iter로..
     def __init__(self, module1, module2, dim):
         def add_forward_hook(m, input_tensor, output_tensor):
             self.X.append(output_tensor[0])

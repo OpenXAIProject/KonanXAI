@@ -15,7 +15,7 @@ class LRP(Algorithm):
         super().__init__(model, dataset, platform)
         self.rule = self.model.rule
         self.alpha = None
-        
+        self.yaml_path = self.model.yaml_path
         if self.alpha != 'None':
             try:
                 self.alpha = int(self.alpha)
@@ -25,7 +25,7 @@ class LRP(Algorithm):
     def calculate(self):
         model =  copy.deepcopy(self.model.net)
         model.eval()
-        self.tracer =  Graph(model, None)
+        self.tracer =  Graph(model, self.yaml_path)
         self.module_tree = self.tracer.trace()
         pred = model(self.target_input).squeeze()
         

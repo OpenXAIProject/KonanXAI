@@ -42,6 +42,7 @@ def request_algorithm(xai) -> ExplainData:
         elif algorithm[0] == ExplainType.LRP:
             explain_class = LRP
             xai.model.rule = algorithm[1].name
+            xai.model.yaml_path = algorithm[2]
             #모드 설정 필요
 
         assert explain_class is not None, "Unsupported XAI algorithm."
