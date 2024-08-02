@@ -456,7 +456,7 @@ class Add(LRPModule):
         
         # 차원 맞추기
         R = R.squeeze()
-        R = z_score_Norm(R)
+        # R = z_score_Norm(R)
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
         C = self.gradprop(Z, self.X, S)[0]
@@ -554,14 +554,13 @@ class Mul(LRPModule):
         
         # 차원 맞추기
         R = R.squeeze()
-        R = z_score_Norm(R)
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
-        C = self.gradprop(Z, self.X, S)[0]
+        C = self.gradprop(Z, self.X, S)#[0]
         if torch.is_tensor(self.X) == False:
             outputs = []
-            outputs.append(self.X[0] * C)
-            outputs.append(self.X[1] * C)
+            outputs.append(self.X[0] * C[0])
+            outputs.append(self.X[1] * C[1])
         else:
             outputs = self.X * (C)
         R = outputs
@@ -631,7 +630,7 @@ class Clone(LRPModule):
         C = self.gradprop(Z, X, S)[0]
         
         R = X * C
-        return z_score_Norm(R)
+        return R
     
     def alphabeta(self, R, rule, alpha):
         Z = []

@@ -24,6 +24,7 @@ class LRP(Algorithm):
 
     def calculate(self):
         model =  copy.deepcopy(self.model.net)
+        model.eval()
         self.tracer =  Graph(model, None)
         self.module_tree = self.tracer.trace()
         pred = model(self.target_input).squeeze()
