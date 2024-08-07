@@ -1,10 +1,10 @@
 import yaml
 import numpy as np
-
+import copy
 from torch.fx.node import Node
 from typing import Dict
 
-from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth
+from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample
 from ....models import XAIModel
 import torch
 import torch.nn as nn
@@ -33,6 +33,7 @@ class Graph:
     def __init__(self, model: XAIModel, conf_path: str = None):
         self.model = model
         self.input = Input()
+        self.cat = Cat()
         self.conf_path = conf_path
         self._layer_name = None
         
@@ -40,7 +41,8 @@ class Graph:
         with open(conf_path, encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
         self.data = data
-        self._parse_graph_yaml()
+        architecture = self._parse_graph_yaml()
+        return architecture
         
     def _parse_graph_yaml(self):
         nc = self.data['nc']
@@ -49,15 +51,21 @@ class Graph:
         anchors = self.data['anchors']
         backbone = self.data['backbone']
         head = self.data['head']
+        return backbone+head
        
     def _target_module(self, v):
-        target = v.target.split(".")
-        target_module = self.model
-        for value in target:
-            if value.isdecimal():
-                target_module = target_module[int(value)]
-            else:
-                target_module = getattr(target_module,value)
+        if self.conf_path != None:
+            target = v.target
+            target_module = self.modules[self.tree_index][target]
+            return target_module
+        else:
+            target = v.target.split(".")
+            target_module = self.model
+            for value in target:
+                if value.isdecimal():
+                    target_module = target_module[int(value)]
+                else:
+                    target_module = getattr(target_module,value)
         return target_module
     
     def _next_layer_name(self, v):
@@ -102,23 +110,53 @@ class Graph:
         if self.conf_path == None:
             gt_graph = symbolic_trace(self.model).nodes
             self.modules = dict(self.model.named_modules())
+            return self.make_trace(gt_graph)
         else:
             yaml_layer = self._load_conf(self.conf_path)
-            self.modules = dict(self.model.model.named_modules())
-            gt_graph = []
-            for index, m in enumerate(self.model.model):
+            self.modules = {}
+            gt_graph = {}
+            for index, m in enumerate(self.model):
+                self.tree_index = index
+                temp_layer = []
+                if m._get_name() == 'Concat':
+                    layer_index = yaml_layer[index][0]
+                    self.cat_0, self.cat_1 = None, None
+                    for i,v in enumerate(layer_index):
+                        if v == -1:
+                            v = len(gt_graph)-1
+                        exec(f"self.cat_{i} = gt_graph[{v}]")
+
+                    gt_graph[index] = Cat(self.cat_0, self.cat_1)
+                    print("Concat layer!", yaml_layer[index])
+                    continue
+                elif m._get_name() == 'Detect':
+                    detect_layers = yaml_layer[index][0]
+                    layer = [m.m._modules[str(n)] for n in range(len(detect_layers))]
+                    gt_graph[index] = Detect(detect_layers, layer)
+                    # print("Detect Layer!", yaml_layer[index])
+                    continue
+                else:
+                    self.modules[index] = dict(m.named_modules())
                 for v in symbolic_trace(m).nodes: 
                     if index !=0 and v.name=='x':
                         continue
                     elif v.name == "output":
                         continue
                     else:
-                        gt_graph.append(v)
+                        temp_layer.append(v)
+                if index == 9:
+                    print("spp")
+                gt_graph[index] = self.make_trace(temp_layer)
+            return Sequential(list(gt_graph.values()))
+        
+        # 아래 기능 함수화 하여 사용?
+        
+    def make_trace(self, gt_graph):
         trace_graph = []
         main_layer = []
         sub_layer = []
         call_func_layer = []
-        self.concat = []
+        self.concat = {}
         self.variable = {}
         self.dict_name = []
         self.stocastic = {}
@@ -140,7 +178,7 @@ class Graph:
                         trace_graph.append(Sequential(main_layer))
                         main_layer.clear()
                     if len(self.variable)>0:
-                        if not v.name in self.variable[self.dict_name[-1]].destination:
+                        if not v.name in self.variable[self.dict_name[-1]].destination or self.variable[self.dict_name[-1]].next == False:
                             self.variable[self.dict_name[-1]].X0.append(target)
                         else:
                             self.variable[self.dict_name[-1]].X1.append(target)
@@ -230,12 +268,26 @@ class Graph:
                     mul = Mul(x0, x1)
                     sub_layer.append(mul)
                     del self.variable[dict_name]
+                elif v.name.startswith("cat"):
+                    modules = list(self.concat.values())
+                    if len(call_func_layer)>0:
+                        sub_layer.append(Sequential(call_func_layer))
+                        call_func_layer.clear()
+                    cat = Cat(modules)
+                    sub_layer.append(cat)
+                    self.concat.clear()
+                elif v.name.startswith("interpolate"):
+                    trace_graph.pop()
+                    upsample_param = {}
+                    for key,value in v._kwargs.items():
+                        upsample_param[key] = value
+                    del upsample_param['antialias']
+                    trace_graph.append(Upsample(upsample_param))
                 elif v.name.startswith("flatten"):
                     trace_graph.append(Flatten(self.modules[str(v.prev)]))
                 elif v.name.startswith("stochastic_depth"):
                     layer, p, mod, training = v.args
                     _module = StochasticDepth(self.modules[str(layer.target)],p,mod,training)
-                    # _module = StochasticDepth(v.target)
                     self.stocastic[str(v.name)] = _module
                     
                     if not v.name in self.variable[self.dict_name[-1]].destination or self.variable[self.dict_name[-1]].next == False:
@@ -245,11 +297,32 @@ class Graph:
                     else:
                         self.variable[self.dict_name[-1]].X1.append(_module)
                         self.variable[self.dict_name[-1]].destination = v.next.name
-                    # call_func_layer가 아닌 dict 내부의 연산값에 저장해야함
-                    # call_func_layer.append(_module)
+            # Cat
+            if "cat" in list(map(str,v.users.keys())):
+                # def cat_forward_pre_hook(m, input_tensor):
+                #     hook_idx = [v.id for v in self.cat.handle]
+                #     key = list(m._forward_pre_hooks.keys())[-1]
+                #     if key in hook_idx:
+                #         self.cat.X_value[key]= input_tensor[0]
+                # def cat_forward_hook(m, input_tensor, output_tensor):
+                #     hook_idx = [v.id for v in self.cat.handle]
+                #     key = list(m._forward_hooks.keys())[-1]
+                #     if key in hook_idx:
+                #         self.cat.X_value[key] = output_tensor[0]
+                # # if v.name.startswith("cat"):
+                # #     self.cat.handle.append(self._target_module(v.prev).register_forward_pre_hook(cat_forward_hook))
+                # #     self.concat[v.name] = self.modules[self.tree_index][str(v.prev.target)]
+                if v.name.startswith("add"):
+                    self.cat.handle.append(self._target_module(v.next))
+                    self.concat[v.name] = self.modules[self.tree_index][str(v.next.target)]
+                elif("act" in v.name):
+                    self.cat.handle.append(self._target_module(v.prev))
+                    self.concat[v.name] = self.modules[self.tree_index][str(v.prev.target)]
+                else:
+                    self.cat.handle.append(self._target_module(v))
+                    self.concat[v.name] = self.modules[self.tree_index][str(v.target)]
             # clone
-            if len(v.users)>1:
-                # target = self._target_module(v)
+            if len(v.users)>1 and not "cat" in list(map(str,v.users.keys())):
                 def input_forward_hook(m, input_tensor):
                     hook_idx = [v.id for v in self.input.handle]
                     key = list(m._forward_pre_hooks.keys())[-1]
@@ -257,15 +330,15 @@ class Graph:
                         self.input.X[key]= input_tensor[0]
                 self.input.handle.append(self._target_module(v.next).register_forward_pre_hook(input_forward_hook))
                 try:
-                    clone = Clone(self.modules[str(v.target)], num=len(v.users))
+                    if self.conf_path != None:
+                        clone = Clone(self.modules[self.tree_index][str(v.target)], num=len(v.users))
+                    else:
+                        clone = Clone(self.modules[str(v.target)], num=len(v.users))
                 except:
-                    # clone에 들어가는 값 찾기(ex add연산 or stocastic depth)
-                    clone = Clone(self.modules[str(v.next.target)],num=len(v.users))
-                    # try:
-                    #     module = (self.stocastic[str(v.args[0])] , self.modules[v.args[1].target])
-                    # except:
-                    #     module = (self.stocastic[str(v.args[0])] , self.add[str(v.args[1])])
-                    # clone = Clone(module, num = len(v.users))
+                    if self.conf_path != None:
+                        clone = Clone(self.modules[self.tree_index][str(v.next.target)],num=len(v.users))
+                    else:
+                        clone = Clone(self.modules[str(v.next.target)],num=len(v.users))
                 next_name = list(v.users.keys())[-1]
                 self.dict_name.append(str(v.name))
                 self.variable[v.name] = SplitFunc()
@@ -289,7 +362,14 @@ class Graph:
                         sub_layer.clear()
                     sub_layer.append(clone)
                 
-        if len(call_func_layer)>0:
-            trace_graph.append(Sequential(call_func_layer))
-
-        return Sequential(trace_graph) 
+        if len(sub_layer)>0 or len(call_func_layer)>0 or len(main_layer)>0:
+            if len(call_func_layer)>0:
+                sub_layer.append(Sequential(call_func_layer))
+                call_func_layer.clear()
+            if len(sub_layer)>0:
+                main_layer.append(Sequential(sub_layer))
+                sub_layer.clear()
+            if len(main_layer)>0:
+                trace_graph.append(Sequential(main_layer))
+                main_layer.clear()
+        return Sequential(trace_graph)

@@ -3,4 +3,4 @@ from .gradcam import *
 from .lrp import *
 from .algorithm import Algorithm
 
-__all__ = ["GradCAM", "Algorithm", "GradCAMpp","EigenCAM", "LRP"]
+__all__ = ["GradCAM", "Algorithm", "GradCAMpp","EigenCAM", "LRP", "LRPYolo"]

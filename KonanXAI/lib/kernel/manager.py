@@ -40,7 +40,10 @@ def request_algorithm(xai) -> ExplainData:
         elif algorithm == ExplainType.EigenCAM:
             explain_class = EigenCAM
         elif algorithm[0] == ExplainType.LRP:
-            explain_class = LRP
+            if 'yolo' in xai.model.mtype.name.lower():
+                explain_class = LRPYolo
+            else:
+                explain_class = LRP
             xai.model.rule = algorithm[1].name
             xai.model.yaml_path = algorithm[2]
             #모드 설정 필요

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import sys
 import numpy as np
-def safe_divide(relevance_in, z, eps=sys.float_info.epsilon):
+def safe_divide(relevance_in, z, eps=1e-9):
     sign = torch.sign(z)     # 여기 이 부분 부터는 따로 함수로 묶어도 될 듯
     sign[z==0] = 1
     eps = torch.tensor(eps, device='cuda:0')
@@ -261,13 +261,16 @@ class Sequential(LRPModule):
     
     def epsilon(self, R, rule, alpha):
         i = 0
-        
-        for module in reversed(self.modules):
+        skip_layer_count = 0
+        for index, module in enumerate(reversed(self.modules)):
             # if hasattr(module, 'module'):
             #     print("Calc module :", module.module.__class__.__name__)
             # else:
             #     print("Calc module :", module.__class__.__name__)
-
+            if skip_layer_count>0:
+                skip_layer_count -= 1
+                continue
+            indexs = len(self.modules) -1 -index
             if isinstance(R, (list, tuple)):
                 s = None
                 for r in R:
@@ -281,6 +284,13 @@ class Sequential(LRPModule):
                 # print("Input Relevance :", torch.sum(R))
 
             R = module.backprop(R, rule, alpha)
+            if isinstance(R, dict):
+                key, relevance = next(iter(R.items()))
+                if indexs-1 == key:
+                    skip_layer_count = 0
+                else:
+                    skip_layer_count = indexs-1-key
+                R = relevance
             if isinstance(R, (list, tuple)):
                 s = None
                 for r in R:
@@ -373,7 +383,12 @@ class SiLU(LRPModule):
     def epsilon(self, R, rule, alpha):
         X = self.module.X[self.idx]
         Z = self.forward(X)
-        S = safe_divide(R, Z)
+        if isinstance(R, (list,tuple)):
+            rel = R.pop()
+            R = R[0]
+            S = safe_divide(rel, Z)
+        else:
+            S = safe_divide(R, Z)
         C = self.gradprop(Z, X, S)[0]
 
         outputs = X * (C)
@@ -644,21 +659,44 @@ class Clone(LRPModule):
         
         return R
     
+class Detect(LRPModule):
+    def __init__(self, sel_layer, module):
+        self.sel_layers = sel_layer
+        self.module = []
+        if isinstance(module,(list,tuple)):
+            for m in module:
+                if isinstance(m, nn.modules.conv._ConvNd):
+                    self.module.append(ConvNd(m))
+    def epsilon(self, R, rule, alpha):
+        res = {}
+        key, relevance = next(iter(R.items()))
+        relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
+        rel = self.module[key].epsilon(relevance, rule, alpha)
+        res[self.sel_layers[key]] = rel
+        return res
     
-
 class Cat(LRPModule):
     # SPP 블록은 module 4개 들어온다... 수정 필요 module 여러개 처리 필요 iter로..
-    def __init__(self, module1, module2, dim):
-        def add_forward_hook(m, input_tensor, output_tensor):
-            self.X.append(output_tensor[0])
+    def __init__(self, *modules, dim = 1):
+        def cat_forward_hook(m, input_tensor, output_tensor):
+            self.X.append(output_tensor[0].unsqueeze(0))
+        self.X_value = {}
         self.X = []
         self.handle = []
-        self.handle.append(module1[-1].module.register_forward_hook(add_forward_hook))
-        self.handle.append(module2[-1].module.register_forward_hook(add_forward_hook))
         self.dim = dim
+        for module in modules:
+            if isinstance(module,(tuple,list)):
+                for m in module:
+                    self.handle.append(m.register_forward_hook(cat_forward_hook)) 
+            else:
+                # self.handle.append(module.modules[0].module.register_forward_hook(cat_forward_hook))
+                print("12")     
+            
+        # self.handle.append(module1[-1].module.register_forward_hook(add_forward_hook))
+        # self.handle.append(module2[-1].module.register_forward_hook(add_forward_hook))
 
-    def forward(self, x):
-        return torch.cat(x, dim=self.dim)
+    def forward(self, x, dim):
+        return torch.cat(x, dim)
     
     def epsilon(self, R, rule, alpha):
         Z = self.forward(self.X, self.dim)
@@ -671,6 +709,17 @@ class Cat(LRPModule):
         
         return out
 
+class Upsample(LRPModule):
+      def __init__(self, param:dict):
+          self.module = nn.Upsample(**param)
+          pass
+      def epsilon(self, R, rule, alpha):
+        invert_upsample = {
+            1: F.avg_pool1d,
+            2: F.avg_pool2d,
+            3: F.avg_pool3d}[2]
+        if isinstance(self.module.scale_factor, float):
+            ks = int(self.module.scale_factor)
 class StochasticDepth(LRPModule):
     def __init__(self, prev_module, p, mod, training):
         self.X = None
