@@ -38,21 +38,21 @@ from KonanXAI.models.model_import import model_import
 # #task = 'image'  # not yet
 # # device 설정 넣어야하나?
 # # device 설정을 넣으려면 method로 짜긴 해야겠네...
-framework = 'torch'
-source = 'github'
-repo_or_dir = 'ultralytics/yolov5/'
-model_name = 'yolov5s'
-cache_or_local = '/mnt/d/KonanXAI_implement_example2/'
-weight_path = '/mnt/d/KonanXAI_implement_example2'
+# framework = 'torch'
+# source = 'github'
+# repo_or_dir = 'ultralytics/yolov5/'
+# model_name = 'yolov5s'
+# cache_or_local = '/mnt/d/KonanXAI_implement_example2/'
+# weight_path = '/mnt/d/KonanXAI_implement_example2'
 
 # 2) source가 local, ultralytics/yolov5로 테스트 -> 잘됨. 
 # 너무 쉽게 구현된 거 아닌가..
 # framework = 'torch'
 # source = 'local'
-# repo_or_dir = '/mnt/d/KonanXAI_implement_example2/yolov5/'
+# repo_or_dir = '/mnt/d/KonanXAI_implement_yolov5/yolov5/'
 # model_name = 'yolov5s'
 # cache_or_local = None
-# weight_path = '/mnt/d/KonanXAI_implement_example2/yolov5s.pt'
+# weight_path = '/mnt/d/KonanXAI_implement_yolov5/yolov5s.pt'
 
 # 3) source: local, ultralytics/ultralytics 테스트 -> 일단 됨
 # YOLO 클래스 바로 import 해오는 방법으로 잘되는데
@@ -74,20 +74,23 @@ weight_path = '/mnt/d/KonanXAI_implement_example2'
 # cache_or_local = None
 # weight_path = None   # weight_path = None 이면 pretrained=True 자동으로 들어가게 일단 해놓을까?
 
-# 5) framework: darknet, source:local, model_name:
-# framework = 'darknet'
-# source = 'github'
-# repo_or_dir = 'github_repository'
-# model_name = 'yolov5s'
-# cache_or_local = '/mnt/d/KonanXAI_implement_examaple2/'
-# weight_path = '/mnt/d/yolov4-tiny.pth'
+# 5) framework: darknet, source:github, model_name: yolov4-tiny
+# 리눅스 cmake 안해서 윈도우에서 테스트중
+framework = 'darknet'
+source = 'github'
+repo_or_dir = 'AlexeyAB/darknet'
+model_name = 'yolov4-tiny'
+cache_or_local = None
+weight_path = '/mnt/d/yolov4-tiny.weights'
+cfg_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.cfg'
 
 model = model_import(framework = framework, 
                      source = source, 
                      repo_or_dir = repo_or_dir, 
                      model_name = model_name, 
                      cache_or_local = cache_or_local,
-                     weight_path = weight_path)
+                     weight_path = weight_path,
+                     cfg_path = cfg_path)
 # or model = models.load_model.VGG16(...) 로 사용가능
 print(model)
 

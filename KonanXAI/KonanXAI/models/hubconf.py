@@ -15,7 +15,7 @@ sys.path.append(path)
 
 
 
-class Repository:
+class Torch:
     def __init__(self, repo_or_dir, model_name):
         self.repo_or_dir = repo_or_dir
         self.model_name = model_name
@@ -49,9 +49,12 @@ class Repository:
 
 
 
-class Git(Repository):
+
+
+
+class TorchGit(Torch):
     def __init__(self, repo_or_dir, model_name):
-        Repository.__init__(self, repo_or_dir, model_name)
+        Torch.__init__(self, repo_or_dir, model_name)
 
     def _download_from_url(self, cache_or_local):
         git_url = 'https://github.com/'+ self.repo_or_dir +'.git'
@@ -70,6 +73,7 @@ class Git(Repository):
     
     def _load(self):
         print(self.path)
+        
         self.check_hubconf = self._check_hubconf()
         print(self.check_hubconf)
 
@@ -87,8 +91,7 @@ class Git(Repository):
             print('write hubconf.py')
             return None
 
-        model = None
-        return model
+        
     
     def _load_weight(self):
         pass
@@ -98,9 +101,157 @@ class Git(Repository):
         pass
 
 
-class Local(Repository):
+
+
+class TorchLocal(Torch):
     def __init__(self, repo_or_dir, model_name):
-        Repository.__init__(self, repo_or_dir, model_name)
+        Torch.__init__(self, repo_or_dir, model_name)
+
+    def _load(self):
+        print(self.path)
+        
+        self.check_hubconf = self._check_hubconf()
+        print(self.check_hubconf)
+
+        self._add_to_sys_path()
+        # 아래는 ultralytics/yolov5 리포지토리 코드
+        # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
+        if self.check_hubconf == True:
+            import hubconf
+            model = hubconf._create(self.model_name)
+            return model
+        # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
+        
+        # 에러로 처리해야
+        else:
+            print('write hubconf.py')
+            return None
+
+
+class Darknet:
+    def __init__(self, repo_or_dir, model_name, cfg_path):
+        self.repo_or_dir = repo_or_dir
+        self.model_name = model_name
+        self.path = self.repo_or_dir
+        self.cfg_path = cfg_path
+        self._check_os()
+        
+        
+        #self._import_path(self.path)
+
+    def _check_os(self):
+        self.os_name = os.name
+
+    def _add_to_sys_path(self):
+        sys.path.insert(0, self.path)
+
+    def _set_path(self):
+        self.path = self.repo_or_dir
+
+    # def _import_path(self):
+    #     pass
+
+    def _check_hubconf(self):
+        pass
+    
+    def _read_hubconf(self):
+        pass
+    
+    def _load(self):
+        pass
+
+    def _load_weight(self):
+        pass
+
+
+
+class DarknetGit(Darknet):
+    def __init__(self, repo_or_dir, model_name):
+        Torch.__init__(self, repo_or_dir, model_name)
+
+    def _download_from_url(self, cache_or_local):
+        
+        git_url = 'https://github.com/'+ self.repo_or_dir +'.git'
+
+        command = ''
+    
+        if cache_or_local == 'cache':
+            command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url       
+        
+        else:
+            command = 'git' + ' -C ' + cache_or_local + ' clone ' + git_url
+            
+        ## 캐시 command 재작성해야..
+        if self.os_name == 'nt':
+            command = command.replace('/', '\\')
+
+        os.system(command)
+
+        repository_name = self.repo_or_dir.split('/')[1]
+        self.path = cache_or_local + repository_name + '/'
+        if os.name == 'nt':
+            self.path = self.path.replace('/', '\\')
+    
+    def _load(self):
+        print(self.path)
+        
+        self.check_hubconf = self._check_hubconf()
+        print(self.check_hubconf)
+
+        self._add_to_sys_path()
+        # 아래는 ultralytics/yolov5 리포지토리 코드
+        # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
+        if self.check_hubconf == True:
+            import hubconf
+            model = hubconf._create(self.model_name)
+            return model
+        # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
+        
+        # 에러로 처리해야
+        else:
+            print('write hubconf.py')
+            return None
+
+    
+    
+    def _load_weight(self):
+        pass
+    
+        
+    def _save_from_cache(self):
+        pass
+
+class DarknetLocal(Darknet):
+    def __init__(self, repo_or_dir, model_name):
+        Darknet.__init__(self, repo_or_dir, model_name)
+        self._check_os()
+
+    def _load(self):
+        if self.os_name == 'nt':
+            print(self.os_name)
+            
+
+        else :
+            print('Darknet for Linux is not builded yet')
+        
+        # print(self.path)
+        
+        # self.check_hubconf = self._check_hubconf()
+        # print(self.check_hubconf)
+
+        # self._add_to_sys_path()
+        # # 아래는 ultralytics/yolov5 리포지토리 코드
+        # # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
+        # if self.check_hubconf == True:
+        #     import hubconf
+        #     model = hubconf._create(self.model_name)
+        #     return model
+        # # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
+        
+        # # 에러로 처리해야
+        # else:
+        #     print('write hubconf.py')
+        #     return None
 
 
 # 예전 import 코드    
@@ -119,9 +270,9 @@ class Local(Repository):
 
 
 # 클래스 이름을 어떻게 할지 고민이네
-class Yolov5(Local):
+class Yolov5(TorchLocal):
     def __init__(self, repo_or_dir, model_name):
-        Local.__init__(self, repo_or_dir, model_name)
+        TorchLocal.__init__(self, repo_or_dir, model_name)
 
     # 이거 안되네?
     # def _import_path(self):
@@ -142,9 +293,9 @@ class Yolov5(Local):
             print('write hubconf.py')
             return None
         
-class Ultralytics(Local):
+class Ultralytics(TorchLocal):
     def __init__(self, repo_or_dir, model_name):
-        Local.__init__(self, repo_or_dir, model_name)
+        TorchLocal.__init__(self, repo_or_dir, model_name)
 
     def _load(self):
         self.check_hubconf = self._check_hubconf()

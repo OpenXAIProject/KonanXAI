@@ -2,21 +2,20 @@ import torch
 import torchvision
 
 import urllib
-import git
 
 import os
 
 # import 경로만 모아놔야 하는데..
-from KonanXAI.models.hubconf import Git, Yolov5, Ultralytics
+from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 
-import KonanXAI._core
-
+from KonanXAI._core import darknet
 
 # torch/hub로 torchvision 모델 불러오려고 하니 hubconf.py 없어서 에러 생김
 __version_of_torchvision__ = [
     'pytorch/vision:v0.10.0'
 ]
 
+# torchvision.models에서 제공하는 모델 이름
 __torchvision_models__ = [
     'efficientnet_b0'
 ]
@@ -45,20 +44,22 @@ def load_weight():
 
 
 
-def _local_model_load(local_path, model_name):
-    model = Ultralytics(local_path, model_name)
-    model = model._load()
+def torch_local_model_load(local_path, model_name):
+    local = TorchLocal(local_path, model_name)
+    model = local._load()
     #_get_file_tree(local_path)
     return model
 
 
 # 그냥 git._load에서 download까지 한꺼번에 하게 할까 분리할까...?
-def _git_repository_load(repo_or_dir, model_name, cache_or_local):
-    git = Git(repo_or_dir, model_name)
+def torch_git_repository_load(repo_or_dir, model_name, cache_or_local):
+    git = TorchGit(repo_or_dir, model_name)
     git._download_from_url(cache_or_local)
     model = git._load()
     
     return model
+
+
 
 
 
@@ -83,20 +84,49 @@ def _torch_model_load(
     # main branch인지 master branch인지 알아내야.. 
     # 일단 ultralytics/ultralytics 로 테스트 할 거니까 main으로 설정
     elif source == 'github':
-        model = _git_repository_load(repo_or_dir, model_name, cache_or_local)
+        model = torch_git_repository_load(repo_or_dir, model_name, cache_or_local)
         return model
 
 
     elif source == 'local':
         local_path = repo_or_dir
-        model_name = model_name
-        model = _local_model_load(local_path, model_name)
+        model = torch_local_model_load(local_path, model_name)
         return model
 
 
-    
+def darknet_local_model_load(local_path, model_name):
+    local = DarknetLocal(local_path, model_name)
+    model = local._load()
+    #_get_file_tree(local_path)
+    return model
 
-def _darknet_model_load():
+
+# 그냥 git._load에서 download까지 한꺼번에 하게 할까 분리할까...?
+def darknet_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_path, cfg_path):
+    git = DarknetGit(repo_or_dir, model_name)
+    git._download_from_url(cache_or_local)
+    model = git._load()
+    
+    return model   
+
+def _darknet_model_load(
+        source = None,
+        repo_or_dir = None,
+        model_name = None, 
+        cache_or_local = None, 
+        weight_path = None,
+        cfg_path = None):
+    
+    if source == 'github':
+        model = darknet_git_repository_load(repo_or_dir, model_name, 
+                                            cache_or_local, weight_path, cfg_path)
+
+    elif source == 'local':
+        local_path = repo_or_dir
+        model = darknet_local_model_load(local_path, model_name, 
+                                         weight_path, cfg_path)
+        
+
     pass
 
 def _dtrain_model_load():
@@ -111,7 +141,8 @@ def model_import(
         repo_or_dir = None,
         model_name = None,
         cache_or_local = None,
-        weight_path = None):
+        weight_path = None,
+        cfg_path = None):
     '''
     - posibble framework: 'torch', 'darknet', 'dtrain'
     - source: 'torchvision', 'torch/hub', 'github', 'local'
@@ -119,7 +150,8 @@ def model_import(
     - model_name: ...
     - cache_or_local: 'cache'에 저장 혹은 'local_path'에 저장
     - weight_path: ...
-    
+    - cfg_path: 'local cfg file path'
+
     - example for torchvision models load
         framework = 'torch'
         source = 'torchvision'
@@ -136,6 +168,13 @@ def model_import(
                                   repo_or_dir = repo_or_dir, 
                                   model_name = model_name, cache_or_local = cache_or_local, 
                                   weight_path = weight_path)
+        
+    elif framework == 'darknet':
+        model = _darknet_model_load(source = source, 
+                                    repo_or_dir = repo_or_dir,
+                                    model_name = model_name, cache_or_local = cache_or_local,
+                                    weight_path = weight_path,
+                                    cfg_path = cfg_path)
 
 
 

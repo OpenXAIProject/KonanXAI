@@ -34,19 +34,22 @@ from KonanXAI.models import model_info
 from KonanXAI.models.model_import import model_import 
 import sys
 
-sys.path.append('/mnt/d/KonanXAI_implement_example2/ultralytics/')
+from KonanXAI._core import darknet
 
-# from ultralytics.models.yolo.model import YOLO
+# 리눅스 경로
+# cfg_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.cfg'
+# weight_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.weights'
 
-# model = YOLO()
-# print(model)
+# 윈도우 경로
+cfg_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.cfg'
+weight_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.weights'
+image_path = 'D:\KonanXAI_implement_darknet\KonanXAI\dog.jpg'
+
+model = darknet.Network()
+model.load_model_custom(cfg_path, weight_path)
 
 
-model = torchvision.models.resnet50()
-print(model)
-device = torch.device('cuda')
-model.to(device)
-data = torch.rand([1,3,224,224])
-data = data.to(device)
-prediction = model(data)
-print(prediction.shape)
+image = darknet.open_image(image_path, (416, 416))
+model.forward_image(image)
+#print(len(model.layers[-1].get_output()))
+print(len(model.layers[-1].get_bboxes()))
