@@ -1,6 +1,6 @@
 from ..config import Configuration
 from ..utils import ModelType, PlatformType
-from ..lib.core import darknet
+import darknet
 from .model import XAIModel
 import torch
 import torch.nn as nn

@@ -1,6 +1,6 @@
 from abc import *
 
-from KonanXAI.lib.core.darknet.yolo import BBox
+from darknet.yolo import BBox
 from ...utils import compose_heatmap_image
 import cv2
 import numpy as np

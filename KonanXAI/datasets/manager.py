@@ -1,4 +1,4 @@
-from ..lib.core import darknet
+import darknet
 # from ..lib.core import dtrain
 # from ..lib.core import pytorch
 import random
@@ -41,7 +41,7 @@ class Datasets:
             next(self.generator)
             
         elif self.data_type == 1:
-            data = darknet.open_image(self.train_items[idx], self.fit)#(640, 640))
+            data = darknet.open_image(self.train_items[idx][0], self.fit)#(640, 640))
         return data
     
     # resize
