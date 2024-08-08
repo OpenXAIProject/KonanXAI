@@ -76,13 +76,15 @@ from KonanXAI.models.model_import import model_import
 
 # 5) framework: darknet, source:github, model_name: yolov4-tiny
 # 리눅스 cmake 안해서 윈도우에서 테스트중
+# cache 저장 경우도 만들어야
 framework = 'darknet'
 source = 'github'
 repo_or_dir = 'AlexeyAB/darknet'
 model_name = 'yolov4-tiny'
-cache_or_local = None
-weight_path = '/mnt/d/yolov4-tiny.weights'
-cfg_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.cfg'
+cache_or_local = 'D:\\KonanXAI_implement_darknet\\'
+weight_path = 'D:\\weights\yolov4-tiny.weights'
+# custom 모델 cfg 불러오는 경우
+cfg_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\yolov4-tiny.cfg'
 
 model = model_import(framework = framework, 
                      source = source, 
@@ -91,8 +93,15 @@ model = model_import(framework = framework,
                      cache_or_local = cache_or_local,
                      weight_path = weight_path,
                      cfg_path = cfg_path)
-# or model = models.load_model.VGG16(...) 로 사용가능
+
 print(model)
+
+data
+
+
+
+# or model = models.load_model.VGG16(...) 로 사용가능
+
 
 # image = torch.rand([1,3,224,224])
 # prediction = model(image)

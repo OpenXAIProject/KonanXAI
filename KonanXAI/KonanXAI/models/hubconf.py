@@ -3,9 +3,9 @@ import os
 
 import torch
 import torch.nn as nn
-# 경로 설정 general하게 맞춰야??
-path = '/mnt/d/KonanXAI_implement_example2/ultralytics/'
-sys.path.append(path)
+
+from KonanXAI._core import darknet
+
 
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 
@@ -129,11 +129,10 @@ class TorchLocal(Torch):
 
 
 class Darknet:
-    def __init__(self, repo_or_dir, model_name, cfg_path):
+    def __init__(self, repo_or_dir, model_name):
         self.repo_or_dir = repo_or_dir
         self.model_name = model_name
         self.path = self.repo_or_dir
-        self.cfg_path = cfg_path
         self._check_os()
         
         
@@ -157,7 +156,7 @@ class Darknet:
     def _read_hubconf(self):
         pass
     
-    def _load(self):
+    def _load(self, weight_path, cfg_path):
         pass
 
     def _load_weight(self):
@@ -167,7 +166,7 @@ class Darknet:
 
 class DarknetGit(Darknet):
     def __init__(self, repo_or_dir, model_name):
-        Torch.__init__(self, repo_or_dir, model_name)
+        Darknet.__init__(self, repo_or_dir, model_name)
 
     def _download_from_url(self, cache_or_local):
         
@@ -175,6 +174,7 @@ class DarknetGit(Darknet):
 
         command = ''
     
+
         if cache_or_local == 'cache':
             command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url       
         
@@ -182,8 +182,7 @@ class DarknetGit(Darknet):
             command = 'git' + ' -C ' + cache_or_local + ' clone ' + git_url
             
         ## 캐시 command 재작성해야..
-        if self.os_name == 'nt':
-            command = command.replace('/', '\\')
+        
 
         os.system(command)
 
@@ -192,26 +191,19 @@ class DarknetGit(Darknet):
         if os.name == 'nt':
             self.path = self.path.replace('/', '\\')
     
-    def _load(self):
+    def _load(self, weight_path=None, cfg_path=None):
         print(self.path)
         
-        self.check_hubconf = self._check_hubconf()
-        print(self.check_hubconf)
+        # hubconf를 darknet안에서 작성할지 말지 결정하지 못했음
 
-        self._add_to_sys_path()
-        # 아래는 ultralytics/yolov5 리포지토리 코드
-        # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
-        if self.check_hubconf == True:
-            import hubconf
-            model = hubconf._create(self.model_name)
-            return model
-        # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
+        self.weight_path = weight_path
+        self.cfg_path = cfg_path
+
+        model = darknet.Network()
+        # weight_path, cfg_path  없을 때 어떻게 처리?
+        model.load_model_custom(cfg_path, weight_path)
+        return model
         
-        # 에러로 처리해야
-        else:
-            print('write hubconf.py')
-            return None
-
     
     
     def _load_weight(self):

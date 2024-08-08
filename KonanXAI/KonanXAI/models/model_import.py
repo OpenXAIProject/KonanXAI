@@ -103,11 +103,12 @@ def darknet_local_model_load(local_path, model_name):
 
 # 그냥 git._load에서 download까지 한꺼번에 하게 할까 분리할까...?
 def darknet_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_path, cfg_path):
-    git = DarknetGit(repo_or_dir, model_name)
-    git._download_from_url(cache_or_local)
-    model = git._load()
+    model = DarknetGit(repo_or_dir, model_name)
+    model._download_from_url(cache_or_local)
+    model = model._load(weight_path, cfg_path)
+    return model
     
-    return model   
+    #return model   
 
 def _darknet_model_load(
         source = None,
@@ -126,8 +127,9 @@ def _darknet_model_load(
         model = darknet_local_model_load(local_path, model_name, 
                                          weight_path, cfg_path)
         
+    return model
+        
 
-    pass
 
 def _dtrain_model_load():
     pass
