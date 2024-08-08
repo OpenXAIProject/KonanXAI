@@ -145,7 +145,7 @@ class Graph:
                     else:
                         temp_layer.append(v)
                 if index == 9:
-                    print("spp")
+                    print("sppf")
                 gt_graph[index] = self.make_trace(temp_layer)
             return Sequential(list(gt_graph.values()))
         
@@ -161,6 +161,8 @@ class Graph:
         self.dict_name = []
         self.stocastic = {}
         self.add = {}
+        clone_cat = None
+        
         for v in gt_graph:
             if v.op == 'placeholder':
                 trace_graph.append(self.input)
@@ -299,19 +301,8 @@ class Graph:
                         self.variable[self.dict_name[-1]].destination = v.next.name
             # Cat
             if "cat" in list(map(str,v.users.keys())):
-                # def cat_forward_pre_hook(m, input_tensor):
-                #     hook_idx = [v.id for v in self.cat.handle]
-                #     key = list(m._forward_pre_hooks.keys())[-1]
-                #     if key in hook_idx:
-                #         self.cat.X_value[key]= input_tensor[0]
-                # def cat_forward_hook(m, input_tensor, output_tensor):
-                #     hook_idx = [v.id for v in self.cat.handle]
-                #     key = list(m._forward_hooks.keys())[-1]
-                #     if key in hook_idx:
-                #         self.cat.X_value[key] = output_tensor[0]
-                # # if v.name.startswith("cat"):
-                # #     self.cat.handle.append(self._target_module(v.prev).register_forward_pre_hook(cat_forward_hook))
-                # #     self.concat[v.name] = self.modules[self.tree_index][str(v.prev.target)]
+                # cat 최초 지점 선택 하여  clone 하기 -> 바로 clone이 아닌 임시 변수에 clone 만들고 cat function일어날 때 사용하도록..
+                # 또한 cat이 일어난 지점들에 대해 count 변수 만들어서 clone이 몇번 발생하는지 기억하게 하기. -> self.concat 길이 활용
                 if v.name.startswith("add"):
                     self.cat.handle.append(self._target_module(v.next))
                     self.concat[v.name] = self.modules[self.tree_index][str(v.next.target)]

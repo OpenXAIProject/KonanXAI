@@ -633,7 +633,7 @@ class Clone(LRPModule):
         if isinstance(self.origin, tuple):
             self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
         if isinstance(self.origin, nn.modules.pooling._MaxPoolNd):
-            X = self.origin(self.origin.X[-1]).unsqueeze(0).detach()
+            X = self.origin.Y.unsqueeze(0).detach()
         else:
             X = self.origin.X[-1].detach()
             if len(X.shape) == 3:
@@ -680,7 +680,6 @@ class Cat(LRPModule):
     def __init__(self, *modules, dim = 1):
         def cat_forward_hook(m, input_tensor, output_tensor):
             self.X.append(output_tensor[0].unsqueeze(0))
-        self.X_value = {}
         self.X = []
         self.handle = []
         self.dim = dim
@@ -830,7 +829,16 @@ class AdaptiveAvgPoolNd(LRPModule):
     #     return relevance_out
     
 class MaxpoolNd(LRPModule):
-    pass
+    def epsilon(self, R, rule, alpha):
+        X = self.module.X.detach().clone()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
+        X.requires_grad = True
+        Z = self.forward(X)        # vs Z = self.forward(X)
+        S = safe_divide(R, Z, alpha)
+        C = self.gradprop(Z, X, S)[0]
+        relevance = X * C
+        return relevance
     # def epsilon(self, R, rule, alpha):
     #     #unpool 해주기.... 현재 Relevance를 2배로 확장..
     #     maxunpool = {nn.MaxPool1d: F.max_unpool1d, nn.MaxPool2d: F.max_unpool2d, nn.MaxPool3d: F.max_unpool3d}[type(self.module)]
