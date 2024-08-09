@@ -31,25 +31,33 @@ import matplotlib.pyplot as plt
 from KonanXAI.models import model_info
 
 # 아래 호출 경로 이름을 바꾸던가 좀 수정해야...
-from KonanXAI.models.model_import import model_import 
+
 import sys
 
-from KonanXAI._core import darknet
+
+# darknet test 여기부터 시작
+# from KonanXAI.models.model_import import model_import 
+# from KonanXAI._core import darknet
 
 # 리눅스 경로
 # cfg_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.cfg'
 # weight_path = '/mnt/d/KonanXAI_implement_darknet/KonanXAI/yolov4-tiny.weights'
 
-# 윈도우 경로
-cfg_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.cfg'
-weight_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.weights'
-image_path = 'D:\KonanXAI_implement_darknet\KonanXAI\dog.jpg'
+# # 윈도우 darknet test
+# cfg_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.cfg'
+# weight_path = 'D:\KonanXAI_implement_darknet\KonanXAI\yolov4-tiny.weights'
+# image_path = 'D:\KonanXAI_implement_darknet\KonanXAI\dog.jpg'
 
-model = darknet.Network()
-model.load_model_custom(cfg_path, weight_path)
+# model = darknet.Network()
+# model.load_model_custom(cfg_path, weight_path)
 
 
-image = darknet.open_image(image_path, (416, 416))
-model.forward_image(image)
-#print(len(model.layers[-1].get_output()))
-print(len(model.layers[-1].get_bboxes()))
+# image = darknet.open_image(image_path, (416, 416))
+# model.forward_image(image)
+# #print(len(model.layers[-1].get_output()))
+# print(len(model.layers[-1].get_bboxes()))
+
+from project.config import Configuration
+
+config_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\\project\\config_darknet.yaml'
+config = Configuration(config_path)

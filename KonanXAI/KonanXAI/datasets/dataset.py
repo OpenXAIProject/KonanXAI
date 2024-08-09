@@ -1,4 +1,4 @@
-from KonanXAI._core import darknet
+import darknet
 # from ..lib.core import dtrain
 # from ..lib.core import pytorch
 import random
@@ -7,6 +7,8 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
+
+
 
 class Datasets:
     def __init__(self, src_path, label_path=None):

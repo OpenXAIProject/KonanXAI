@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn as nn
 
-from KonanXAI._core import darknet
+#from KonanXAI._core import darknet
 
 
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
@@ -199,6 +199,7 @@ class DarknetGit(Darknet):
         self.weight_path = weight_path
         self.cfg_path = cfg_path
 
+        import darknet
         model = darknet.Network()
         # weight_path, cfg_path  없을 때 어떻게 처리?
         model.load_model_custom(cfg_path, weight_path)
@@ -218,13 +219,19 @@ class DarknetLocal(Darknet):
         Darknet.__init__(self, repo_or_dir, model_name)
         self._check_os()
 
-    def _load(self):
-        if self.os_name == 'nt':
-            print(self.os_name)
-            
+    def _load(self, weight_path=None, cfg_path=None):
+        print(self.path)
+        
+        # hubconf를 darknet안에서 작성할지 말지 결정하지 못했음
 
-        else :
-            print('Darknet for Linux is not builded yet')
+        self.weight_path = weight_path
+        self.cfg_path = cfg_path
+
+        import darknet
+        model = darknet.Network()
+        # weight_path, cfg_path  없을 때 어떻게 처리?
+        model.load_model_custom(cfg_path, weight_path)
+        return model
         
         # print(self.path)
         

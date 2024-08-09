@@ -14,6 +14,7 @@ import os
 import json
 import numpy as np
 import cv2
+from glob import glob
 
 import PIL.Image
 from PIL import Image
@@ -23,7 +24,7 @@ import torchvision.models as models
 from torchvision import transforms
 from torchvision import datasets
 
-
+from sklearn.model_selection import train_test_split
 
 import matplotlib.pyplot as plt
 
@@ -31,7 +32,15 @@ import matplotlib.pyplot as plt
 from KonanXAI.models import model_info
 
 # 아래 호출 경로 이름을 바꾸던가 좀 수정해야...
+import KonanXAI
 from KonanXAI.models.model_import import model_import 
+from KonanXAI.datasets import load_dataset
+from KonanXAI.datasets import MNIST
+import project
+
+
+mnist = globals().get('MNIST')
+print(mnist)
 
 # # 1) github repository download 예제
 # # 일단 url 로 모델 다운로드에서 막힌 상태
@@ -74,17 +83,31 @@ from KonanXAI.models.model_import import model_import
 # cache_or_local = None
 # weight_path = None   # weight_path = None 이면 pretrained=True 자동으로 들어가게 일단 해놓을까?
 
-# 5) framework: darknet, source:github, model_name: yolov4-tiny
+# # 5) framework: darknet, source:github, model_name: yolov4-tiny
+# # 리눅스 cmake 안해서 윈도우에서 테스트중
+# # cache 저장 경우도 만들어야
+# framework = 'darknet'
+# source = 'github'
+# repo_or_dir = 'AlexeyAB/darknet'
+# model_name = 'yolov4-tiny'
+# cache_or_local = 'D:\\KonanXAI_implement_darknet\\'
+# weight_path = 'D:\\weights\yolov4-tiny.weights'
+# # custom 모델 cfg 불러오는 경우
+# cfg_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\yolov4-tiny.cfg'
+
+
+# 6) framework: darknet, source:local, model_name: yolov4-tiny
 # 리눅스 cmake 안해서 윈도우에서 테스트중
-# cache 저장 경우도 만들어야
+# cache 저장 경우도 만들어야?
 framework = 'darknet'
-source = 'github'
-repo_or_dir = 'AlexeyAB/darknet'
+source = 'local'
+repo_or_dir = 'D:\\KonanXAI_implement_darknet\\xai_darknet'
 model_name = 'yolov4-tiny'
 cache_or_local = 'D:\\KonanXAI_implement_darknet\\'
 weight_path = 'D:\\weights\yolov4-tiny.weights'
 # custom 모델 cfg 불러오는 경우
 cfg_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\yolov4-tiny.cfg'
+
 
 model = model_import(framework = framework, 
                      source = source, 
@@ -96,7 +119,32 @@ model = model_import(framework = framework,
 
 print(model)
 
-data
+## darknet에서 쓰는 경우
+## dataset load
+data_path = "D:\\dataset\\military_data\\military_data\\107mm\\"
+label_path = "D:\\dataset\\military_data\\military_raw_data"
+
+
+darknet_loader = load_dataset(framework, data_path = data_path, 
+                              data_type = 'CUSTOM', resize = (416, 416))
+print(darknet_loader)
+
+
+
+# 기존 torch 모델 데이터로더 구성 예시
+# dataset = datasets.ImageForder(data_path, transform = transform)
+# train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+# train_loader = torch.utils.data.Dataloader(train_dataset, batch_size = 16, shuffle = True)
+
+
+
+
+# 이렇게 구현할까, 말까?
+# label_path = Datasets(data_path = data_path, label_path = label_path,
+#                       train_or_test = 'test', batch = 1, resize = (416,416),
+#                       transform = None, data_type = 'CUSTOM', framework = 'darknet') 
+# #dataset = CUSTOM(data_path)
 
 
 

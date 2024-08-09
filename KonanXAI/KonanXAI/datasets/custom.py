@@ -1,4 +1,4 @@
-from .datasets import Datasets
+from KonanXAI.datasets import Datasets, darknet
 import os
 from glob import glob
 class CUSTOM(Datasets):

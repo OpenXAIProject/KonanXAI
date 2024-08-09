@@ -94,10 +94,10 @@ def _torch_model_load(
         return model
 
 
-def darknet_local_model_load(local_path, model_name):
+def darknet_local_model_load(local_path, model_name, weight_path, cfg_path):
     local = DarknetLocal(local_path, model_name)
-    model = local._load()
-    #_get_file_tree(local_path)
+    model = local._load(weight_path, cfg_path)
+
     return model
 
 

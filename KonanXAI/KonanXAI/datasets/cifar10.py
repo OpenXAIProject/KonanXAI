@@ -1,10 +1,13 @@
-from .datasets import Datasets, darknet
+from KonanXAI.datasets import Datasets
+import darknet
 import os
 from glob import glob
 import pickle
 import numpy as np
 from tqdm import tqdm
 import cv2
+
+
 class CIFAR10(Datasets):
     def __init__(self, src_path):
         super().__init__(src_path)
