@@ -2,8 +2,9 @@ from . import Datasets
 import os
 from glob import glob
 class COCO(Datasets):
-    def __init__(self, src_path):
-        super().__init__(src_path)
+    def __init__(self, framework, src_path):
+        super().__init__(framework, src_path)
+        self.framework = framework
         self.src_path = src_path
         self.classes = 80
         self.make_cache = {}

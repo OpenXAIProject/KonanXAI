@@ -1,9 +1,10 @@
-from KonanXAI.datasets import Datasets, darknet
+from KonanXAI.datasets import Datasets
 import os
 from glob import glob
 class CUSTOM(Datasets):
-    def __init__(self, src_path):
-        super().__init__(src_path)
+    def __init__(self, framework, src_path):
+        super().__init__(framework, src_path)
+        self.framework = framework
         self.src_path = src_path
         self.classes = 5
         self.make_cache = {}

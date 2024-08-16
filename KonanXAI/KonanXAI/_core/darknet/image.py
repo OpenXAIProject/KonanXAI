@@ -22,6 +22,7 @@ class Image:
     def data(self) -> IMAGE:
         return self.struct
 
+
 def open_image(img_path: str, size: tuple=None, channel: str='RGB') -> Image:
     raw = cv2.imread(img_path)
     if channel in ('GRAY', 'GREY'):
@@ -33,3 +34,4 @@ def open_image(img_path: str, size: tuple=None, channel: str='RGB') -> Image:
     h, w, c = raw.shape
     img = Image(w, h, c, raw)
     return img
+

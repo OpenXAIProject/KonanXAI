@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn as nn
 
-#from KonanXAI._core import darknet
+from KonanXAI._core import darknet
 
 
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
@@ -40,7 +40,7 @@ class Torch:
     def _read_hubconf(self):
         pass
     
-    def _load(self):
+    def _load(self, weight_path):
         pass
 
     def _load_weight(self):
@@ -71,7 +71,7 @@ class TorchGit(Torch):
         repository_name = self.repo_or_dir.split('/')[1]
         self.path = cache_or_local + repository_name + '/'
     
-    def _load(self):
+    def _load(self, weight_path):
         print(self.path)
         
         self.check_hubconf = self._check_hubconf()
@@ -82,7 +82,11 @@ class TorchGit(Torch):
         # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
         if self.check_hubconf == True:
             import hubconf
-            model = hubconf._create(self.model_name)
+            # model = hubconf._create(self.model_name)
+            model = hubconf._create(weight_path, pretrained=False)
+            model = torch.load(weight_path)['model']
+            model.float().fuse().eval()
+            model.model_name = self.model_name
             return model
         # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
         
@@ -107,7 +111,7 @@ class TorchLocal(Torch):
     def __init__(self, repo_or_dir, model_name):
         Torch.__init__(self, repo_or_dir, model_name)
 
-    def _load(self):
+    def _load(self, weight_path):
         print(self.path)
         
         self.check_hubconf = self._check_hubconf()
@@ -119,6 +123,9 @@ class TorchLocal(Torch):
         if self.check_hubconf == True:
             import hubconf
             model = hubconf._create(self.model_name)
+            model = torch.load(weight_path)['model']
+            model.float().fuse().eval()
+            model.model_name = self.model_name
             return model
         # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
         
@@ -191,7 +198,7 @@ class DarknetGit(Darknet):
         if os.name == 'nt':
             self.path = self.path.replace('/', '\\')
     
-    def _load(self, weight_path=None, cfg_path=None):
+    def _load(self, weight_path, cfg_path):
         print(self.path)
         
         # hubconf를 darknet안에서 작성할지 말지 결정하지 못했음
@@ -203,6 +210,7 @@ class DarknetGit(Darknet):
         model = darknet.Network()
         # weight_path, cfg_path  없을 때 어떻게 처리?
         model.load_model_custom(cfg_path, weight_path)
+        model.model_name = self.model_name
         return model
         
     
@@ -219,8 +227,7 @@ class DarknetLocal(Darknet):
         Darknet.__init__(self, repo_or_dir, model_name)
         self._check_os()
 
-    def _load(self, weight_path=None, cfg_path=None):
-        print(self.path)
+    def _load(self, weight_path, cfg_path):
         
         # hubconf를 darknet안에서 작성할지 말지 결정하지 못했음
 
@@ -230,7 +237,10 @@ class DarknetLocal(Darknet):
         import darknet
         model = darknet.Network()
         # weight_path, cfg_path  없을 때 어떻게 처리?
+    
         model.load_model_custom(cfg_path, weight_path)
+        
+        model.model_name = self.model_name
         return model
         
         # print(self.path)
@@ -284,6 +294,7 @@ class Yolov5(TorchLocal):
         if self.check_hubconf == True:
             import hubconf
             model = hubconf._create(self.model_name)
+            model.model_name = self.model_name
             return model
         # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
         
@@ -301,6 +312,7 @@ class Ultralytics(TorchLocal):
         self._add_to_sys_path()
         from ultralytics.models.yolo.model import YOLO
         model = YOLO(self.model_name)
+        model.model_name = self.model_name
         return model 
 
 

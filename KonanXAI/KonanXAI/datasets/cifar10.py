@@ -1,5 +1,5 @@
 from KonanXAI.datasets import Datasets
-import darknet
+#import darknet
 import os
 from glob import glob
 import pickle
@@ -9,8 +9,9 @@ import cv2
 
 
 class CIFAR10(Datasets):
-    def __init__(self, src_path):
-        super().__init__(src_path)
+    def __init__(self, framework, src_path):
+        super().__init__(framework, src_path)
+        self.framework = framework
         self.src_path = src_path
         self.classes = 10
         self.make_cache = {}

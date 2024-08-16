@@ -8,7 +8,7 @@ import os
 # import 경로만 모아놔야 하는데..
 from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 
-from KonanXAI._core import darknet
+#from KonanXAI._core import darknet
 
 # torch/hub로 torchvision 모델 불러오려고 하니 hubconf.py 없어서 에러 생김
 __version_of_torchvision__ = [
@@ -44,18 +44,18 @@ def load_weight():
 
 
 
-def torch_local_model_load(local_path, model_name):
+def torch_local_model_load(local_path, model_name, weight_path):
     local = TorchLocal(local_path, model_name)
-    model = local._load()
+    model = local._load(weight_path)
     #_get_file_tree(local_path)
     return model
 
 
 # 그냥 git._load에서 download까지 한꺼번에 하게 할까 분리할까...?
-def torch_git_repository_load(repo_or_dir, model_name, cache_or_local):
+def torch_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_path):
     git = TorchGit(repo_or_dir, model_name)
     git._download_from_url(cache_or_local)
-    model = git._load()
+    model = git._load(weight_path)
     
     return model
 
@@ -65,7 +65,7 @@ def torch_git_repository_load(repo_or_dir, model_name, cache_or_local):
 
 # main인지 master인지 알아내야하는 코드가 필요하네?
 # branch까지 기재하는걸로 할까?
-def _torch_model_load(
+def torch_model_load(
         source = None,
         repo_or_dir = None,
         model_name = None,
@@ -75,8 +75,14 @@ def _torch_model_load(
     
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
-        model = torchvision.models.get_model(model_name)
-        return model
+        if weight_path == None:
+            model = torchvision.models.get_model(model_name, pretrained=True)
+            model.model_name = model_name
+            return model
+        else:
+            model = torchvision.models.get_model(model_name, weights = weight_path)
+            model.model_name = model_name
+            return model
     
     # elif source == 'torch/hub':
     #     model = torch.hub()
@@ -84,13 +90,13 @@ def _torch_model_load(
     # main branch인지 master branch인지 알아내야.. 
     # 일단 ultralytics/ultralytics 로 테스트 할 거니까 main으로 설정
     elif source == 'github':
-        model = torch_git_repository_load(repo_or_dir, model_name, cache_or_local)
+        model = torch_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_path)
         return model
 
 
     elif source == 'local':
         local_path = repo_or_dir
-        model = torch_local_model_load(local_path, model_name)
+        model = torch_local_model_load(local_path, model_name, weight_path)
         return model
 
 
@@ -110,7 +116,7 @@ def darknet_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_
     
     #return model   
 
-def _darknet_model_load(
+def darknet_model_load(
         source = None,
         repo_or_dir = None,
         model_name = None, 
@@ -131,7 +137,7 @@ def _darknet_model_load(
         
 
 
-def _dtrain_model_load():
+def dtrain_model_load():
     pass
 
 
@@ -166,13 +172,13 @@ def model_import(
     '''
 
     if framework == 'torch':
-        model = _torch_model_load(source = source, 
+        model = torch_model_load(source = source, 
                                   repo_or_dir = repo_or_dir, 
                                   model_name = model_name, cache_or_local = cache_or_local, 
                                   weight_path = weight_path)
         
     elif framework == 'darknet':
-        model = _darknet_model_load(source = source, 
+        model = darknet_model_load(source = source, 
                                     repo_or_dir = repo_or_dir,
                                     model_name = model_name, cache_or_local = cache_or_local,
                                     weight_path = weight_path,
