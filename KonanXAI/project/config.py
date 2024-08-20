@@ -26,27 +26,3 @@ class Configuration:
         self.data_type = self.config['project']['data_type']
         self.explain_algorithm = self.config['project']['explain_algorithm']
         
-
-    # gradcam 의 method로 넣자
-    def get_target_layer(self, model):
-        if self.framework == "pytorch":
-            self.target_layer = model
-            target = self.config['config']['target_layer']
-            if isinstance(target,list):
-                for layer in target:
-                    self.target_layer = self.target_layer._modules[layer]
-            elif isinstance(target,dict):
-                self.target_yolo_layer = []
-                for index, layers in target.items():
-                    base_layer = model
-                    for layer in layers:
-                        base_layer = base_layer._modules[layer]
-                    self.target_yolo_layer.append(base_layer)
-                self.target_layer = self.target_yolo_layer
-            else:
-                self.target_layer = None
-                
-        elif self.framework == "darknet":
-            self.target_layer = None
-        
-   

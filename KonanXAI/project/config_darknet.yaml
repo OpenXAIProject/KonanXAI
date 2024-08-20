@@ -11,16 +11,16 @@
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
 project:
-  save_path: D:\\KonanXAI_implement_darknet\\KonanXAI\\heatmap\\
-  weight_path: D:\\weights\\yolov4-tiny.weights
-  cfg_path: D:\\KonanXAI_implement_darknet\\KonanXAI\yolov4-tiny.cfg
-  data_path: D:\\dataset\\military_data
+  save_path: D:\\
+  weight_path: D:\\3852.weights
+  cfg_path: D:\\3852.cfg
+  data_path: D:\\dataset\\military_data\\military_data\\107mm\\
   data_resize: [640,640]
-  model_name: yolov4-tiny
+  model_name: yolov4
   framework: darknet
-  source: github
+  source: local
   repo_or_dir: AlexeyAB/darknet
-  cache_or_local: D:\\KonanXAI_implement_darknet\\
+  cache_or_local: D:\\KonanXAI_implement_darknet\\xai_darknet\\
   data_type: CUSTOM
   explain_algorithm: 
     - GradCAM:

@@ -25,8 +25,10 @@ class GradCAM:
         self.model = model
         self.model_name = self.model.model_name
         self.input = input
-        if self.framework != 'darknet':
-            self.input_size = input.shape[2:4]
+        if self.framework == 'darknet':
+            self.input_size = self.input.shape
+        else:
+            self.input_size = self.input.shape[2:4]
         self.target_layer = target_layer
 
  
@@ -124,6 +126,7 @@ class GradCAM:
             self.heatmaps.append(heatmap)
 
         if self.model_name[0:4] == 'yolo':
+            
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps
@@ -132,7 +135,6 @@ class GradCAM:
     
 
     def _normalize_heatmap(self, heatmap):
-        heatmap = sum(heatmap)
         smax, smin = heatmap.max(), heatmap.min()
         if (smax - smin !=0):
             heatmap = (heatmap - smax) / (smax - smin)
@@ -146,8 +148,11 @@ class GradCAM:
             heatmap = heatmap.squeeze(0)
             heatmap = self._normalize_heatmap(heatmap).transpose(1,0)
             heatmap = heatmap.detach().cpu().numpy()
-            heatmap = cv2.resize(heatmap, dsize = self.input_size)
-            heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
+            heatmap = np.uint8(255 * heatmap)
+            heatmap = cv2.resize(heatmap, self.input_size)
+            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+            cv2.imwrite(img_save_path[:-4] + '_gradcam_{}.jpg'.format(i), heatmap)
+
             self.heatmaps[i] = heatmap
 
         return self.heatmaps

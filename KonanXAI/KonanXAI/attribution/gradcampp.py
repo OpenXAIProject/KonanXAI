@@ -6,6 +6,7 @@ from KonanXAI.datasets import Datasets
 #from ...core import darknet
 import numpy as np
 import cv2
+import torch.nn.functional as F
 
 class GradCAMpp(GradCAM):
     def __init__(self, model, dataset: Datasets, platform):

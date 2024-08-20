@@ -58,6 +58,7 @@ class Datasets:
             idx = yield
             if self.framework == 'darknet':
                 data = darknet.open_image(self.train_items[idx][0], self.fit)
+                data.shape = self.fit
                 yield data
             else:
                 s = idx * self.batch

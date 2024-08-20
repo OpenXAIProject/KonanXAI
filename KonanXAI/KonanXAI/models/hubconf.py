@@ -35,7 +35,7 @@ class Torch:
     #     pass
 
     def _check_hubconf(self):
-        return os.path.isfile(self.path + 'hubconf.py')
+        return os.path.isfile(os.path.join(self.path, 'hubconf.py'))
     
     def _read_hubconf(self):
         pass
@@ -58,18 +58,26 @@ class TorchGit(Torch):
 
     def _download_from_url(self, cache_or_local):
         git_url = 'https://github.com/'+ self.repo_or_dir +'.git'
+
+        command = ''
+
     
         if cache_or_local == 'cache':
-            command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url
-            os.system(command) 
-            
+            if os.name == "posix":
+                cache_or_local = '~/.cache'
+                command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url 
+            elif os.name == "nt":
+                cache_or_local = '%temp%'
+                command = 'git' + ' -C ' + '%temp%' + ' clone' + git_url 
+        
         
         else:
             command = 'git' + ' -C ' + cache_or_local + ' clone ' + git_url
-            os.system(command)
+            
+        os.system(command)
 
         repository_name = self.repo_or_dir.split('/')[1]
-        self.path = cache_or_local + repository_name + '/'
+        self.path = os.path.join(cache_or_local, repository_name)
     
     def _load(self, weight_path):
         print(self.path)
@@ -183,7 +191,12 @@ class DarknetGit(Darknet):
     
 
         if cache_or_local == 'cache':
-            command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url       
+            if os.name == "posix":
+                cache_or_local = '~/.cache'
+                command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url 
+            elif os.name == "nt":
+                cache_or_local = '%temp%'
+                command = 'git' + ' -C ' + '%temp%' + ' clone' + git_url 
         
         else:
             command = 'git' + ' -C ' + cache_or_local + ' clone ' + git_url
@@ -194,7 +207,7 @@ class DarknetGit(Darknet):
         os.system(command)
 
         repository_name = self.repo_or_dir.split('/')[1]
-        self.path = cache_or_local + repository_name + '/'
+        self.path = os.path.join(cache_or_local, repository_name)
         if os.name == 'nt':
             self.path = self.path.replace('/', '\\')
     

@@ -146,10 +146,10 @@ from KonanXAI.attribution import GradCAM
 
 # 윈도우에서 확인 darknet.so 파일이 없어서..
 # framework = 'torch'
-# source = 'local'
-# repo_or_dir = 'D:\\KonanXAI_implement_darknet\\yolov5\\'
+# source = 'github'
+# repo_or_dir = 'ultralytics/ultralytics'
 # model_name = 'yolov5s'
-# cache_or_local = None
+# cache_or_local = 'cache'
 # weight_path = 'D:\\KonanXAI_implement_darknet\\yolov5s.pt'
 # cfg_path = None
 # target_layer = {'0':['model','24','m','0'],'1':['model','24','m','1'],'2':['model','24','m','2']}
@@ -158,11 +158,11 @@ from KonanXAI.attribution import GradCAM
 framework = 'darknet'
 source = 'local'
 repo_or_dir = 'D:\\KonanXAI_implement_darknet\\xai_darknet'
-model_name = 'yolov4-tiny'
-cache_or_local = 'D:\\KonanXAI_implement_darknet\\'
-weight_path = 'D:\\weights\yolov4-tiny.weights'
+model_name = 'yolov4'
+cache_or_local = None
+weight_path = 'D:\\3852.weights'
 # custom 모델 cfg 불러오는 경우
-cfg_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\yolov4-tiny.cfg'
+cfg_path = 'D:\\3852.cfg'
 target_layer = None
 
 model = model_import(framework = framework, 
@@ -179,8 +179,8 @@ print(model)
 #리눅스 data_path
 #data_path = "/mnt/d/dataset/military_data/military_data/107mm/"
 #윈도우 data_path
-#data_path = "D:\\dataset\\military_data\\military_data\\107mm\\"
-data_path2 = "D:\\KonanXAI_implement_darknet\\yolov5\\data\\images\\"
+data_path = "D:\\dataset\\military_data\\military_data\\107mm\\"
+# data_path2 = "D:\\KonanXAI_implement_darknet\\yolov5\\data\\images\\"
 # data_loader = load_dataset(framework, data_path = data_path, 
 #                               data_type = 'CUSTOM', resize = (640, 640))
 
@@ -198,9 +198,9 @@ data_path2 = "D:\\KonanXAI_implement_darknet\\yolov5\\data\\images\\"
 
 # darknet gradcam test
 #darknet_image = darknet.open_image(data_path2, (416, 416))
-data_loader = load_dataset(framework, data_path = data_path2, 
-                              data_type = 'CUSTOM', resize = (416, 416))
-print(data_loader[0])
+data_loader = load_dataset(framework, data_path = data_path, 
+                              data_type = 'CUSTOM', resize = (640, 640))
+print(4, type(data_loader[0].shape))
 # image_path = 'D:\\KonanXAI_implement_darknet\\KonanXAI\dog.jpg'
 # image = darknet.open_image(image_path, (416,416))
 # model = darknet.Network()
@@ -209,8 +209,22 @@ print(data_loader[0])
 # print(model.layers[-1].get_bboxes())
 # target_layer 마지막 레이어로 정해져 있는거 같은데?
 #target_layer =None
-gradcam = GradCAM(framework, model, data_loader[0], target_layer)
-gradcam.calculate()
+gradcams = []
+for i, data in enumerate(data_loader):
+    print(1, data_loader.train_items[i][0])
+    img_path = data_loader.train_items[i][0].split('\\')
+    root = 'D:\\gradcam_result\\' + img_path[-2]
+    if os.path.isdir(root) == False:
+        print(root)
+        os.mkdir(root)
+    
+
+    img_save_path = root + '\\' + img_path[-1]
+    gradcam = GradCAM(framework, model, data_loader[0], target_layer)
+    gradcam.calculate()
+    gradcams.append(gradcam)
+    gradcam.get_heatmap(img_save_path)
+
 
 
 
