@@ -44,6 +44,6 @@ class ExplainData:
                             bbox = list(map(int,t))
                             bbox = (bbox[0],bbox[1]), (bbox[2],bbox[3])
                         result = cv2.rectangle(saliency,bbox[0],bbox[1],color=(0,255,0),thickness=3)
-                        cv2.imwrite(compose_path, result)
-                    else:    
-                        compose_heatmap_image(saliency, origin_image, bbox, save_path=compose_path, draw_box= draw_box)
+                        cv2.imwrite(f"{save_path}{algorithm}_box_saliency_{i}-{j}{ext}", result)
+                    # else:    
+                    compose_heatmap_image(saliency, origin_image, bbox, save_path=compose_path, draw_box= draw_box)
