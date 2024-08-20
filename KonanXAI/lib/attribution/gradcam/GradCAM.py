@@ -165,8 +165,6 @@ class GradCAM(Algorithm):
         # TODO - Target Layer 는 정해졌다고 가정
         # target_layer = [net.layers[149], net.layers[149], net.layers[160]]
         # target_layer = [net.layers[30], net.layers[37]]
-        select_layer = set(list(self.bbox_layer.values()))
-        print(f"select_layer: {select_layer}")
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
             layer = net.layers[i -1]
