@@ -4,7 +4,7 @@ import copy
 from torch.fx.node import Node
 from typing import Dict
 
-from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample
+from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample, Route
 from ....models import XAIModel
 import torch
 import torch.nn as nn
@@ -43,7 +43,9 @@ class Graph:
         self.data = data
         architecture = self._parse_graph_yaml()
         return architecture
-        
+    def clear(self):
+        self.input.clear()
+        self.cat.clear()
     def _parse_graph_yaml(self):
         nc = self.data['nc']
         gd = self.data['depth_multiple']
@@ -120,13 +122,15 @@ class Graph:
                 temp_layer = []
                 if m._get_name() == 'Concat':
                     layer_index = yaml_layer[index][0]
-                    self.cat_0, self.cat_1 = None, None
-                    for i,v in enumerate(layer_index):
-                        if v == -1:
-                            v = len(gt_graph)-1
-                        exec(f"self.cat_{i} = gt_graph[{v}]")
-
-                    gt_graph[index] = Cat(self.cat_0, self.cat_1)
+                    cur_index = index -1
+                    next_index = layer_index[1]
+                    # self.cat_0, self.cat_1 = None, None
+                    # for i,v in enumerate(layer_index):
+                    #     if v == -1:
+                    #         v = len(gt_graph)-1
+                    #     exec(f"self.cat_{i} = gt_graph[{v}]")
+                    # Cat 말고 Route 모듈 만들어서 처리하는건...?
+                    gt_graph[index] = Route(cur_index, next_index)
                     print("Concat layer!", yaml_layer[index])
                     continue
                 elif m._get_name() == 'Detect':
@@ -161,7 +165,7 @@ class Graph:
         self.dict_name = []
         self.stocastic = {}
         self.add = {}
-        clone_cat = None
+        bottle_neck = []
         
         for v in gt_graph:
             if v.op == 'placeholder':
@@ -196,7 +200,7 @@ class Graph:
                         call_func_layer.append(target)
                     
                 elif is_next_layer == False and self._layer_name == None:
-                    if len(main_layer)>0:
+                    if len(main_layer)>0 and len(bottle_neck)==0:
                         trace_graph.append(Sequential(main_layer))
                         main_layer.clear()
                     elif len(call_func_layer)>0:
@@ -271,12 +275,13 @@ class Graph:
                     sub_layer.append(mul)
                     del self.variable[dict_name]
                 elif v.name.startswith("cat"):
-                    modules = list(self.concat.values())
-                    if len(call_func_layer)>0:
-                        sub_layer.append(Sequential(call_func_layer))
-                        call_func_layer.clear()
-                    cat = Cat(modules)
-                    sub_layer.append(cat)
+                    clone = Clone(self.modules[self.tree_index][str(gt_graph[0].target)], num=len(self.concat))
+                    trace_graph.append(clone)
+                    cat = Cat(*bottle_neck)
+                    trace_graph.append(cat)
+                    if len(main_layer)>0:
+                        trace_graph.insert(0, main_layer[0][0])
+                        main_layer.clear()
                     self.concat.clear()
                 elif v.name.startswith("interpolate"):
                     trace_graph.pop()
@@ -307,11 +312,26 @@ class Graph:
                     self.cat.handle.append(self._target_module(v.next))
                     self.concat[v.name] = self.modules[self.tree_index][str(v.next.target)]
                 elif("act" in v.name):
-                    self.cat.handle.append(self._target_module(v.prev))
-                    self.concat[v.name] = self.modules[self.tree_index][str(v.prev.target)]
+                    self.cat.handle.append([self._target_module(v).layer_count, self._target_module(v)])
+                    self.concat[v.name] = self.modules[self.tree_index][str(v.target)]
                 else:
                     self.cat.handle.append(self._target_module(v))
                     self.concat[v.name] = self.modules[self.tree_index][str(v.target)]
+                if len(call_func_layer)>0 and len(sub_layer)==0:
+                    trace_graph.append(Sequential(call_func_layer))
+                    call_func_layer.clear()
+                elif len(sub_layer)>0:
+                    if len(sub_layer) == 1:
+                        trace_graph.append(sub_layer[0])
+                    else:
+                        trace_graph.append(Sequential(sub_layer))
+                    sub_layer.clear()
+                elif len(main_layer)>0 and len(trace_graph)==0:
+                    module = main_layer[0][0].modules.pop()
+                    trace_graph.append(module)
+
+                bottle_neck.append(Sequential(trace_graph))
+                trace_graph.clear()
             # clone
             if len(v.users)>1 and not "cat" in list(map(str,v.users.keys())):
                 def input_forward_hook(m, input_tensor):
@@ -322,7 +342,7 @@ class Graph:
                 self.input.handle.append(self._target_module(v.next).register_forward_pre_hook(input_forward_hook))
                 try:
                     if self.conf_path != None:
-                        clone = Clone(self.modules[self.tree_index][str(v.target)], num=len(v.users))
+                        clone = Clone(self.modules[self.tree_index][str(v.target)],idx = self.modules[self.tree_index][str(v.target)].layer_count, num=len(v.users))
                     else:
                         clone = Clone(self.modules[str(v.target)], num=len(v.users))
                 except:
@@ -358,9 +378,15 @@ class Graph:
                 sub_layer.append(Sequential(call_func_layer))
                 call_func_layer.clear()
             if len(sub_layer)>0:
-                main_layer.append(Sequential(sub_layer))
+                if isinstance(sub_layer[0],Sequential) and len(sub_layer) == 1:
+                    main_layer.append(sub_layer[0])
+                else:
+                    main_layer.append(Sequential(sub_layer))
                 sub_layer.clear()
             if len(main_layer)>0:
-                trace_graph.append(Sequential(main_layer))
+                if isinstance(main_layer[0],Sequential) and len(main_layer) == 1:
+                    trace_graph.append(main_layer[0])
+                else:
+                    trace_graph.append(Sequential(main_layer))
                 main_layer.clear()
         return Sequential(trace_graph)

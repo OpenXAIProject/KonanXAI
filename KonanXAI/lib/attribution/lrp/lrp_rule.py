@@ -42,9 +42,11 @@ class LRPModule:
     def __init__(self, module):
         self.module: nn.Module = module
         self.handle = []
+        self.act_idx = -1
         if isinstance(self.module, nn.Module):
             self.module.register_forward_hook(forward_hook)
-
+    def clear(self):
+        self.act_idx = -1
     def handle_remove(self):
         for handle in self.handle:
             handle.remove()
@@ -117,11 +119,19 @@ class ConvNd(LRPModule):
         sign = torch.sign(z)     # 여기 이 부분 부터는 따로 함수로 묶어도 될 듯
         sign[z==0] = 1
         z = z + sign*alpha
-        s = R / z
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            rel = rel.detach()
+            s = rel / z
+        else:
+            s = R / z
         
         conv_bwd = {nn.Conv1d: F.conv_transpose1d, nn.Conv2d: F.conv_transpose2d, nn.Conv3d: F.conv_transpose3d}[type(self.module)]
         if self.module.stride != (1,1):
-            _, _, H, W = R.size()
+            if isinstance(R, dict):
+                _, _, H, W = R[str(key)].size()
+            else:
+                _, _, H, W = R.size()
             Hnew = (H - 1) * self.module.stride[0] - 2*self.module.padding[0] +\
                         self.module.dilation[0]*(self.module.kernel_size[0]-1) +\
                         self.module.output_padding[0]+1
@@ -139,7 +149,9 @@ class ConvNd(LRPModule):
                             stride=self.module.stride, groups=self.module.groups,)
             
         relevance_out = cp * x
-        return relevance_out
+        if isinstance(R, dict):
+            R[str(key)] = relevance_out
+        return R if isinstance(R, dict) else relevance_out
     
     
     def signed_forward(self, x, weight):
@@ -207,7 +219,11 @@ class Sequential(LRPModule):
     def __init__(self, modules):
         self.modules = []
         self._add_modules(modules)
-        
+    
+    def clear(self):
+        for v in self.modules:
+            v.clear()
+
     def _add_modules(self, modules):
         for module in modules:
             if isinstance(module, (str)):
@@ -260,49 +276,13 @@ class Sequential(LRPModule):
         return x
     
     def epsilon(self, R, rule, alpha):
-        i = 0
-        skip_layer_count = 0
+        # i = 0
+        # skip_layer_count = 0
         for index, module in enumerate(reversed(self.modules)):
-            # if hasattr(module, 'module'):
-            #     print("Calc module :", module.module.__class__.__name__)
-            # else:
-            #     print("Calc module :", module.__class__.__name__)
-            if skip_layer_count>0:
-                skip_layer_count -= 1
-                continue
-            indexs = len(self.modules) -1 -index
-            if isinstance(R, (list, tuple)):
-                s = None
-                for r in R:
-                    if s is None:
-                        s = torch.sum(r)
-                    else:
-                        s = torch.add(s, torch.sum(r))
-                # print("Input Relevance :", s)
-            else:
-                pass
-                # print("Input Relevance :", torch.sum(R))
 
             R = module.backprop(R, rule, alpha)
-            if isinstance(R, dict):
-                key, relevance = next(iter(R.items()))
-                if indexs-1 == key:
-                    skip_layer_count = 0
-                else:
-                    skip_layer_count = indexs-1-key
-                R = relevance
-            if isinstance(R, (list, tuple)):
-                s = None
-                for r in R:
-                    if s is None:
-                        s = torch.sum(r)
-                    else:
-                        s = torch.add(s, torch.sum(r))
-                # print("Output Relevance :", s)
-            else:
-                pass
-                # print("Output Relevance :", torch.sum(R))
-        return R.detach()
+        
+        return R if isinstance(R, dict) else R.detach()
     
     def alphabeta(self, R, rule, alpha):
         i = 0
@@ -382,18 +362,24 @@ class SiLU(LRPModule):
 
     def epsilon(self, R, rule, alpha):
         X = self.module.X[self.idx]
+        if isinstance(R,dict):
+            key, rel = next(iter(R.items()))
+            # if 'upsample' in R:
+            #     add_upsample = R['upsample']
+            #     del R['upsample']
+            #     X = X + add_upsample
         Z = self.forward(X)
-        if isinstance(R, (list,tuple)):
-            rel = R.pop()
-            R = R[0]
+        if isinstance(R, dict):
             S = safe_divide(rel, Z)
         else:
             S = safe_divide(R, Z)
         C = self.gradprop(Z, X, S)[0]
 
         outputs = X * (C)
-
-        return outputs
+        
+        if isinstance(R, dict):
+            R[str(key)] = outputs
+        return R if isinstance(R,dict) else outputs
     
     def alphabeta(self, R, rule, alpha):
         return R
@@ -425,6 +411,7 @@ class Sigmoid(LRPModule):
         return R
 class Add(LRPModule):
     def __init__(self, module1: Sequential, module2: Sequential):
+        # super().__init__(self)
         def add_forward_hook1(m, input_tensor, output_tensor):
             self.X[0] = F.relu(output_tensor[0].detach())
         def add_forward_hook2(m, input_tensor, output_tensor):
@@ -432,6 +419,8 @@ class Add(LRPModule):
         self.X = [None, None]
         self.handle = []
         self.modules = [module1, module2]
+        self.tensor = None
+        self.act_idx = -1
         for i, m in enumerate(self.modules):
             if hasattr(m[-1], 'module') and isinstance(m[-1].module, nn.Module):
                 method = add_forward_hook1 if i == 0 else add_forward_hook2
@@ -442,29 +431,42 @@ class Add(LRPModule):
             if isinstance(m[-1], StochasticDepth):
                 method = add_forward_hook1 if i == 0 else add_forward_hook2
                 self.handle.append(m[-1].prev_module.register_forward_hook(method))
+        
     def forward(self, x):
         return torch.add(*x)
     
     def epsilon(self, R, rule, alpha):
         for i, m in enumerate(self.modules):
+            if i == 0 and m[-1].module._get_name().lower() == 'silu':
+                layer_index = m[-1].idx
+                self.X[0] = m[-1].module.Y[layer_index]
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
+                    handle_x1 = None
                     for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
                         if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
-                            index +=1
-                            handle_x1 = self.modules[-1].modules[0].handle.pop(-index).id
+                            # index +=1
+                            # handle_x1 = self.modules[-1].modules[0].handle.pop(-index).id
+                            jump_idx = self.modules[-1].modules[0].act_idx
+                            handle_x1 = self.modules[-1].modules[0].handle[jump_idx].id
+                            self.modules[-1].modules[0].act_idx -= 1
                             break
                     # if self.X[0].shape == m[-1].X[m[-1].handle[-3].id].shape:
                     #     handle = m[-1].handle.pop(-3).id
                     # else:
                     # handle = m[-1].handle.pop().id
+                    if handle_x1 == None:
+                        handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                        self.modules[-1].modules[0].act_idx -= 1
                     self.X[i] = m[-1].X[handle_x1].detach()
                     break
             elif self.X[-1] is not None:
                 if len(self.modules[-1].modules[0].handle) == 0:
                     break
                 else:
-                    self.modules[-1].modules[0].handle.pop()
+                    handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                    self.modules[-1].modules[0].act_idx -= 1
+                    # self.modules[-1].modules[0].handle.pop()
                     break
         for x in self.X:
             x.requires_grad_(True)
@@ -624,8 +626,9 @@ class Mul(LRPModule):
         return 'Mul : ' + str(self.modules)
     
 class Clone(LRPModule):
-    def __init__(self, origin, num=2):
+    def __init__(self, origin, idx=None, num=2):
         self.origin = origin
+        self.idx = idx
         self.num = num
     # max pool쪽 err 
     def epsilon(self, R, rule, alpha):
@@ -634,10 +637,16 @@ class Clone(LRPModule):
             self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
         if isinstance(self.origin, nn.modules.pooling._MaxPoolNd):
             X = self.origin.Y.unsqueeze(0).detach()
+        # yolo sppf block
+        elif len(R)>2:
+            X = self.origin.Y.detach()
         else:
-            X = self.origin.X[-1].detach()
-            if len(X.shape) == 3:
-                X = X.unsqueeze(0)
+            if self.idx != None:
+                X = self.origin.X[self.idx].detach()
+            else:
+                X = self.origin.X[-1].detach()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
         X.requires_grad = True
         for _ in range(self.num):
             Z.append(X)
@@ -669,47 +678,83 @@ class Detect(LRPModule):
                     self.module.append(ConvNd(m))
     def epsilon(self, R, rule, alpha):
         res = {}
-        key, relevance = next(iter(R.items()))
-        relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
-        rel = self.module[key].epsilon(relevance, rule, alpha)
-        res[self.sel_layers[key]] = rel
-        return res
+        # key, relevance = next(iter(R.items()))
+        for index, (key, relevance) in enumerate(R.items()):
+            relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
+            rel = self.module[index].epsilon(relevance, rule, alpha)
+            res[key] = rel
+        return dict(sorted(res.items(),reverse=True))
     
 class Cat(LRPModule):
     # SPP 블록은 module 4개 들어온다... 수정 필요 module 여러개 처리 필요 iter로..
     def __init__(self, *modules, dim = 1):
-        def cat_forward_hook(m, input_tensor, output_tensor):
-            self.X.append(output_tensor[0].unsqueeze(0))
         self.X = []
         self.handle = []
         self.dim = dim
-        for module in modules:
-            if isinstance(module,(tuple,list)):
-                for m in module:
-                    self.handle.append(m.register_forward_hook(cat_forward_hook)) 
-            else:
-                # self.handle.append(module.modules[0].module.register_forward_hook(cat_forward_hook))
-                print("12")     
-            
-        # self.handle.append(module1[-1].module.register_forward_hook(add_forward_hook))
-        # self.handle.append(module2[-1].module.register_forward_hook(add_forward_hook))
-
+        self.modules = modules
+        super().__init__(self)
+        
     def forward(self, x, dim):
         return torch.cat(x, dim)
     
     def epsilon(self, R, rule, alpha):
+        for v in self.module.modules:
+            if hasattr(v.modules[-1],"modules"):
+                if hasattr(v.modules[-1].modules[-1], "idx"):
+                    index = v.modules[-1].modules[-1].idx
+                    self.X.append(v.modules[-1].modules[-1].module.Y[index].unsqueeze(0))
+                else:
+                    # add연산의 결과 tensor 찾아야함..
+                    input_handle = v[-1][-1].modules[-1].modules[0].handle[v[-1][-1].modules[-1].modules[0].act_idx].id
+                    input_tensor = v[-1][-1].modules[-1].modules[0].X[input_handle]
+                    seq_tensor = v.modules[-1].modules[-1].modules[0].forward(input_tensor)
+                    add_tensor = seq_tensor+input_tensor
+                    self.X.append(add_tensor)
+            elif hasattr(v.modules[-1],"module"):
+                if hasattr(v.modules[-1],"idx"):
+                    index = v.modules[-1].idx
+                    self.X.append(v.modules[-1].module.Y[index].unsqueeze(0))
+                elif isinstance(v.modules[-1],MaxpoolNd):
+                    self.X.append(v.modules[-1].module.forward(self.X[-1]))
+                else:
+                    self.X.append(v.modules[-1].module.Y.unsqueeze(0))
+            
+        # X1 = self.modules[-1].modules[-1].handle.pop()
+        # if isinstance(X1, (tuple, list)):
+        #     X1 = (X1[-1].Y[X1[0]]).unsqueeze(0)
+        # self.X.append(X1)
         Z = self.forward(self.X, self.dim)
-        S = safe_divide(R, Z)
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            S = safe_divide(rel, Z)
+        else:    
+            S = safe_divide(R, Z)
         C = self.gradprop(Z, self.X, S)
 
         out = []
         for x, c in zip(self.X, C):
             out.append(x * c)
-        
-        return out
-
+        mR = ()
+        for i, m in enumerate(self.modules):
+            mR = mR + (m.backprop(out[i], rule, alpha), )
+        self.X.clear()
+        return mR
+    
+class Route(LRPModule):
+    # 분기만 따주기 나중에 합치는걸로...
+    def __init__(self, cat0, cat1):
+        self.cat0 = cat0
+        self.cat1 = cat1
+    def epsilon(self, R, rule, alpha):
+        split = R.shape[1] // 2
+        rel = {}
+        rel[str(self.cat0)] = R[:,:split,:,:]
+        rel[str(self.cat1)] = R[:,split:,:,:]
+        return rel
+  
 class Upsample(LRPModule):
       def __init__(self, param:dict):
+          self.param = param
           self.module = nn.Upsample(**param)
           pass
       def epsilon(self, R, rule, alpha):
@@ -717,8 +762,18 @@ class Upsample(LRPModule):
             1: F.avg_pool1d,
             2: F.avg_pool2d,
             3: F.avg_pool3d}[2]
-        if isinstance(self.module.scale_factor, float):
-            ks = int(self.module.scale_factor)
+        if isinstance(self.param['scale_factor'], float):
+            ks = int(self.param['scale_factor'])
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            inverted = invert_upsample(R[str(key)], kernel_size = ks, stride = ks)
+        else:
+            inverted = invert_upsample(R, kernel_size = ks, stride = ks)
+        inverted *= ks**2
+        relevance = inverted # + 이전 layer[Concat 레이어]
+        R['upsample'] = relevance
+        del R[key]
+        return R
 class StochasticDepth(LRPModule):
     def __init__(self, prev_module, p, mod, training):
         self.X = None
@@ -772,7 +827,7 @@ class Input(LRPModule):
     
     def alphabeta(self, R, rule, alpha):
         return R
-    
+
 class BatchNormNd(LRPModule):
     def epsilon(self, R, rule, alpha):
         X = self.module.X

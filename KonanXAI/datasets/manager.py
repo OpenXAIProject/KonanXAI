@@ -1,4 +1,4 @@
-from ..lib.core import darknet
+import darknet
 # from ..lib.core import dtrain
 # from ..lib.core import pytorch
 import random

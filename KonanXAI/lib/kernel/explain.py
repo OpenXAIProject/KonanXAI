@@ -1,9 +1,11 @@
 from abc import *
 
-from KonanXAI.lib.core.darknet.yolo import BBox
+from darknet.yolo import BBox
 from ...utils import compose_heatmap_image
 import cv2
 import numpy as np
+import torch
+import matplotlib
 class ExplainData:
     def __init__(self, results: dict, mtype: str, platform: str):
         self.explain = results
@@ -24,9 +26,7 @@ class ExplainData:
                 for j, saliency in enumerate(results):
                     saliency_path = f"{save_path}{algorithm}_saliency_{i}-{j}{ext}"
                     compose_path = f"{save_path}{algorithm}_compose_{i}-{j}{ext}"
-                    if algorithm == "LRP":
-                        import torch
-                        import matplotlib
+                    if algorithm == "LRP" or algorithm == "LRPYolo":
                         cmap = matplotlib.cm.bwr
                         saliency = saliency / torch.max(saliency)
                         saliency = (saliency +1.)/2.
@@ -43,4 +43,7 @@ class ExplainData:
                         elif self.platform == 'pytorch':
                             bbox = list(map(int,t))
                             bbox = (bbox[0],bbox[1]), (bbox[2],bbox[3])
-                    compose_heatmap_image(saliency, origin_image, bbox, save_path=compose_path, draw_box= draw_box)
+                        result = cv2.rectangle(saliency,bbox[0],bbox[1],color=(0,255,0),thickness=3)
+                        cv2.imwrite(compose_path, result)
+                    else:    
+                        compose_heatmap_image(saliency, origin_image, bbox, save_path=compose_path, draw_box= draw_box)

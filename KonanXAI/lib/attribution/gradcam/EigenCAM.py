@@ -3,7 +3,7 @@ from ..algorithm import Algorithm
 from ....utils import *
 from ....models import XAIModel
 from ....datasets import Datasets
-from ...core import darknet
+import darknet
 import numpy as np
 import cv2
 
