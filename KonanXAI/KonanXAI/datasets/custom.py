@@ -1,6 +1,7 @@
 from KonanXAI.datasets import Datasets
 import os
 from glob import glob
+from pathlib import Path
 class CUSTOM(Datasets):
     def __init__(self, framework, src_path):
         super().__init__(framework, src_path)
@@ -10,8 +11,15 @@ class CUSTOM(Datasets):
         self.make_cache = {}
         
     def load_src_path(self):
-        train_path = glob(self.src_path+"/*.jpg")
-        test_path = glob(self.src_path+"/*.jpg")# 수정 필요
+        def load_image(src_path):
+            extension_types = ['*.jpg','*.png','*.jpeg']
+            file_list = []
+            for types in extension_types:
+                file_list.extend(glob(src_path+"/"+types))
+            return [str(file) for file in file_list]
+       
+        train_path = load_image(self.src_path)
+        test_path = load_image(self.src_path)# 수정 필요
         self.train_items = []
         self.test_items = []
         for path in train_path:
