@@ -16,3 +16,8 @@ x86
 *.jpg
 *.pt
 *.pth
+*.JPEG
+*.png
+*.PNG
+/data_backup
+/heatmap/*

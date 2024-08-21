@@ -12,7 +12,7 @@
 
 config:
   save_path: "./heatmap/"
-  weight_path: "./ckpt/darknet/yolov4_4582/4582"
+  weight_path: "./ckpt/darknet/yolov4_3852/3852"
   data_path: "./data"
   data_resize: [640,640]
   model_type: yolov4
