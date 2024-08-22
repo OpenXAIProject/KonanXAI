@@ -2,9 +2,9 @@ import os
 from KonanXAI.utils.heatmap import compose_heatmap_image
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
-from KonanXAI.datasets import load_dataset, Datasets, COCO, CIFAR10, MNIST, CUSTOM    
+from KonanXAI.datasets import load_dataset
+from KonanXAI.attribution.lrp import lrp, lrp_yolo
 from KonanXAI.attribution.gradcam import GradCAM
-
 """
 2024-07-02 jjh
  
@@ -24,20 +24,16 @@ class Project(Configuration):
                                   self.weight_path, self.cfg_path)
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize)
-        
-        print(self.explain_algorithm)
-        self.target_layer = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
-        algorithm_name = list(self.explain_algorithm[0].keys())[0]
         heatmaps = []
 
         for i, data in enumerate(self.dataset):
             img_path = self.dataset.train_items[i][0].split('\\')
-            root = self.save_path + '{}_result\\'.format(algorithm_name) + img_path[-2]
+            root = self.save_path + '{}_result\\'.format(self.algorithm_name) + img_path[-2]
             if os.path.isdir(root) == False:
                 print(root)
                 os.makedirs(root)
             img_save_path = root + '\\' + img_path[-1]
-            algorithm = globals().get(algorithm_name)(self.framework, self.model, data, self.target_layer)
+            algorithm = globals().get(self.algorithm_name)(self.framework, self.model, data, self.config)
             
             heatmap = algorithm.calculate()
             heatmaps.append(heatmap)

@@ -1,9 +1,9 @@
-from KonanXAI.lib.attribution.lrp.lrp_tracer import Graph
-from ...core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
-from ....models import XAIModel
-from ....datasets import Datasets
-from ..algorithm import Algorithm
-from ....utils import *
+from KonanXAI.attribution.lrp.lrp_tracer import Graph
+from ..._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
+# from ....models import XAIModel
+# from ....datasets import Datasets
+# from ..algorithm import Algorithm
+from ...utils import *
 
 ## test
 from PIL import Image
@@ -11,9 +11,9 @@ import torchvision.transforms as transforms
 import torch
 import sys
 import copy
-class LRPYolo(Algorithm): 
-    def __init__(self, model: XAIModel, dataset: Datasets, platform: PlatformType):
-        super().__init__(model, dataset, platform)
+class LRPYolo: 
+    def __init__(self, model: str, dataset: str, platform: str):
+        # super().__init__(model, dataset, platform)
         self.rule = self.model.rule
         self.alpha = None
         self.yaml_path = self.model.yaml_path

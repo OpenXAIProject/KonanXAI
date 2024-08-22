@@ -1,6 +1,6 @@
 import sys
 import os
-
+from pathlib import Path
 import torch
 import torch.nn as nn
 import darknet
@@ -65,9 +65,9 @@ class TorchGit(Torch):
             if os.name == "posix":
                 cache_or_local = '~/.cache'
                 command = 'git' + ' -C ' + '~/.cache' + ' clone' + git_url 
-            elif os.name == "nt":
-                cache_or_local = '%temp%'
-                command = 'git' + ' -C ' + '%temp%' + ' clone' + git_url 
+            elif os.name == "nt": 
+                cache_or_local = os.path.expanduser('~/.cache')
+                command = 'git' + ' -C ' + cache_or_local + ' clone ' + git_url 
         
         
         else:

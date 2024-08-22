@@ -5,7 +5,7 @@ from torch.fx.node import Node
 from typing import Dict
 
 from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample, Route
-from ....models import XAIModel
+# from ...models import XAIModel
 import torch
 import torch.nn as nn
 import torch.fx as fx
@@ -30,7 +30,7 @@ class SplitFunc:
         self.X1.clear()
 class Graph:
     # TODO: Relevance
-    def __init__(self, model: XAIModel, conf_path: str = None):
+    def __init__(self, model: str, conf_path: str = None):
         self.model = model
         self.input = Input()
         self.cat = Cat()

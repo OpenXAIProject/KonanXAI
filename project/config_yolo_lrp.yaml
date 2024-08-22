@@ -10,15 +10,18 @@
 #   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
-config:
+project:
   save_path: "./heatmap/"
   weight_path: "./yolov5s.pt"
+  cfg_path: "./yolov5s.yaml"
   data_path: "./data"
   data_resize: [640,640]
-  model_type: yolov5s
-  platform_type: pytorch
+  model_name: yolov5s
+  framework: torch
+  source: github
+  repo_or_dir: ultralytics/yolov5
+  cache_or_local: cache
   data_type: CUSTOM
-  explain_type: LRP
-  explain_mode: epslion
-  yaml_path: "./yolov5s.yaml"
-  target_layer: None
+  explain_algorithm:
+    - LRP:
+      - rule: epslionrule
