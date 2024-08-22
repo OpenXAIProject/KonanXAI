@@ -17,22 +17,21 @@ class GradCAM:
             framework, 
             model, 
             input, 
-            target_layer):
+            config):
         '''
         input: [batch, channel, height, width] torch.Tensor 
         '''
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
-        self.input = input
+        self.input = input[0].to(device)
         if self.framework == 'darknet':
             self.input_size = self.input.shape
         else:
             self.input_size = self.input.shape[2:4]
-        self.target_layer = target_layer
+        self.target_layer = config['target_layer']
 
- 
-    
     def _get_target_layer(self):
         if isinstance(self.target_layer, list):
             self.layer = self.model._modules[self.target_layer[0]]
@@ -85,13 +84,9 @@ class GradCAM:
             self._get_target_layer()
             fwd_handle, bwd_handle = self.set_model_hook()
             
-            
-
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
-    
-
 
             else:
                 self.pred = self.model(self.input)
@@ -107,7 +102,6 @@ class GradCAM:
 
         elif self.framework == 'darknet':
             self.model.forward_image(self.input)
-
             self._yolo_get_bbox_darknet()
             self._yolo_backward_darknet()
             return self.feature, self.gradient
@@ -121,45 +115,17 @@ class GradCAM:
             b, ch, h, w = gradient.shape
             alpha = gradient.reshape(b, ch, -1).mean(2)
             weights = alpha.reshape(b, ch, 1, 1)
-            heatmap = (weights * feature).sum(1)
+            heatmap = (weights * feature).sum(1, keepdim=True)
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
-
-        if self.model_name[0:4] == 'yolo':
             
+        if self.model_name[0:4] == 'yolo':
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps
-            
-        
     
-
-    def _normalize_heatmap(self, heatmap):
-        smax, smin = heatmap.max(), heatmap.min()
-        if (smax - smin !=0):
-            heatmap = (heatmap - smax) / (smax - smin)
-        return heatmap
-    
-        
-    # img_save_path 넣어야 
-    # batch 고려해야   
-    def get_heatmap(self, img_save_path):
-        for i, heatmap in enumerate(self.heatmaps):
-            heatmap = heatmap.squeeze(0)
-            heatmap = self._normalize_heatmap(heatmap).transpose(1,0)
-            heatmap = heatmap.detach().cpu().numpy()
-            heatmap = np.uint8(255 * heatmap)
-            heatmap = cv2.resize(heatmap, self.input_size)
-            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-            cv2.imwrite(img_save_path[:-4] + '_gradcam_{}.jpg'.format(i), heatmap)
-
-            self.heatmaps[i] = heatmap
-
-        return self.heatmaps
-
     # Darknet
     def _yolo_get_bbox_darknet(self):
-
         self.bboxes = []
         self.bbox_layer = {}
         for i, layer in enumerate(self.model.layers):
@@ -179,16 +145,7 @@ class GradCAM:
         if len(self.bboxes) > 1:
             self.bboxes = darknet.non_maximum_suppression_bboxes(self.bboxes, iou_threshold=0.5)
 
-    
-
-
     def _yolo_backward_darknet(self):
-
-
-        # TODO - Target Layer 는 정해졌다고 가정
-        # target_layer = [net.layers[149], net.layers[149], net.layers[160]]
-        # target_layer = [net.layers[30], net.layers[37]]
-
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
             # 여기서는 i-1을 쓰고 gradcampp 에서는 i를 쓰는 이유?
@@ -211,9 +168,6 @@ class GradCAM:
             self.feature.append(feature)
             self.gradient.append(gradient)
         
-
-
-        
     def _yolo_get_bbox_pytorch(self):
         self.preds_origin, raw_logit = self.model(self.input)
         self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
@@ -221,8 +175,6 @@ class GradCAM:
             self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
-
-
     def _yolo_backward_pytorch(self):
         self.bboxes = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
@@ -236,6 +188,6 @@ class GradCAM:
             gradient = layer.bwd_out[0]
             self.feature.append(feature)
             self.gradient.append(gradient)
-            self.bboxes.append(cls[...,:4])
+            self.bboxes.append(cls[...,:4].detach().cpu().numpy())
         
  

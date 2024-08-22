@@ -1,6 +1,6 @@
 import torch
 import torchvision
-
+import torch.nn as nn
 import urllib
 
 import os
@@ -176,7 +176,9 @@ def model_import(
                                   repo_or_dir = repo_or_dir, 
                                   model_name = model_name, cache_or_local = cache_or_local, 
                                   weight_path = weight_path)
-        
+        for name, module in model.named_modules():
+            if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
+                module.inplace = False    
     elif framework == 'darknet':
         model = darknet_model_load(source = source, 
                                     repo_or_dir = repo_or_dir,

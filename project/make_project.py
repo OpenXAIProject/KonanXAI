@@ -1,9 +1,10 @@
 import os
-from KonanXAI.utils.heatmap import compose_heatmap_image
+from KonanXAI.utils.heatmap import compose_heatmap_image, get_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
-from KonanXAI.attribution.lrp import lrp, lrp_yolo
+from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
+from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution.gradcam import GradCAM
 """
 2024-07-02 jjh
@@ -27,17 +28,21 @@ class Project(Configuration):
         heatmaps = []
 
         for i, data in enumerate(self.dataset):
+            origin_img = data[0]
+            img_size = data[3]
+            algorithm_type = self.config['algorithm']
             img_path = self.dataset.train_items[i][0].split('\\')
-            root = self.save_path + '{}_result\\'.format(self.algorithm_name) + img_path[-2]
+            root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
                 print(root)
                 os.makedirs(root)
-            img_save_path = root + '\\' + img_path[-1]
+            img_save_path = f"{root}/{img_path[-1]}"
             algorithm = globals().get(self.algorithm_name)(self.framework, self.model, data, self.config)
             
             heatmap = algorithm.calculate()
-            heatmaps.append(heatmap)
-            algorithm.get_heatmap(img_save_path)
-            compose_heatmap_image(heatmap, data, save_path=img_save_path, draw_box= False)
+            get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type)
+            
+            # 추후 사용될 수 있음(clustering)
+            # heatmaps.append(heatmap)
     
                 

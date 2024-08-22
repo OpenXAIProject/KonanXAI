@@ -4,8 +4,7 @@ import copy
 from torch.fx.node import Node
 from typing import Dict
 
-from ...attribution.lrp.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample, Route
-# from ...models import XAIModel
+from ...attribution.layer_wise_propagation.lrp_rule import Input, Clone, Add, Sequential, Flatten, Mul, StochasticDepth, Cat, Detect, Upsample, Route
 import torch
 import torch.nn as nn
 import torch.fx as fx
@@ -30,7 +29,7 @@ class SplitFunc:
         self.X1.clear()
 class Graph:
     # TODO: Relevance
-    def __init__(self, model: str, conf_path: str = None):
+    def __init__(self, model, conf_path: str = None):
         self.model = model
         self.input = Input()
         self.cat = Cat()
@@ -100,15 +99,6 @@ class Graph:
             return True
                 
     def trace(self) -> torch.nn.ModuleList:
-        """Get all network operations and store them in a list.
-
-        This method is adapted to VGG networks from PyTorch's Model Zoo.
-        Modify this method to work also for other networks.
-
-        Returns:
-            Layers of original model stored in module list.
-
-        """
         if self.conf_path == None:
             gt_graph = symbolic_trace(self.model).nodes
             self.modules = dict(self.model.named_modules())
@@ -124,14 +114,8 @@ class Graph:
                     layer_index = yaml_layer[index][0]
                     cur_index = index -1
                     next_index = layer_index[1]
-                    # self.cat_0, self.cat_1 = None, None
-                    # for i,v in enumerate(layer_index):
-                    #     if v == -1:
-                    #         v = len(gt_graph)-1
-                    #     exec(f"self.cat_{i} = gt_graph[{v}]")
-                    # Cat 말고 Route 모듈 만들어서 처리하는건...?
                     gt_graph[index] = Route(cur_index, next_index)
-                    print("Concat layer!", yaml_layer[index])
+                    # print("Concat layer!", yaml_layer[index])
                     continue
                 elif m._get_name() == 'Detect':
                     detect_layers = yaml_layer[index][0]
@@ -148,12 +132,8 @@ class Graph:
                         continue
                     else:
                         temp_layer.append(v)
-                if index == 9:
-                    print("sppf")
                 gt_graph[index] = self.make_trace(temp_layer)
             return Sequential(list(gt_graph.values()))
-        
-        # 아래 기능 함수화 하여 사용?
         
     def make_trace(self, gt_graph):
         trace_graph = []
@@ -247,7 +227,6 @@ class Graph:
                             else:
                                 multi_clone.append(value)
                                 del_count+=1
-      
                         del sub_layer[1:1+del_count]
                     x0 = Sequential(self.variable[dict_name].X0)
                     if len(self.variable[dict_name].X1)>0:
@@ -306,8 +285,6 @@ class Graph:
                         self.variable[self.dict_name[-1]].destination = v.next.name
             # Cat
             if "cat" in list(map(str,v.users.keys())):
-                # cat 최초 지점 선택 하여  clone 하기 -> 바로 clone이 아닌 임시 변수에 clone 만들고 cat function일어날 때 사용하도록..
-                # 또한 cat이 일어난 지점들에 대해 count 변수 만들어서 clone이 몇번 발생하는지 기억하게 하기. -> self.concat 길이 활용
                 if v.name.startswith("add"):
                     self.cat.handle.append(self._target_module(v.next))
                     self.concat[v.name] = self.modules[self.tree_index][str(v.next.target)]

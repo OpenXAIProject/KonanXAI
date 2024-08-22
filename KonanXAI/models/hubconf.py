@@ -88,13 +88,28 @@ class TorchGit(Torch):
         # 아래는 ultralytics/yolov5 리포지토리 코드
         # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
         if self.check_hubconf == True:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             import hubconf
             # model = hubconf._create(self.model_name)
-            model = hubconf._create(weight_path, pretrained=False)
-            model = torch.load(weight_path)['model']
-            model.float().fuse().eval()
-            model.model_name = self.model_name
-            return model
+            model_origin = hubconf._create(weight_path, pretrained=False)
+            pt = torch.load(weight_path)
+            state_dict = {}
+            if 'yolo' in self.model_name:
+                try:
+                    model = pt['model'].model.state_dict()
+                    for k, v in model.items():
+                        key = k if k.startswith('model.') else 'model.'+ k[:]
+                        state_dict[key] = v
+                    model_origin.load_state_dict(state_dict)
+                except:
+                    model_origin = pt['ema'].float().fuse().eval()
+            else:
+                state_dict = pt
+                model_origin.load_state_dict(state_dict)
+            # model.float().fuse().eval()
+            model_origin.model_name = self.model_name
+            model_origin.to(device)
+            return model_origin
         # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
         
         # 에러로 처리해야

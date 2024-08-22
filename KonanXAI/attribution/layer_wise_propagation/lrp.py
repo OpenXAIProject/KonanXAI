@@ -1,4 +1,4 @@
-from KonanXAI.attribution.lrp.lrp_tracer import Graph
+from KonanXAI.attribution.layer_wise_propagation.lrp_tracer import Graph
 # from ....models import XAIModel
 # from ....datasets import Datasets
 # from ..algorithm import Algorithm
@@ -11,7 +11,11 @@ import torch
 import sys
 import copy
 class LRP: 
-    def __init__(self, model: str, dataset: str, platform: str):
+    def __init__(self, 
+            framework, 
+            model, 
+            input, 
+            config):
         # super().__init__(model, dataset, platform)
         self.rule = self.model.rule
         self.alpha = None

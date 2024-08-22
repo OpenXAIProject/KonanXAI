@@ -1,22 +1,27 @@
-from KonanXAI.attribution.lrp.lrp_tracer import Graph
+from KonanXAI.attribution.layer_wise_propagation.lrp_tracer import Graph
 from ..._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
-# from ....models import XAIModel
-# from ....datasets import Datasets
-# from ..algorithm import Algorithm
 from ...utils import *
 
-## test
 from PIL import Image
 import torchvision.transforms as transforms
 import torch
 import sys
 import copy
 class LRPYolo: 
-    def __init__(self, model: str, dataset: str, platform: str):
-        # super().__init__(model, dataset, platform)
-        self.rule = self.model.rule
+    def __init__(self, 
+            framework, 
+            model, 
+            input, 
+            config):
+        self.framework = framework
+        self.model = model
+        self.model_name = self.model.model_name
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.input = input[0].to(device)
+        
+        self.rule = config['rule']
         self.alpha = None
-        self.yaml_path = self.model.yaml_path
+        self.yaml_path = config['yaml_path']
         if self.alpha != 'None':
             try:
                 self.alpha = int(self.alpha)
@@ -34,17 +39,17 @@ class LRPYolo:
             return[tensor_1, tensor_2]
         
     def calculate(self):
-        model =  copy.deepcopy(self.model.net.fuse())
+        model =  copy.deepcopy(self.model.fuse())
         model.model.eval()
         self.tracer =  Graph(model.model, self.yaml_path)
         self.module_tree = self.tracer.trace()
         
         #bottle neck hook>??
-        self.preds_origin, raw_logit = model(self.target_input)
+        self.preds_origin, raw_logit = model(self.input)
         
         self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
         with torch.no_grad():
-            self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model.mtype.name)
+            self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
         tensor_shape = [tuple(x.shape) for x in raw_logit] #1,3,80,80,85
@@ -62,7 +67,7 @@ class LRPYolo:
             bbox_li.append(cls[:4])
             for indexs, module in enumerate(reversed(self.module_tree.modules)):
                 index = len(self.module_tree.modules) -1 - indexs
-                print(index)
+                # print(index)
                 if flag and isinstance(relevance, dict) and flag==1:
                     layer_index = self.tracer.data['head'][-1][0]
                     del_relevance = []
@@ -77,7 +82,7 @@ class LRPYolo:
                     flag = False
                 if skip_count>0:
                     skip_count -= 1
-                    print("skip  ",index)
+                    # print("skip  ",index)
                     continue
                 if str(index) in cat_layer:
                     if isinstance(relevance,dict):
@@ -85,7 +90,6 @@ class LRPYolo:
                         if key != str(index):
                             relevance[str(index)] = rel + cat_layer[str(index)]
                             del relevance[key]
-                        # relevance = dict(sorted(relevance.items(), key = lambda item: len(item[0])))
                     else:
                         relevance = relevance + cat_layer[str(index)]
                     del cat_layer[str(index)]
@@ -106,7 +110,6 @@ class LRPYolo:
                         del relevance[delete_key]            
 
             relevance = relevance.sum(dim=1, keepdim=True)
-            # relevance = relevance.unsqueeze(1)
             relevance_li.append(relevance.detach().cpu())
             print("complete")
             self.module_tree.clear()
@@ -121,8 +124,7 @@ class LRPYolo:
         nc = pred[0].shape[-1] - 5
         initial_relevance = {}
         norm = 0
-        prop_to = self.model.net.yaml['head'][-1][0]
-        # x = pred[detect_layer]
+        prop_to = self.model.yaml['head'][-1][0]
         for to, x in zip(prop_to, pred):
             xs = x.size()
             x = x.clone()

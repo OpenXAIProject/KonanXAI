@@ -102,7 +102,7 @@ class Datasets:
                 xtensor = torch.stack(xbatch)
                 ytensor = torch.stack(ybatch).squeeze()
                 custom = self.get_custom(idx)
-                yield (xtensor, ytensor, custom)
+                yield (xtensor, ytensor, custom, self.fit)
     # shuffle
     def shuffle(self):
         if self.mode == 0:

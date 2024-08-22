@@ -29,17 +29,22 @@ class Configuration:
         
     def _explain_algorithm_parser(self):
         if self.algorithm_name == 'GradCAM':
-            self.config = self._gradcam_parser()
+            self.config = {}
+            self.config['target_layer'] = self._gradcam_parser()
+            self.config['algorithm'] = self.algorithm_name
             return self.config
         
-        elif self.algorithm_name == 'LRP':
-            self.config = self._lrp_parser()
+        elif self.algorithm_name == 'LRP' or 'LRPYolo':
+            self.config = {}
+            self.config['algorithm'] = self.algorithm_name
+            self.config['rule'] = self._lrp_parser()
+            self.config['yaml_path'] = self.cfg_path
             return self.config
         
     def _gradcam_parser(self):
-        self.target_layer = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
-        return (self.target_layer,)
+        target_layer = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
+        return target_layer
     
     def _lrp_parser(self):
-        self.rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
-        return (self.rule,)
+        rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
+        return rule

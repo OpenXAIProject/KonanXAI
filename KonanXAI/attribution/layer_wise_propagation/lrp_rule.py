@@ -6,7 +6,7 @@ import torch.nn as nn
 import sys
 import numpy as np
 def safe_divide(relevance_in, z, eps=1e-9):
-    sign = torch.sign(z)     # 여기 이 부분 부터는 따로 함수로 묶어도 될 듯
+    sign = torch.sign(z)
     sign[z==0] = 1
     eps = torch.tensor(eps, device='cuda:0')
     z = z + sign*eps
@@ -30,13 +30,6 @@ def z_score_Norm(tensor):
 def forward_hook(m, input_tensor, output_tensor):
     setattr(m, 'X', input_tensor[0])
     setattr(m, 'Y', output_tensor[0])
-
-
-# class LRPRule:
-#     self.EPSILON = enum.auto()
-#     self.ALPHABETA = enum.auto()
-
-    
 
 class LRPModule:
     def __init__(self, module):
@@ -110,13 +103,10 @@ class ConvNd(LRPModule):
 
         x = x.clamp(min=0)
         w = w.clamp(min=0)
-        # if self.power != None:
-        #    x = x.pow(self.power)
-        #    w = w.pow(self.power)
         conv = {nn.Conv1d: F.conv1d, nn.Conv2d: F.conv2d, nn.Conv3d: F.conv3d}[type(self.module)]
         z = conv(x, weight = w, bias = None, stride = self.module.stride, 
                     padding = self.module.padding, groups = self.module.groups,)
-        sign = torch.sign(z)     # 여기 이 부분 부터는 따로 함수로 묶어도 될 듯
+        sign = torch.sign(z)
         sign[z==0] = 1
         z = z + sign*alpha
         if isinstance(R, dict):
@@ -276,8 +266,6 @@ class Sequential(LRPModule):
         return x
     
     def epsilon(self, R, rule, alpha):
-        # i = 0
-        # skip_layer_count = 0
         for index, module in enumerate(reversed(self.modules)):
 
             R = module.backprop(R, rule, alpha)
@@ -288,11 +276,6 @@ class Sequential(LRPModule):
         i = 0
         
         for module in reversed(self.modules):
-            # if hasattr(module, 'module'):
-            #     print("Calc module :", module.module.__class__.__name__)
-            # else:
-            #     print("Calc module :", module.__class__.__name__)
-
             if isinstance(R, (list, tuple)):
                 s = None
                 for r in R:
@@ -364,10 +347,6 @@ class SiLU(LRPModule):
         X = self.module.X[self.idx]
         if isinstance(R,dict):
             key, rel = next(iter(R.items()))
-            # if 'upsample' in R:
-            #     add_upsample = R['upsample']
-            #     del R['upsample']
-            #     X = X + add_upsample
         Z = self.forward(X)
         if isinstance(R, dict):
             S = safe_divide(rel, Z)
@@ -445,16 +424,10 @@ class Add(LRPModule):
                     handle_x1 = None
                     for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
                         if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
-                            # index +=1
-                            # handle_x1 = self.modules[-1].modules[0].handle.pop(-index).id
                             jump_idx = self.modules[-1].modules[0].act_idx
                             handle_x1 = self.modules[-1].modules[0].handle[jump_idx].id
                             self.modules[-1].modules[0].act_idx -= 1
                             break
-                    # if self.X[0].shape == m[-1].X[m[-1].handle[-3].id].shape:
-                    #     handle = m[-1].handle.pop(-3).id
-                    # else:
-                    # handle = m[-1].handle.pop().id
                     if handle_x1 == None:
                         handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
                         self.modules[-1].modules[0].act_idx -= 1
@@ -466,14 +439,11 @@ class Add(LRPModule):
                 else:
                     handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
                     self.modules[-1].modules[0].act_idx -= 1
-                    # self.modules[-1].modules[0].handle.pop()
                     break
         for x in self.X:
             x.requires_grad_(True)
         
-        # 차원 맞추기
         R = R.squeeze()
-        # R = z_score_Norm(R)
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
         C = self.gradprop(Z, self.X, S)[0]
@@ -569,7 +539,6 @@ class Mul(LRPModule):
         for x in self.X:
             x.requires_grad_(True)
         
-        # 차원 맞추기
         R = R.squeeze()
         Z = self.forward(self.X)
         S = safe_divide(R, Z)
@@ -630,14 +599,12 @@ class Clone(LRPModule):
         self.origin = origin
         self.idx = idx
         self.num = num
-    # max pool쪽 err 
     def epsilon(self, R, rule, alpha):
         Z = []
         if isinstance(self.origin, tuple):
             self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
         if isinstance(self.origin, nn.modules.pooling._MaxPoolNd):
             X = self.origin.Y.unsqueeze(0).detach()
-        # yolo sppf block
         elif len(R)>2:
             X = self.origin.Y.detach()
         else:
@@ -678,7 +645,6 @@ class Detect(LRPModule):
                     self.module.append(ConvNd(m))
     def epsilon(self, R, rule, alpha):
         res = {}
-        # key, relevance = next(iter(R.items()))
         for index, (key, relevance) in enumerate(R.items()):
             relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
             rel = self.module[index].epsilon(relevance, rule, alpha)
@@ -686,7 +652,6 @@ class Detect(LRPModule):
         return dict(sorted(res.items(),reverse=True))
     
 class Cat(LRPModule):
-    # SPP 블록은 module 4개 들어온다... 수정 필요 module 여러개 처리 필요 iter로..
     def __init__(self, *modules, dim = 1):
         self.X = []
         self.handle = []
@@ -704,7 +669,6 @@ class Cat(LRPModule):
                     index = v.modules[-1].modules[-1].idx
                     self.X.append(v.modules[-1].modules[-1].module.Y[index].unsqueeze(0))
                 else:
-                    # add연산의 결과 tensor 찾아야함..
                     input_handle = v[-1][-1].modules[-1].modules[0].handle[v[-1][-1].modules[-1].modules[0].act_idx].id
                     input_tensor = v[-1][-1].modules[-1].modules[0].X[input_handle]
                     seq_tensor = v.modules[-1].modules[-1].modules[0].forward(input_tensor)
@@ -719,10 +683,6 @@ class Cat(LRPModule):
                 else:
                     self.X.append(v.modules[-1].module.Y.unsqueeze(0))
             
-        # X1 = self.modules[-1].modules[-1].handle.pop()
-        # if isinstance(X1, (tuple, list)):
-        #     X1 = (X1[-1].Y[X1[0]]).unsqueeze(0)
-        # self.X.append(X1)
         Z = self.forward(self.X, self.dim)
         if isinstance(R, dict):
             key, rel = next(iter(R.items()))
@@ -741,7 +701,6 @@ class Cat(LRPModule):
         return mR
     
 class Route(LRPModule):
-    # 분기만 따주기 나중에 합치는걸로...
     def __init__(self, cat0, cat1):
         self.cat0 = cat0
         self.cat1 = cat1
@@ -770,7 +729,7 @@ class Upsample(LRPModule):
         else:
             inverted = invert_upsample(R, kernel_size = ks, stride = ks)
         inverted *= ks**2
-        relevance = inverted # + 이전 layer[Concat 레이어]
+        relevance = inverted
         R['upsample'] = relevance
         del R[key]
         return R
@@ -889,14 +848,8 @@ class MaxpoolNd(LRPModule):
         if len(X.shape) == 3:
             X = X.unsqueeze(0)
         X.requires_grad = True
-        Z = self.forward(X)        # vs Z = self.forward(X)
+        Z = self.forward(X)  
         S = safe_divide(R, Z, alpha)
         C = self.gradprop(Z, X, S)[0]
         relevance = X * C
         return relevance
-    # def epsilon(self, R, rule, alpha):
-    #     #unpool 해주기.... 현재 Relevance를 2배로 확장..
-    #     maxunpool = {nn.MaxPool1d: F.max_unpool1d, nn.MaxPool2d: F.max_unpool2d, nn.MaxPool3d: F.max_unpool3d}[type(self.module)]
-    #     # R = maxunpool(input = R, stride = self.module.stride, padding = self.module.padding, indices=self.module.indices, kernel_size= self.module.kernel_size)
-    #     # R = nn.MaxUnpool2d(input = R,stride= self.module.stride)
-    #     return R
