@@ -12,12 +12,13 @@ from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, D
 
 # torch/hub로 torchvision 모델 불러오려고 하니 hubconf.py 없어서 에러 생김
 __version_of_torchvision__ = [
-    'pytorch/vision:v0.10.0'
+    'pytorch/vision:v0.11.0'
 ]
 
 # torchvision.models에서 제공하는 모델 이름
 __torchvision_models__ = [
-    'efficientnet_b0'
+    'efficientnet_b0',
+    'resnet50'
 ]
 
 
@@ -76,11 +77,12 @@ def torch_model_load(
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
         if weight_path == None:
-            model = torchvision.models.get_model(model_name, pretrained=True)
+            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
             model.model_name = model_name
             return model
         else:
-            model = torchvision.models.get_model(model_name, weights = weight_path)
+            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
+            model.load_state_dict(torch.load(weight_path))
             model.model_name = model_name
             return model
     

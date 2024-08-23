@@ -26,9 +26,11 @@ class Project(Configuration):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize)
         heatmaps = []
+        print(1, self.model)
 
         for i, data in enumerate(self.dataset):
             origin_img = data[0]
+            print(2, origin_img)
             img_size = data[3]
             algorithm_type = self.config['algorithm']
             img_path = self.dataset.train_items[i][0].split('\\')

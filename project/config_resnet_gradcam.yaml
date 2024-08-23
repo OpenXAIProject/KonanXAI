@@ -16,12 +16,12 @@ project:
   cfg_path: None
   data_path: "../dataset/ImageNet/"
   data_resize: [224,224]
-  model_name: resnet_50
+  model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: None
   cache_or_local: cache
   data_type: CUSTOM
   explain_algorithm: 
-    - LRP:
-      - rule: epslion
+    - GradCAM:
+      - target_layer: ['layer4', '0', 'conv1']

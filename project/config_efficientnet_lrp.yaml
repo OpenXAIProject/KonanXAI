@@ -10,14 +10,18 @@
 #   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
-config:
+project:
   save_path: "./heatmap/"
   weight_path: "./efficientnet_b0_rwightman-3dd342df.pth"
-  data_path: "./data"
+  cfg_path: None
+  data_path: "../dataset/ImageNet/"
   data_resize: [224,224]
-  model_type: efficientnet_b0
-  platform_type: pytorch
+  model_name: efficientnet_b0
+  framework: torch
+  source: torchvision
+  repo_or_dir: None
+  cache_or_local: cache
   data_type: CUSTOM
-  explain_type: LRP
-  explain_mode: epslion
-  target_layer: None
+  explain_algorithm: 
+    - LRP:
+      - rule: epslion

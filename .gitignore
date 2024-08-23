@@ -21,3 +21,8 @@ x86
 *.PNG
 /data_backup
 /heatmap/*
+/dark_model
+/darknet
+/ultralytics
+/xai_darknet
+/yolov5
