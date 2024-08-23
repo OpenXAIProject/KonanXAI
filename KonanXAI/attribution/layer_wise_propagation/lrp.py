@@ -1,7 +1,4 @@
 from KonanXAI.attribution.layer_wise_propagation.lrp_tracer import Graph
-# from ....models import XAIModel
-# from ....datasets import Datasets
-# from ..algorithm import Algorithm
 from ...utils import *
 
 ## test
@@ -17,9 +14,15 @@ class LRP:
             input, 
             config):
         # super().__init__(model, dataset, platform)
-        self.rule = self.model.rule
+        self.framework = framework
+        self.model = model
+        self.model_name = self.model.model_name
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.input = input[0].to(device)
+        
+        self.rule = config['rule']
         self.alpha = None
-        self.yaml_path = self.model.yaml_path
+        self.yaml_path = None
         if self.alpha != 'None':
             try:
                 self.alpha = int(self.alpha)
@@ -27,11 +30,11 @@ class LRP:
                 self.alpha = sys.float_info.epsilon
 
     def calculate(self):
-        model =  copy.deepcopy(self.model.net)
+        model =  copy.deepcopy(self.model)
         model.eval()
         self.tracer =  Graph(model, self.yaml_path)
         self.module_tree = self.tracer.trace()
-        pred = model(self.target_input).squeeze()
+        pred = model(self.input).squeeze()
         
         index = pred.argmax()
         

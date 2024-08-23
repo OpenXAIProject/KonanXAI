@@ -26,23 +26,24 @@ class Project(Configuration):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize)
         heatmaps = []
-        print(1, self.model)
 
         for i, data in enumerate(self.dataset):
-            origin_img = data[0]
-            print(2, origin_img)
-            img_size = data[3]
+            if self.framework.lower() == 'darknet':
+                origin_img = data.origin_img
+                img_size = data.im_size
+            else:
+                origin_img = data[0]
+                img_size = data[3]
             algorithm_type = self.config['algorithm']
             img_path = self.dataset.train_items[i][0].split('\\')
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
-                print(root)
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
             algorithm = globals().get(self.algorithm_name)(self.framework, self.model, data, self.config)
             
             heatmap = algorithm.calculate()
-            get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type)
+            get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
             # 추후 사용될 수 있음(clustering)
             # heatmaps.append(heatmap)

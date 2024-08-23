@@ -14,7 +14,7 @@ project:
   save_path: "./heatmap/"
   weight_path: "./efficientnet_b0_rwightman-3dd342df.pth"
   cfg_path: None
-  data_path: "../dataset/ImageNet/"
+  data_path: "./data"
   data_resize: [224,224]
   model_name: efficientnet_b0
   framework: torch

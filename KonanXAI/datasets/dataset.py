@@ -57,8 +57,11 @@ class Datasets:
         while True:
             idx = yield
             if self.framework == 'darknet':
+                origin_img = cv2.imread(self.train_items[idx][0])
+                origin_img = cv2.resize(origin_img,self.fit)
                 data = darknet.open_image(self.train_items[idx][0], self.fit)
-                data.shape = self.fit
+                data.origin_img = origin_img
+                data.im_size = self.fit
                 yield data
             else:
                 s = idx * self.batch
@@ -84,9 +87,9 @@ class Datasets:
                                 transforms.Resize(self.fit),
                                 transforms.ToTensor()
                             ])
-                            # data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
-                        # data = np.transpose(data, (2, 0, 1))
-                        # x = torch.tensor(data, dtype=torch.float32) / 255.
+                        #     # data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
+                        # # data = np.transpose(data, (2, 0, 1))
+                        # # x = torch.tensor(data, dtype=torch.float32) / 255.
                         x = compose_resize(data)
                         if isinstance(yp, list):
                             y = torch.tensor([yp], dtype=torch.float32)

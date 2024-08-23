@@ -11,7 +11,7 @@
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
 project:
-  save_path: "./heatmap"
+  save_path: "./heatmap/"
   weight_path: "./dark_model/3852.weights"
   cfg_path: "./dark_model/3852.cfg"
   data_path: "./data"
@@ -19,7 +19,7 @@ project:
   model_name: yolov4
   framework: darknet
   source: local
-  repo_or_dir: AlexeyAB/darknet
+  repo_or_dir: None
   cache_or_local: None
   data_type: CUSTOM
   explain_algorithm: 

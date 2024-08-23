@@ -14,9 +14,9 @@ project:
   save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
   cfg_path: None
-  data_path: "../dataset/ImageNet/"
+  data_path: "./data"
   data_resize: [224,224]
-  model_name: resnet_50
+  model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: None
@@ -24,4 +24,4 @@ project:
   data_type: CUSTOM
   explain_algorithm: 
     - LRP:
-      - rule: epslion
+      - rule: Epslion

@@ -111,7 +111,7 @@ class LRPYolo:
 
             relevance = relevance.sum(dim=1, keepdim=True)
             relevance_li.append(relevance.detach().cpu())
-            print("complete")
+            # print("complete")
             self.module_tree.clear()
         return relevance_li, bbox_li
     

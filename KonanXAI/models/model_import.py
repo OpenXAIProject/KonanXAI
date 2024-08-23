@@ -33,7 +33,7 @@ __list_of_models__ = [
     'VGG19',
     'EfficientNet-b0'
 ]
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def load_weight():
     pass
 
@@ -41,9 +41,6 @@ def load_weight():
 
 #     #return folder_tree
 #     pass
-
-
-
 
 def torch_local_model_load(local_path, model_name, weight_path):
     local = TorchLocal(local_path, model_name)
@@ -57,12 +54,7 @@ def torch_git_repository_load(repo_or_dir, model_name, cache_or_local, weight_pa
     git = TorchGit(repo_or_dir, model_name)
     git._download_from_url(cache_or_local)
     model = git._load(weight_path)
-    
     return model
-
-
-
-
 
 # main인지 master인지 알아내야하는 코드가 필요하네?
 # branch까지 기재하는걸로 할까?
@@ -73,17 +65,18 @@ def torch_model_load(
         cache_or_local = None,
         weight_path = None):
     
-    
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
         if weight_path == None:
             model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
             model.model_name = model_name
+            model.eval()
             return model
         else:
             model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
             model.load_state_dict(torch.load(weight_path))
             model.model_name = model_name
+            model.eval()
             return model
     
     # elif source == 'torch/hub':
@@ -180,7 +173,8 @@ def model_import(
                                   weight_path = weight_path)
         for name, module in model.named_modules():
             if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
-                module.inplace = False    
+                module.inplace = False  
+        model.to(device)  
     elif framework == 'darknet':
         model = darknet_model_load(source = source, 
                                     repo_or_dir = repo_or_dir,

@@ -24,4 +24,4 @@ project:
   data_type: CUSTOM
   explain_algorithm:
     - LRPYolo:
-      - rule: Epsilon
+      - rule: Epslion
