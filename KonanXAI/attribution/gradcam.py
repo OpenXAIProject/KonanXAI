@@ -27,12 +27,11 @@ class GradCAM:
         self.model_name = self.model.model_name
         if framework.lower() == "darknet":
             self.input = input
-        else:
-            self.input = input[0].to(device)
-        if self.framework == 'darknet':
             self.input_size = self.input.shape
         else:
+            self.input = input[0].to(device)
             self.input_size = self.input.shape[2:4]
+                        
         self.target_layer = config['target_layer']
 
     def _get_target_layer(self):
