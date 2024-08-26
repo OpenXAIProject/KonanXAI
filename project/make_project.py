@@ -17,16 +17,11 @@ class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
        
-
-        
-    def run(self):
-        self.model = model_import(self.framework, self.source, self.repo_or_dir,
-                                  self.model_name, self.cache_or_local, 
-                                  self.weight_path, self.cfg_path)
-        self.dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize)
-        heatmaps = []
-
+    # run은 실행만 하는것 train/expalin 기능 세분화 필요
+    # 해당 기능은 config에서 받아서 사용
+    def train(self):
+        pass
+    def explain(self):
         for i, data in enumerate(self.dataset):
             if self.framework.lower() == 'darknet':
                 origin_img = data.origin_img
@@ -45,7 +40,16 @@ class Project(Configuration):
             heatmap = algorithm.calculate()
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
-            # 추후 사용될 수 있음(clustering)
-            # heatmaps.append(heatmap)
-    
+    def run(self):
+        self.model = model_import(self.framework, self.source, self.repo_or_dir,
+                                  self.model_name, self.cache_or_local, 
+                                  self.weight_path, self.cfg_path)
+        self.dataset = load_dataset(self.framework, data_path = self.data_path,
+                                    data_type = self.data_type, resize = self.data_resize)
+        
+        if self.project_type == "explain":
+            self.explain()
+        elif self.project_type == "train":
+            self.train()
+            
                 

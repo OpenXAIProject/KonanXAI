@@ -11,6 +11,7 @@
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
 project:
+  project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./dark_model/3852.weights"
   cfg_path: "./dark_model/3852.cfg"

@@ -9,12 +9,28 @@ class Configuration:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
         self._parser_config()
         self._explain_algorithm_parser()
+        self._check_config()
         
-    
-    
+    def _check_config(self):
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo']
+        frameworks = ['torch', 'darknet']
+        projects = ['explain', 'train']
+        if self.project_type.lower() not in [project.lower() for project in projects]:
+            msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
+            raise Exception(msg)
+        elif not isinstance(self.data_resize, (tuple,list)):
+            raise Exception("Supported types are: 'tuple' or 'list'")
+        elif self.framework.lower() not in [framework.lower() for framework in frameworks]:
+            msg = f"The type you entered is:'{self.framework}' Supported types are: {frameworks}"
+            raise Exception(msg)
+        elif self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
+            msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
+            raise Exception(msg)
+        
     def _parser_config(self):
         self.save_path = self.config['project']['save_path']
         self.weight_path = self.config['project']['weight_path']
+        self.project_type = self.config['project']['project_type']
         self.cfg_path = self.config['project']['cfg_path']
         self.data_path = self.config['project']['data_path']
         self.data_resize = self.config['project']['data_resize']
@@ -28,23 +44,19 @@ class Configuration:
         self.algorithm_name = list(self.explain_algorithm[0].keys())[0]
         
     def _explain_algorithm_parser(self):
-        if self.algorithm_name == 'GradCAM':
-            self.config = {}
-            self.config['target_layer'] = self._gradcam_parser()
-            self.config['algorithm'] = self.algorithm_name
-            return self.config
+        if self.algorithm_name in ['GradCAM','GradCAMpp','EigenCAM']:
+            self._gradcam_parser()
         
-        elif self.algorithm_name == 'LRP' or 'LRPYolo':
-            self.config = {}
-            self.config['algorithm'] = self.algorithm_name
-            self.config['rule'] = self._lrp_parser()
-            self.config['yaml_path'] = self.cfg_path
-            return self.config
+        elif self.algorithm_name in ['LRP', 'LRPYolo']:
+            self._lrp_parser()
         
     def _gradcam_parser(self):
-        target_layer = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
-        return target_layer
+        self.config = {}
+        self.config['target_layer'] = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
+        self.config['algorithm'] = self.algorithm_name
     
     def _lrp_parser(self):
-        rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
-        return rule
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['rule'] = rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
+        self.config['yaml_path'] = self.cfg_path
