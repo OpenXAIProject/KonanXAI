@@ -43,9 +43,9 @@ class Trainer:
             'loss_fn': self.criterion.__class__.__name__,
         }
         if accuracy is None: 
-            filename = f"DG_mask_{model_class}_{dataset_class}_{epoch}ep.pt"
+            filename = f"Default_{model_class}_{dataset_class}_{epoch}ep.pt"
         else:
-            filename = f"DG_mask_{model_class}_{dataset_class}_{epoch}ep_final.pt"
+            filename = f"Default_{model_class}_{dataset_class}_{epoch}ep_final.pt"
             d['accuracy'] = accuracy
         msg = f"[CHECKPOINT] '{self.save_path}/{filename}' save done."
         torch.save(d, self.save_path + "/" + filename)
@@ -53,8 +53,6 @@ class Trainer:
         
     def model_load(self, pt_path):
         pt = torch.load(pt_path)
-        # self.model.load_state_dict(pt['model_state_dict'])
-        # state_dict = {k: v.cpu() for k, v in pt['model'].items()}
         state_dict = {}
         for k, v in pt['model_state_dict'].items():
             key = k[7:] if k.startswith('module.') else k
@@ -115,6 +113,7 @@ class Trainer:
                 loss = self._loss(pred, y)
                 self._hook_pre_backward(x, y, pred, loss, epoch)
                 # Backward
+                self.optimizer.zero_grad()
                 self._backward(loss)
                 self._update()
                 avg += loss.item()
@@ -132,7 +131,7 @@ class Trainer:
         self.datasets.set_fit_size()
         acc = 0
         top5_error = 0
-        for (x_batch, y_batch, custom) in tqdm(self.datasets):
+        for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
             x = x_batch.to(self.device)
             y = y_batch.to(self.device)
             pred = self.model(x)

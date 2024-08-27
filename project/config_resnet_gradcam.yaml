@@ -12,20 +12,20 @@
 #   cache_or_local: cache, local 선택(cache일 경우 .cache파일에 저장)
 #   data_type: 데이터셋 타입(str)
 #   explain_algorithm: 설명방식 타입(str)
-#   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
+#   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
 
 project:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
-  cfg_path: None
+  cfg_path: ~
   data_path: "./data"
   data_resize: [224,224]
   model_name: resnet50
   framework: torch
   source: torchvision
-  repo_or_dir: None
+  repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
   explain_algorithm: 

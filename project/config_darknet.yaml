@@ -12,7 +12,7 @@
 #   cache_or_local: cache, local 선택(cache일 경우 .cache파일에 저장)
 #   data_type: 데이터셋 타입(str)
 #   explain_algorithm: 설명방식 타입(str)
-#   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
+#   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
 project:
   project_type: 'explain'
@@ -24,9 +24,9 @@ project:
   model_name: yolov4
   framework: darknet
   source: local
-  repo_or_dir: None
-  cache_or_local: None
+  repo_or_dir: ~
+  cache_or_local: ~
   data_type: CUSTOM
   explain_algorithm: 
     - GradCAM:
-      - target_layer: None
+      - target_layer: ~

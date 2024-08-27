@@ -37,6 +37,8 @@ class Project(Configuration):
         trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)
         trainer.set_device()
         trainer.set_checkpoint_step(self.save_step)
+        if self.transfer_weights != None:
+            trainer.model_load(self.transfer_weights)
         if trainer.name == 'dg':
             trainer.set_freq(self.set_freq)
             target = model
@@ -46,7 +48,6 @@ class Project(Configuration):
                 else:
                     target = getattr(target,m)
             trainer.set_target_layer(target)
-            
         trainer.run()
         print("end")
     def explain(self):

@@ -19,11 +19,8 @@ class Configuration:
         self._parser_config()        
         
     def _parser_config(self):
-        projects = ['train','explain']
-        self.project_type = self.config['project']['project_type']
-        if self.project_type.lower() not in [project.lower() for project in projects]:
-            msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
-            raise Exception(msg)
+        self._public_parser()
+        self._public_check_config()
         if self.project_type.lower() == 'explain':
             self._explain_parser()
             self._explain_algorithm_parser()
@@ -32,7 +29,8 @@ class Configuration:
             self._train_parser()
             self._train_check_config()
             
-    def _train_parser(self):
+    def _public_parser(self):
+        self.project_type = self.config['project']['project_type']
         self.save_path = self.config['project']['save_path']
         self.weight_path = self.config['project']['weight_path']
         self.cfg_path = self.config['project']['cfg_path']
@@ -44,6 +42,8 @@ class Configuration:
         self.repo_or_dir = self.config['project']['repo_or_dir']
         self.cache_or_local = self.config['project']['cache_or_local']
         self.data_type = self.config['project']['data_type']
+        
+    def _train_parser(self):
         self.epoch = self.config['project']['epoch']
         self.learning_rate = self.config['project']['learning_rate']
         self.batch_size = self.config['project']['batch_size']
@@ -52,19 +52,9 @@ class Configuration:
         self.save_step = self.config['project']['save_step']
         self.improvement_algorithm = self.config['project']['improvement_algorithm']
         self.algorithm_name = self.improvement_algorithm['algorithm']
-    
+        self.transfer_weights = self.improvement_algorithm['transfer_weights']
+        
     def _explain_parser(self):
-        self.save_path = self.config['project']['save_path']
-        self.weight_path = self.config['project']['weight_path']
-        self.cfg_path = self.config['project']['cfg_path']
-        self.data_path = self.config['project']['data_path']
-        self.data_resize = self.config['project']['data_resize']
-        self.model_name = self.config['project']['model_name']
-        self.framework = self.config['project']['framework']
-        self.source = self.config['project']['source']
-        self.repo_or_dir = self.config['project']['repo_or_dir']
-        self.cache_or_local = self.config['project']['cache_or_local']
-        self.data_type = self.config['project']['data_type']
         self.explain_algorithm = self.config['project']['explain_algorithm']
         self.algorithm_name = list(self.explain_algorithm[0].keys())[0] 
         
@@ -88,28 +78,32 @@ class Configuration:
         self.config['rule'] = rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
         self.config['yaml_path'] = self.cfg_path
         
-    def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo']
+    def _public_check_config(self):
         frameworks = ['torch', 'darknet']
-        if not isinstance(self.data_resize, (tuple,list)):
+        projects = ['train','explain']
+        if self.project_type.lower() not in [project.lower() for project in projects]:
+            msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
+            raise Exception(msg)
+        elif not isinstance(self.data_resize, (tuple,list)):
             raise Exception("Supported types are: 'tuple' or 'list'")
         elif self.framework.lower() not in [framework.lower() for framework in frameworks]:
             msg = f"The type you entered is:'{self.framework}' Supported types are: {frameworks}"
             raise Exception(msg)
-        elif self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
+        
+    def _explain_check_config(self):
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo']
+        if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
+        
     def _train_check_config(self):
-        frameworks = ['torch', 'darknet']
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default']
         optimizers = ['Adam', 'SGD']
         loss_functions = ['CrossEntropyLoss', 'NLLLoss', 'MSELoss']
-        if not isinstance(self.data_resize, (tuple,list)):
-            raise Exception("Supported types are: 'tuple' or 'list'")
-        elif self.framework.lower() not in [framework.lower() for framework in frameworks]:
-            msg = f"The type you entered is:'{self.framework}' Supported types are: {frameworks}"
-            raise Exception(msg)
-        elif self.algorithm_name.lower() not in [improvement_algorithm.lower() for improvement_algorithm in improvement_algorithms]:
+        if os.path.isdir(self.save_path) == False:
+                os.makedirs(self.save_path) 
+        # paser check                
+        if self.algorithm_name.lower() not in [improvement_algorithm.lower() for improvement_algorithm in improvement_algorithms]:
             msg = f"The type you entered is:'{self.improvement_algorithm}' Supported types are: {improvement_algorithms}"
             raise Exception(msg)
         elif self.optimizer.lower() not in [optimizer.lower() for optimizer in optimizers]:
@@ -131,6 +125,7 @@ class Configuration:
         elif self.loss_function.lower() == 'mseloss':
             self.loss_function = nn.MSELoss
         # improvement algorithm
+        
         if self.algorithm_name.lower() == 'abn':
             self.improvement_algorithm = ABN
             self.improvement_algorithm.name = 'abn'

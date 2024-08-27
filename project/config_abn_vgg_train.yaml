@@ -16,15 +16,15 @@
 
 project:
   project_type: 'train'
-  save_path: "./checkpoint/"
-  weight_path: "./vgg19-dcbb9e9d.pth"
-  cfg_path: None
+  save_path: "./checkpoint "
+  weight_path: ~
+  cfg_path: ~
   data_resize: [224,224]
   data_path: "D:/Datasets/ai_fire/train"
   model_name: vgg19
   framework: torch
   source: torchvision
-  repo_or_dir: None
+  repo_or_dir: ~
   cache_or_local: cache
   data_type: AI_FIRE
   epoch: 10
@@ -34,5 +34,6 @@ project:
   loss_function: 'CrossEntropyLoss'
   save_step: 10
   improvement_algorithm: { 
-    algorithm: ABN
+    algorithm: ABN,
+    transfer_weights: ~
   }

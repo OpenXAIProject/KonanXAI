@@ -14,5 +14,6 @@ from project.make_project import Project
 # config_path = './project/config_dg_resnet_train.yaml'
 # config_path = './project/config_dg_vgg_train.yaml'
 config_path = './project/config_default_resnet_train.yaml'
+# config_path = './project/config_default_vgg_train.yaml'
 project = Project(config_path)
 project.run()

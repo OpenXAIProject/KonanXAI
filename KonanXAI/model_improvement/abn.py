@@ -50,10 +50,10 @@ class ABN(Trainer):
         self.datasets.set_fit_size()
         acc = 0
         top5_error = 0
-        for (x_batch, y_batch) in tqdm(self.datasets):
+        for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
             x = x_batch.to(self.device)
             y = y_batch.to(self.device)
-            att,pred,_ = self.model(x)
+            att, pred, _ = self.model(x)
             top5 = torch.topk(pred, 5).indices.cpu().numpy()[0]
             pred = torch.argmax(pred).item()
             y = y.item()#torch.argmax(y).item()

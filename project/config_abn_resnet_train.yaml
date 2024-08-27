@@ -12,27 +12,28 @@
 #   data_type: 데이터셋 타입(str)
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
-
+#   transfer_weights: 전이학습 사용 여부(경로 or ~(None))
 
 project:
   project_type: 'train'
-  save_path: "./checkpoint/"
-  weight_path: "./resnet50-0676ba61.pth"
-  cfg_path: None
+  save_path: "./checkpoint"
+  weight_path: ~
+  cfg_path: ~
   data_resize: [224,224]
   data_path: "D:/Datasets/ai_fire/train"
   model_name: resnet50
   framework: torch
   source: torchvision
-  repo_or_dir: None
+  repo_or_dir: ~
   cache_or_local: cache
   data_type: AI_FIRE
-  epoch: 10
+  epoch: 50
   learning_rate: 0.0001
-  batch_size: 128
+  batch_size: 64
   optimizer: 'adam'
   loss_function: 'CrossEntropyLoss'
-  save_step: 10
+  save_step: 1
   improvement_algorithm: { 
-    algorithm: ABN
+    algorithm: ABN,
+    transfer_weights: ~
   }
