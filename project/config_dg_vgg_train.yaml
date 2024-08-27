@@ -3,7 +3,6 @@
 #   save_path: 추론 결과 저장 위치(str)
 #   weight_path: 학습 파일 위치(str)
 #   cfg_path: yaml or cfg 경로(str)
-#   data_path: 사용할 데이터셋 경로(str) 
 #   data_resize: 모델 input에 맞는 크기(list or tuple)
 #   model_name: 모델 이름(str)
 #   framework: 프레임워크 타입(str)
@@ -16,18 +15,26 @@
 
 
 project:
-  project_type: 'explain'
-  save_path: "./heatmap/"
-  weight_path: "./resnet50-0676ba61.pth"
+  project_type: 'train'
+  save_path: "./checkpoint/"
+  weight_path: "./vgg19-dcbb9e9d.pth"
   cfg_path: None
-  data_path: "./data"
   data_resize: [224,224]
-  model_name: resnet50
+  data_path: "D:/Datasets/ai_fire/train"
+  model_name: vgg19
   framework: torch
   source: torchvision
   repo_or_dir: None
   cache_or_local: cache
-  data_type: CUSTOM
-  explain_algorithm: 
-    - GradCAM:
-      - target_layer: [layer4,'2',relu]
+  data_type: AI_FIRE
+  epoch: 10
+  learning_rate: 0.0001
+  batch_size: 16
+  optimizer: 'adam'
+  loss_function: 'CrossEntropyLoss'
+  save_step: 10
+  improvement_algorithm: { 
+    algorithm: DomainGeneralization,
+    set_freq: 5,
+    target_layer: [features,'36']
+  }

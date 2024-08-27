@@ -6,6 +6,9 @@ from KonanXAI.datasets import load_dataset
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution.gradcam import GradCAM
+import random
+import numpy as np
+import torch
 """
 2024-07-02 jjh
  
@@ -13,14 +16,39 @@ usage:
     project = Project(config_path)
     projcet.run()
 """
+def set_seed(seed_value=77):
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value) 
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
-       
+        
     # run은 실행만 하는것 train/expalin 기능 세분화 필요
     # 해당 기능은 config에서 받아서 사용
     def train(self):
-        pass
+        set_seed(777)
+        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+        model = self.make_model(num_classes= self.dataset.classes)
+        optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
+        criterion = self.loss_function()
+        trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)
+        trainer.set_device()
+        trainer.set_checkpoint_step(self.save_step)
+        if trainer.name == 'dg':
+            trainer.set_freq(self.set_freq)
+            target = model
+            for m in self.target_layer:
+                if m.isdigit():
+                    target = target[int(m)]
+                else:
+                    target = getattr(target,m)
+            trainer.set_target_layer(target)
+            
+        trainer.run()
+        print("end")
     def explain(self):
         for i, data in enumerate(self.dataset):
             if self.framework.lower() == 'darknet':
