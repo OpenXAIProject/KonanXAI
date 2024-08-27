@@ -44,10 +44,12 @@ class Configuration:
         self.algorithm_name = list(self.explain_algorithm[0].keys())[0]
         
     def _explain_algorithm_parser(self):
-        if self.algorithm_name in ['GradCAM','GradCAMpp','EigenCAM']:
+        cams = ['GradCAM','GradCAMpp','EigenCAM']
+        lrps = ['LRP', 'LRPYolo']
+        if self.algorithm_name.lower() in [cam.lower() for cam in cams]:
             self._gradcam_parser()
         
-        elif self.algorithm_name in ['LRP', 'LRPYolo']:
+        elif self.algorithm_name.lower() in [lrp.lower() for lrp in lrps]:
             self._lrp_parser()
         
     def _gradcam_parser(self):
