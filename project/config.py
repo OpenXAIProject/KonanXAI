@@ -148,8 +148,8 @@ class Configuration:
             elif self.model_name.lower().startswith("vgg"):
                 self.make_model = models.vgg19
         elif self.algorithm_name.lower() == 'default':
-            self.improvement_algorithm.name = 'default'
             self.improvement_algorithm = Trainer
+            self.improvement_algorithm.name = 'default'
             if self.model_name.lower().startswith("resnet"):
                 self.make_model = models.resnet50
             elif self.model_name.lower().startswith("vgg"):
