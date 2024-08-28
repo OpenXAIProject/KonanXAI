@@ -80,15 +80,11 @@ path = './resnet50_mnist_epoch10'
 
 model.load_state_dict(torch.load(path))
 
-for inputs, targets in train_loader:
-    print(type(targets), targets.dtype, targets.shape)
 
 origin_data = train_dataset[0][0]
 target_data = train_dataset[1][0]
 origin_label = train_dataset[0][1]
 target_label = train_dataset[1][1]
-test = train_loader[1][1]
-print(test)
 print(train_dataset[0][1], train_dataset[1][1])
 
 model.eval()
@@ -119,6 +115,7 @@ for iteration in range(500):
     gradients = torch.autograd.grad(pred, cf_image, grad_outputs=torch.ones_like(pred).to(device))[0]
     _, predicted = torch.max(pred.data, 1)
     target_label = [target_label]
+    target_label = torch.tensor(target_label, device = 'cuda:0')
     
 
     loss = l * criterion(pred, target_label) + pdistance(cf_image, target_data).sum()
