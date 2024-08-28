@@ -23,29 +23,13 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 # ABCMeta 상속으로 해야하나?
-class Adversarial:
+class Counterfactual:
     ''' explain something...
     
     '''
-    def __init__(self):
+    def __init__(self, framework, model, origin_data, target_data, config):
         pass
 
     def 
 
-
-class FGSM(Adversarial):
-    def __init__(self) -> None:
-        
-        self.epsilon = None
-        self.loss = None
-
-    def generate_example(
-            self,
-            model, 
-            epsilon : float = 0.007, 
-            loss : Callable
-        ) -> torch.Tensor :
-
-        self.model = model
-        self.epsilon
 

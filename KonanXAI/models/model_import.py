@@ -73,9 +73,13 @@ def torch_model_load(
             model.eval()
             return model
         else:
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
+            weight = torch.load(weight_path)
+            last_key = list(weight.keys())[-1]
+            num_of_classes = weight[last_key].shape[0]
+            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_of_classes)
             model.load_state_dict(torch.load(weight_path))
             model.model_name = model_name
+            model.num_of_classes = num_of_classes
             model.eval()
             return model
     

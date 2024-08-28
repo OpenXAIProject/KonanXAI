@@ -9,6 +9,29 @@ def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
+
+def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
+    
+    for i, heatmap in enumerate(heatmaps):
+        if 'cam' in algorithm_type.lower():
+            heatmap = F.interpolate(heatmap, size = img_size, mode="bilinear", align_corners=False)
+            heatmap = normalize_heatmap(heatmap)
+            heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
+            heatmap = torch.Tensor(heatmap).permute(2,0,1).unsqueeze(0)
+            return heatmap
+        
+        elif 'lrp' in algorithm_type.lower():
+            cmap = matplotlib.cm.bwr
+            heatmap = heatmap / torch.max(heatmap)
+            heatmap = (heatmap +1.)/2.
+            rgb = cmap(heatmap.flatten())[...,0:3].reshape([heatmap.shape[-2], heatmap.shape[-1], 3])
+            heatmap = np.uint8(rgb*255) 
+            heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
+            heatmap = torch.Tensor(heatmap).permute(2,0,1).unsqueeze(0)
+            return heatmap
+            
+
+
 def get_box(bbox_li, framework):
     bbox = []
     if framework == "darknet":
