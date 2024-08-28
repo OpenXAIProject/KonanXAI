@@ -5,11 +5,10 @@ from KonanXAI.utils.h5file import create_attribution_database, create_dataset, a
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
-from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
-from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution.gradcam import GradCAM
-from KonanXAI.explainer.clustering import SpectralClustering
 
+import random
+import numpy as np
+import torch
 
 """
 2024-07-02 jjh
@@ -18,19 +17,38 @@ usage:
     project = Project(config_path)
     projcet.run()
 """
+def set_seed(seed_value=77):
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value) 
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
-       
 
-        
-    def run(self):
-        self.model = model_import(self.framework, self.source, self.repo_or_dir,
-                                  self.model_name, self.cache_or_local, 
-                                  self.weight_path, self.cfg_path)
-        self.dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize)
-        self.heatmaps = []
+    def train(self):
+        set_seed(777)
+        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+        model = self.make_model(num_classes= self.dataset.classes)
+        optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
+        criterion = self.loss_function()
+        trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)
+        trainer.set_device(self.gpu_count)
+        trainer.set_checkpoint_step(self.save_step)
+        if self.transfer_weights != None:
+            trainer.model_load(self.transfer_weights)
+        if trainer.name == 'dg':
+            trainer.set_freq(self.set_freq)
+            target = model
+            for m in self.target_layer:
+                if m.isdigit():
+                    target = target[int(m)]
+                else:
+                    target = getattr(target,m)
+            trainer.set_target_layer(target)
+        trainer.run()
+        print("end")
+    def explain(self):
 
         for i, data in enumerate(self.dataset):
             if self.framework.lower() == 'darknet':
@@ -45,19 +63,22 @@ class Project(Configuration):
             if os.path.isdir(root) == False:
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
-            algorithm = globals().get(self.algorithm_name)(self.framework, self.model, data, self.attr_config)
+
+            algorithm = self.algorithm(self.framework, self.model, data, self.config)
+
             
             heatmap = algorithm.calculate()
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
-            self.heatmaps.append(heatmap)
 
-    def run_for_counterfactual(self):
+    def run(self):
+
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path)
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize)
+
         print(self.dataset[0])
 
 
@@ -144,4 +165,11 @@ class Project(Configuration):
             self.framework, self.model, self.dataset, self.exp_config)
         spectral_clustering.apply()
     
+        
+        if self.project_type == "explain":
+            self.explain()
+        elif self.project_type == "train":
+            self.train()
+            
+
                 
