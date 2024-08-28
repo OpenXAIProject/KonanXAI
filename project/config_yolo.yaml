@@ -15,7 +15,7 @@
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
 
-project:
+head:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./yolov5s.pt"
@@ -28,6 +28,8 @@ project:
   repo_or_dir: C:\Users\jaehyeok\.cache\yolov5
   cache_or_local: ~
   data_type: CUSTOM
+
+explain:
   explain_algorithm:
     - GradCAM:
       - target_layer: {'0':['model','24','m','0'],'1':['model','24','m','1'],'2':['model','24','m','2']}

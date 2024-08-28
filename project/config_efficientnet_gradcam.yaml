@@ -14,7 +14,7 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
-project:
+head:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./efficientnet_b0_rwightman-3dd342df.pth"
@@ -27,6 +27,8 @@ project:
   repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
+
+explain:
   explain_algorithm: 
     - GradCAM:
       - target_layer: ['features', '8', '0']

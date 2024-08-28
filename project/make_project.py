@@ -3,9 +3,6 @@ from KonanXAI.utils.heatmap import compose_heatmap_image, get_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
-from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
-from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution.gradcam import GradCAM
 import random
 import numpy as np
 import torch
@@ -60,7 +57,7 @@ class Project(Configuration):
             if os.path.isdir(root) == False:
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
-            algorithm = globals().get(self.algorithm_name)(self.framework, self.model, data, self.config)
+            algorithm = self.algorithm(self.framework, self.model, data, self.config)
             
             heatmap = algorithm.calculate()
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)

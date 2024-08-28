@@ -1,5 +1,8 @@
 import yaml
 import os, sys
+from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
+from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
@@ -30,33 +33,33 @@ class Configuration:
             self._train_check_config()
             
     def _public_parser(self):
-        self.project_type = self.config['project']['project_type']
-        self.save_path = self.config['project']['save_path']
-        self.weight_path = self.config['project']['weight_path']
-        self.cfg_path = self.config['project']['cfg_path']
-        self.data_path = self.config['project']['data_path']
-        self.data_resize = self.config['project']['data_resize']
-        self.model_name = self.config['project']['model_name']
-        self.framework = self.config['project']['framework']
-        self.source = self.config['project']['source']
-        self.repo_or_dir = self.config['project']['repo_or_dir']
-        self.cache_or_local = self.config['project']['cache_or_local']
-        self.data_type = self.config['project']['data_type']
+        self.project_type = self.config['head']['project_type']
+        self.save_path = self.config['head']['save_path']
+        self.weight_path = self.config['head']['weight_path']
+        self.cfg_path = self.config['head']['cfg_path']
+        self.data_path = self.config['head']['data_path']
+        self.data_resize = self.config['head']['data_resize']
+        self.model_name = self.config['head']['model_name']
+        self.framework = self.config['head']['framework']
+        self.source = self.config['head']['source']
+        self.repo_or_dir = self.config['head']['repo_or_dir']
+        self.cache_or_local = self.config['head']['cache_or_local']
+        self.data_type = self.config['head']['data_type']
         
     def _train_parser(self):
-        self.epoch = self.config['project']['epoch']
-        self.learning_rate = self.config['project']['learning_rate']
-        self.batch_size = self.config['project']['batch_size']
-        self.optimizer = self.config['project']['optimizer']
-        self.loss_function = self.config['project']['loss_function']
-        self.save_step = self.config['project']['save_step']
-        self.improvement_algorithm = self.config['project']['improvement_algorithm']
+        self.epoch = self.config['train']['epoch']
+        self.learning_rate = self.config['train']['learning_rate']
+        self.batch_size = self.config['train']['batch_size']
+        self.optimizer = self.config['train']['optimizer']
+        self.loss_function = self.config['train']['loss_function']
+        self.save_step = self.config['train']['save_step']
+        self.improvement_algorithm = self.config['train']['improvement_algorithm']
         self.algorithm_name = self.improvement_algorithm['algorithm']
         self.transfer_weights = self.improvement_algorithm['transfer_weights']
         self.gpu_count = self.improvement_algorithm['gpu_count']
         
     def _explain_parser(self):
-        self.explain_algorithm = self.config['project']['explain_algorithm']
+        self.explain_algorithm = self.config['explain']['explain_algorithm']
         self.algorithm_name = list(self.explain_algorithm[0].keys())[0] 
         
     def _explain_algorithm_parser(self):
@@ -96,6 +99,18 @@ class Configuration:
         if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
+        else:
+            if self.algorithm_name.lower() == 'gradcam':
+                self.algorithm = GradCAM
+            elif self.algorithm_name.lower() == 'gradcampp':
+                self.algorithm = GradCAMpp
+            elif self.algorithm_name.lower() == 'eigencam':
+                self.algorithm = EigenCAM
+            elif self.algorithm_name.lower() == 'lrp':
+                self.algorithm = LRP
+            elif self.algorithm_name.lower() == 'lrpyolo':
+                self.algorithm = LRPYolo
+                
         
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default']
