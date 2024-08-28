@@ -18,13 +18,13 @@ class Trainer:
         self.step = int(epoch * 0.2)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
                 
-    def set_device(self):
+    def set_device(self, gpus:list):
         self.model = self.model.to(self.device)
         # DataParallel
         if torch.cuda.is_available():
             self.device_count = torch.cuda.device_count()
             if self.device_count > 1:
-                self.model = nn.DataParallel(self.model)
+                self.model = nn.DataParallel(self.model, device_ids= gpus)
         
     def set_checkpoint_step(self, step):
         self.step = step

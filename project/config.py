@@ -152,10 +152,9 @@ class Configuration:
                 self.make_model = models.vgg19
                 
         if self.gpu_count >0:
-            gpus = ""
+            gpus = []
             for i in range(self.gpu_count):
-                gpus = gpus + f"{i},"
-            gpus = gpus[:-1]
+                gpus.append(i)
             self.gpu_count = gpus
         else:
             msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."

@@ -27,12 +27,11 @@ class Project(Configuration):
     def train(self):
         set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-        os.environ['CUDA_VISIBLE_DEVICES'] = self.gpu_count
         model = self.make_model(num_classes= self.dataset.classes)
         optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
         criterion = self.loss_function()
         trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)
-        trainer.set_device()
+        trainer.set_device(self.gpu_count)
         trainer.set_checkpoint_step(self.save_step)
         if self.transfer_weights != None:
             trainer.model_load(self.transfer_weights)

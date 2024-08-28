@@ -36,5 +36,5 @@ project:
   improvement_algorithm: { 
     algorithm: ABN,
     transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
-    gpu_count: 1
+    gpu_count: 3
   }
