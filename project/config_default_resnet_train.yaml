@@ -35,5 +35,6 @@ project:
   save_step: 1
   improvement_algorithm: { 
     algorithm: Default,
-    transfer_weights: ~
+    transfer_weights: ~,
+    gpu_count: 1
   }

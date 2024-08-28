@@ -37,5 +37,6 @@ project:
     algorithm: DomainGeneralization,
     set_freq: 5,
     target_layer: [features,'36'],
-    transfer_weights: ~
+    transfer_weights: ~,
+    gpu_count: 1
   }

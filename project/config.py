@@ -53,6 +53,7 @@ class Configuration:
         self.improvement_algorithm = self.config['project']['improvement_algorithm']
         self.algorithm_name = self.improvement_algorithm['algorithm']
         self.transfer_weights = self.improvement_algorithm['transfer_weights']
+        self.gpu_count = self.improvement_algorithm['gpu_count']
         
     def _explain_parser(self):
         self.explain_algorithm = self.config['project']['explain_algorithm']
@@ -149,3 +150,13 @@ class Configuration:
                 self.make_model = models.resnet50
             elif self.model_name.lower().startswith("vgg"):
                 self.make_model = models.vgg19
+                
+        if self.gpu_count >0:
+            gpus = ""
+            for i in range(self.gpu_count):
+                gpus = gpus + f"{i},"
+            gpus = gpus[:-1]
+            self.gpu_count = gpus
+        else:
+            msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."
+            raise Exception(msg)

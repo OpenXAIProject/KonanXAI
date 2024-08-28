@@ -9,6 +9,20 @@ from tqdm import tqdm
 class ABN(Trainer):
     def __init__(self, model, optimizer, criterion, datasets, lr, batch, epoch, save_path):
         super(ABN, self).__init__(model, optimizer, criterion, datasets, lr, batch, epoch, save_path)
+     
+    def model_load(self, pt_path):
+        pt = torch.load(pt_path)
+        model_key = next(iter(self.model.state_dict()))
+        state_dict = {}
+        if 'module.' in model_key:
+            for k, v in pt['model_state_dict'].items():
+                key = 'module.'+ k 
+                state_dict[key] = v
+        else:
+            for k, v in pt['model_state_dict'].items():
+                key = k[7:] if k.startswith('module.') else k
+                state_dict[key] = v
+        self.model.load_state_dict(state_dict, strict = False)
         
     def model_save(self, epoch, accuracy=None):
         model_class = self.model.__class__.__name__

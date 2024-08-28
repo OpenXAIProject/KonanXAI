@@ -41,7 +41,7 @@ class AI_FIRE(Datasets):
             return [str(file) for file in file_list]
        
         train_path = load_image(self.src_path)
-        test_path = load_image(self.src_path.replace("train","test"))
+        test_path = load_image(self.src_path.replace("train","test_lite"))
         self.train_items = []
         self.test_items = []
         for path in train_path:

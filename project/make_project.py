@@ -24,13 +24,10 @@ def set_seed(seed_value=77):
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
-        
-    # run은 실행만 하는것 train/expalin 기능 세분화 필요
-    # 해당 기능은 config에서 받아서 사용
     def train(self):
         set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+        os.environ['CUDA_VISIBLE_DEVICES'] = self.gpu_count
         model = self.make_model(num_classes= self.dataset.classes)
         optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
         criterion = self.loss_function()
