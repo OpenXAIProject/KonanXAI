@@ -59,9 +59,8 @@ class Configuration:
         self.gpu_count = self.improvement_algorithm['gpu_count']
         
     def _explain_parser(self):
-        self.explain_algorithm = self.config['explain']['explain_algorithm']
-        self.algorithm_name = list(self.explain_algorithm[0].keys())[0] 
-        
+        self.explains = self.config['explain']
+        self.algorithm_name = self.explains['algorithm']
     def _explain_algorithm_parser(self):
         cams = ['GradCAM','GradCAMpp','EigenCAM']
         lrps = ['LRP', 'LRPYolo']
@@ -73,13 +72,13 @@ class Configuration:
         
     def _gradcam_parser(self):
         self.config = {}
-        self.config['target_layer'] = list(self.explain_algorithm[0].items())[0][1][0]['target_layer']
+        self.config['target_layer'] = self.explains['target_layer']
         self.config['algorithm'] = self.algorithm_name
     
     def _lrp_parser(self):
         self.config = {}
         self.config['algorithm'] = self.algorithm_name
-        self.config['rule'] = rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
+        self.config['rule'] = self.explains['rule']
         self.config['yaml_path'] = self.cfg_path
         
     def _public_check_config(self):

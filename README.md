@@ -56,9 +56,15 @@
         - ex) CUSTOM, AI_FIRE 등
 
 - ## explain의 필수 구성은 다음과 같습니다.
-    -  ### explain_algorithm:
-        - 수정 필요
-        - dict 형태로 사용하는것이 일반화 될것 같음
+    -  ### algorithm:
+        - 알고리즘을 선택합니다. 
+        - ex) gradcam, eigencam, gradcampp, lrp, lrpyolo 등
+    - ### target_layer:
+        - cam방식일 경우 hook의 대상을 지정합니다.
+        - ex) [layer4,'2',relu]
+    - ### rule:
+        - lrp의 경우 어떤 rule을 사용할지 지정합니다.
+        - ex) Epslion
 
 - ## train의 필수 구성은 다음과 같습니다.
     - ### epoch:

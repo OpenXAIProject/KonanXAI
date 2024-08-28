@@ -29,6 +29,5 @@ head:
   data_type: CUSTOM
 
 explain:
-  explain_algorithm: 
-    - GradCAM:
-      - target_layer: ['features', '8', '0']
+  algorithm: GradCAM
+  target_layer: ['features', '8', '0']
