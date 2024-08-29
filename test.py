@@ -116,10 +116,10 @@ for iteration in range(500):
     _, predicted = torch.max(pred.data, 1)
     target_label = [target_label]
     target_label = torch.tensor(target_label, device = 'cuda:0')
-    
+    cf_image.requires_
 
     loss = l * criterion(pred, target_label) + pdistance(cf_image, target_data).sum()
-    print(loss)
+    
     if loss < best_loss:
         best_loss = loss
         best_cf = cf_image

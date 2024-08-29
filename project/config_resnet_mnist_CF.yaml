@@ -10,20 +10,22 @@
 #   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
-project:
+head:
+  project_type: 'explainer'
   save_path: "./heatmap/"
-  weight_path: "./resnet50-0676ba61.pth"
+  weight_path: "./resnet50_mnist_epoch10.pth"
   cfg_path: ~
-  data_path: "../dataset/MNIST/raw"
   data_resize: [224,224]
+  data_path: "../dataset/MNIST/raw"
   model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: ~
   cache_or_local: cache
   data_type: MNIST
-  explain_algorithm: ~
-  explainer: 
-    - Counterfactual:
-      - methods: Wachter
-      - lambda: 0.1
+
+explainer: {
+  algorithm: CounterFactual,
+  methods: Wachter,
+  lambda: 0.1
+}
