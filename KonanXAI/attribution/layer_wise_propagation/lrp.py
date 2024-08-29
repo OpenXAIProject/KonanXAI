@@ -34,11 +34,15 @@ class LRP:
         model.eval()
         self.tracer =  Graph(model, self.yaml_path)
         self.module_tree = self.tracer.trace()
-        pred = model(self.input).squeeze()
+        if model.model_algorithm == 'abn':
+            att, pred, _ = model(self.input).squeeze()
+        else:
+           pred = model(self.input).squeeze()
+        # pred = model(self.input).squeeze()
         
         index = pred.argmax()
         
-        relevance = torch.zeros([1000], device = 'cuda:0')
+        relevance = torch.zeros([model.output_size], device = 'cuda:0')
         max = pred.max()
         relevance[index] = max
         relevance = self.module_tree.backprop(relevance, self.rule, self.alpha)

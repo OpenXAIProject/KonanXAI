@@ -91,7 +91,10 @@ class GradCAM:
                 self._yolo_backward_pytorch()
 
             else:
-                self.pred = self.model(self.input)
+                if self.model.model_algorithm == 'abn':
+                    self.att, self.pred, _ = self.model(self.input)
+                else:
+                    self.pred = self.model(self.input)
                 label_index = torch.argmax(self.pred).item()
                 self.pred[0][label_index].backward()
                 feature = self.layer.fwd_in[-1]

@@ -18,18 +18,19 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./vgg19-dcbb9e9d.pth"
+  # weight_path: "./resnet50-0676ba61.pth"
+  weight_path: "./checkpoint/ABN_DataParallel_AI_FIRE_50ep.pt"
   cfg_path: ~
-  data_path: "./data"
+  data_path: "D:/Datasets/ai_fire/train"
   data_resize: [224,224]
-  model_name: vgg19
+  model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: ~
   cache_or_local: cache
-  data_type: CUSTOM
+  data_type: AI_FIRE
 
 explain:
-  algorithm: LRP
-  model_algorithm: Default
-  rule: Epslion
+  algorithm: GradCAM
+  model_algorithm: ABN
+  target_layer: [layer4,'2',relu]

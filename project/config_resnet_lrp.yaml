@@ -28,7 +28,8 @@ head:
   repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
-
+  
 explain:
   algorithm: LRP
+  model_algorithm: Default
   rule: Epslion

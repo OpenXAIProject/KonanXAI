@@ -8,7 +8,11 @@ __all__ = ["Datasets", "CUSTOM","MNIST", "COCO", "CIFAR10","AI_FIRE"]
 
 
 def load_dataset(framework, data_path = None, data_type = 'CUSTOM', 
-                 maxlen=-1, resize = None):
+                 maxlen=-1, resize = None, mode = None):
     dataset = globals().get(data_type)(framework = framework, src_path = data_path)
     dataset.set_fit_size(resize)
+    if mode.lower() == 'train':
+        dataset.set_train()
+    elif mode.lower() == 'explain':
+        dataset.set_test()
     return dataset

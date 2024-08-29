@@ -1,8 +1,10 @@
+from collections import OrderedDict
 import torch
 import torchvision
 import torch.nn as nn
 import urllib
-
+from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
+from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
 import os
 
 # import 경로만 모아놔야 하는데..
@@ -63,7 +65,9 @@ def torch_model_load(
         repo_or_dir = None,
         model_name = None,
         cache_or_local = None,
-        weight_path = None):
+        weight_path = None,
+        num_classes = None,
+        model_algorithm = None):
     
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
@@ -73,9 +77,31 @@ def torch_model_load(
             model.eval()
             return model
         else:
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
-            model.load_state_dict(torch.load(weight_path))
-            model.model_name = model_name
+            pt = torch.load(weight_path)
+            if model_algorithm.lower() in ["default", "domaingeneralization"]:
+                model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
+            elif model_algorithm.lower() == 'abn':
+                if "resnet" in model_name:
+                    model = make_attention_resnet50(num_classes = num_classes)
+                elif "vgg" in model_name:
+                    model = make_attention_vgg19(num_classes= num_classes)
+            if isinstance(pt, OrderedDict):
+                    state_dict = pt
+            else:
+                model_key = next(iter(model.state_dict()))
+                state_dict = {}
+                if 'module.' in model_key:
+                    for k, v in pt['model_state_dict'].items():
+                        key = 'module.'+ k 
+                        state_dict[key] = v
+                else:
+                    for k, v in pt['model_state_dict'].items():
+                        key = k[7:] if k.startswith('module.') else k
+                        state_dict[key] = v
+            model.load_state_dict(state_dict)
+            model.model_name = model_name.lower()
+            model.model_algorithm = model_algorithm.lower()
+            model.output_size = num_classes
             model.eval()
             return model
     
@@ -145,7 +171,9 @@ def model_import(
         model_name = None,
         cache_or_local = None,
         weight_path = None,
-        cfg_path = None):
+        cfg_path = None,
+        num_classes = None,
+        model_algorithm = None):
     '''
     - posibble framework: 'torch', 'darknet', 'dtrain'
     - source: 'torchvision', 'torch/hub', 'github', 'local'
@@ -170,7 +198,7 @@ def model_import(
         model = torch_model_load(source = source, 
                                   repo_or_dir = repo_or_dir, 
                                   model_name = model_name, cache_or_local = cache_or_local, 
-                                  weight_path = weight_path)
+                                  weight_path = weight_path, num_classes= num_classes, model_algorithm = model_algorithm)
         for name, module in model.named_modules():
             if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
                 module.inplace = False  

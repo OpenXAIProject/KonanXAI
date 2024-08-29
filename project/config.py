@@ -60,7 +60,10 @@ class Configuration:
         
     def _explain_parser(self):
         self.explains = self.config['explain']
+        self.model_algorithm = self.explains['model_algorithm']
         self.algorithm_name = self.explains['algorithm']
+        
+        
     def _explain_algorithm_parser(self):
         cams = ['GradCAM','GradCAMpp','EigenCAM']
         lrps = ['LRP', 'LRPYolo']

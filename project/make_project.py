@@ -52,7 +52,7 @@ class Project(Configuration):
                 origin_img = data[0]
                 img_size = data[3]
             algorithm_type = self.config['algorithm']
-            img_path = self.dataset.train_items[i][0].split('\\')
+            img_path = self.dataset.test_items[i][0].split('\\')
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
                 os.makedirs(root)
@@ -63,11 +63,12 @@ class Project(Configuration):
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
     def run(self):
+        self.dataset = load_dataset(self.framework, data_path = self.data_path,
+                                    data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
-                                  self.weight_path, self.cfg_path)
-        self.dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize)
+                                  self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
+        
         
         if self.project_type == "explain":
             self.explain()
