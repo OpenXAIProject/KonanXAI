@@ -53,11 +53,17 @@ class Trainer:
         
     def model_load(self, pt_path):
         pt = torch.load(pt_path)
+        model_key = next(iter(self.model.state_dict()))
         state_dict = {}
-        for k, v in pt['model_state_dict'].items():
-            key = k[7:] if k.startswith('module.') else k
-            state_dict[key] = v
-        self.model.load_state_dict(state_dict)
+        if 'module.' in model_key:
+            for k, v in pt['model_state_dict'].items():
+                key = 'module.'+ k 
+                state_dict[key] = v
+        else:
+            for k, v in pt['model_state_dict'].items():
+                key = k[7:] if k.startswith('module.') else k
+                state_dict[key] = v
+        self.model.load_state_dict(state_dict, strict = True)
         
 
     def _hook_pre_forward(self, x_batch, y_batch, epoch):
