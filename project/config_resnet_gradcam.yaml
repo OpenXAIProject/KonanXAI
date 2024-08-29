@@ -30,6 +30,5 @@ head:
   data_type: CUSTOM
 
 explain:
-  explain_algorithm: 
-    - GradCAM:
-      - target_layer: [layer4,'2',relu]
+  algorithm: GradCAM
+  target_layer: [layer4,'2',relu]

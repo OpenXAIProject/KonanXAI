@@ -30,6 +30,6 @@ head:
   data_type: CUSTOM
 
 explain:
-  explain_algorithm:
-    - LRPYolo:
-      - rule: Epslion
+  algorithm: LRPYolo
+  rule: Epslion
+
