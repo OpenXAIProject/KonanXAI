@@ -78,15 +78,16 @@ def torch_model_load(
             return model
         else:
             pt = torch.load(weight_path)
-            if model_algorithm.lower() in ["default", "domaingeneralization"]:
+            if model_algorithm.lower() in ["default", "domaingeneralization", 'fgsm']:
                 model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
             elif model_algorithm.lower() == 'abn':
                 if "resnet" in model_name:
                     model = make_attention_resnet50(num_classes = num_classes)
                 elif "vgg" in model_name:
                     model = make_attention_vgg19(num_classes= num_classes)
+                    
             if isinstance(pt, OrderedDict):
-                    state_dict = pt
+                state_dict = pt
             else:
                 model_key = next(iter(model.state_dict()))
                 state_dict = {}

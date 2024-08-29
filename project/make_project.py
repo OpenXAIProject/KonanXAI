@@ -32,7 +32,7 @@ class Project(Configuration):
         trainer.set_checkpoint_step(self.save_step)
         if self.transfer_weights != None:
             trainer.model_load(self.transfer_weights)
-        if trainer.name == 'dg':
+        if self.model_algorithm == 'domaingeneralization':
             trainer.set_freq(self.set_freq)
             target = model
             for m in self.target_layer:

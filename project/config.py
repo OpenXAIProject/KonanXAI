@@ -3,6 +3,7 @@ import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM
+from KonanXAI.model_improvement.fgsm import FGSM
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
@@ -115,7 +116,7 @@ class Configuration:
                 
         
     def _train_check_config(self):
-        improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default']
+        improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']
         loss_functions = ['CrossEntropyLoss', 'NLLLoss', 'MSELoss']
         if os.path.isdir(self.save_path) == False:
@@ -145,29 +146,33 @@ class Configuration:
         # improvement algorithm
         
         if self.algorithm_name.lower() == 'abn':
+            self.model_algorithm = self.algorithm_name.lower()
             self.improvement_algorithm = ABN
-            self.improvement_algorithm.name = 'abn'
+            # self.improvement_algorithm.name = 'abn'
             if self.model_name.lower().startswith("resnet"):
                 self.make_model = make_attention_resnet50
             elif self.model_name.lower().startswith("vgg"):
                 self.make_model = make_attention_vgg19
         elif self.algorithm_name.lower() == 'domaingeneralization':
+            self.model_algorithm = self.algorithm_name.lower()
             self.set_freq = self.improvement_algorithm['set_freq']
             self.target_layer = self.improvement_algorithm['target_layer']
             self.improvement_algorithm = DomainGeneralization
-            self.improvement_algorithm.name = 'dg'            
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = models.resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = models.vgg19
+            # self.improvement_algorithm.name = 'dg'            
+            self._make_model()
         elif self.algorithm_name.lower() == 'default':
+            self.model_algorithm = self.algorithm_name.lower()
             self.improvement_algorithm = Trainer
-            self.improvement_algorithm.name = 'default'
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = models.resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = models.vgg19
-                
+            # self.improvement_algorithm.name = 'default'
+            self._make_model()
+        elif self.algorithm_name.lower() == 'fgsm':
+            epsilon = self.improvement_algorithm['epsilon']
+            alpha = self.improvement_algorithm['alpha']
+            self.model_algorithm = self.algorithm_name.lower()
+            self.improvement_algorithm = FGSM
+            self.improvement_algorithm.epsilon = epsilon
+            self.improvement_algorithm.alpha = alpha
+            self._make_model()
         if self.gpu_count >0:
             gpus = []
             for i in range(self.gpu_count):
@@ -176,3 +181,8 @@ class Configuration:
         else:
             msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."
             raise Exception(msg)
+    def _make_model(self):
+        if self.model_name.lower().startswith("resnet"):
+            self.make_model = models.resnet50
+        elif self.model_name.lower().startswith("vgg"):
+            self.make_model = models.vgg19

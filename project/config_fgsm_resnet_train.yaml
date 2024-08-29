@@ -11,8 +11,8 @@
 #   cache_or_local: cache, local 선택(cache일 경우 .cache파일에 저장)
 #   data_type: 데이터셋 타입(str)
 #   explain_algorithm: 설명방식 타입(str)
-#   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
-
+#   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
+#   transfer_weights: 전이학습 사용 여부(경로 or ~(None))
 
 head:
   project_type: 'train'
@@ -27,18 +27,18 @@ head:
   repo_or_dir: ~
   cache_or_local: cache
   data_type: AI_FIRE
-
+  
 train:
-  epoch: 10
+  epoch: 50
   learning_rate: 0.0001
-  batch_size: 16
+  batch_size: 64
   optimizer: 'adam'
   loss_function: 'CrossEntropyLoss'
-  save_step: 10
+  save_step: 1
   improvement_algorithm: { 
-    algorithm: DomainGeneralization,
-    set_freq: 1,
-    target_layer: [layer4,'2',relu],
+    algorithm: FGSM,
+    epsilon: 0.05,
+    alpha: 0.5,
     transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
-    gpu_count: 1
+    gpu_count: 3
   }

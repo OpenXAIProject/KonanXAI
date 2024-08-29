@@ -17,6 +17,7 @@ from project.make_project import Project
 # config_path = './project/config_default_vgg_train.yaml'
 # config_path = './project/config_resnet_DG_gradcam.yaml'
 # config_path = './project/config_resnet_ABN_gradcam.yaml'
-config_path = './project/config_resnet_DG_lrp.yaml'
+# config_path = './project/config_resnet_DG_lrp.yaml'
+config_path = './project/config_fgsm_resnet_train.yaml'
 project = Project(config_path)
 project.run()
