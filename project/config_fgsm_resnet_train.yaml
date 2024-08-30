@@ -37,8 +37,9 @@ train:
   save_step: 1
   improvement_algorithm: { 
     algorithm: FGSM,
-    epsilon: 0.05,
+    epsilon: 0.01,
     alpha: 0.5,
-    transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
+    # transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
+    transfer_weights: "./checkpoint/FGSM_DataParallel_AI_FIRE_28ep.pt",
     gpu_count: 3
   }

@@ -41,7 +41,7 @@ class Project(Configuration):
                 else:
                     target = getattr(target,m)
             trainer.set_target_layer(target)
-        trainer.run(train=True)
+        trainer.run(train=False)
         print("end")
     def explain(self):
         for i, data in enumerate(self.dataset):

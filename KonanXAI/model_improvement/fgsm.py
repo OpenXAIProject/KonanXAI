@@ -45,27 +45,27 @@ class FGSM(Trainer):
         delta = self.create_adversarial_attack(x, y, self.epsilon, self.alpha)
         return self.model(x + delta)
         
-    # def test(self, save):
-    #     self.model.eval()
-    #     self.datasets.set_test()
-    #     self.datasets.set_batch(2)
-    #     self.datasets.set_fit_size()
-    #     acc = 0
-    #     top5_error = 0
-    #     for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
-    #         x = x_batch.to(self.device)
-    #         y = y_batch.to(self.device)
-    #         delta = self.create_adversarial_attack(x, y, self.epsilon, self.alpha)
-    #         pred = self.model(torch.clamp(x + delta, 0, 1))
-    #         for pred_, y_ in zip(pred, y):
-    #             pred_ = torch.argmax(pred_).item()
-    #             y_ = y_.item()#torch.argmax(y).item()
-    #             if pred_ == y_:
-    #                 acc += 1
-    #     acc = round(acc / (len(self.datasets)*self.datasets.batch) * 100, 2)
-    #     top5_error = round(top5_error / len(self.datasets) * 100, 2)
-    #     print(f"[TEST] Top1 Accuracy : {acc}%")
-    #     # print(f"[TEST] Top5 Accuracy : {top5_error}%")
-    #     if save:
-    #         self.model_save(self.epoch, acc)
+    def test(self, save):
+        self.model.eval()
+        self.datasets.set_test()
+        self.datasets.set_batch(2)
+        self.datasets.set_fit_size()
+        acc = 0
+        top5_error = 0
+        for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
+            x = x_batch.to(self.device)
+            y = y_batch.to(self.device)
+            delta = self.create_adversarial_attack(x, y, self.epsilon, self.alpha)
+            pred = self.model(torch.clamp(x + delta, 0, 1))
+            for pred_, y_ in zip(pred, y):
+                pred_ = torch.argmax(pred_).item()
+                y_ = y_.item()#torch.argmax(y).item()
+                if pred_ == y_:
+                    acc += 1
+        acc = round(acc / (len(self.datasets)*self.datasets.batch) * 100, 2)
+        top5_error = round(top5_error / len(self.datasets) * 100, 2)
+        print(f"[TEST] Top1 Accuracy : {acc}%")
+        # print(f"[TEST] Top5 Accuracy : {top5_error}%")
+        if save:
+            self.model_save(self.epoch, acc)
     
