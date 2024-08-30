@@ -14,21 +14,22 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
+
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./dark_model/3852.weights"
-  cfg_path: "./dark_model/3852.cfg"
+  weight_path: "./yolov5s.pt"
+  cfg_path: "./yolov5s.yaml"
   data_path: "./data"
   data_resize: [640,640]
-  model_name: yolov4
-  framework: darknet
+  model_name: yolov5s
+  framework: torch
   source: local
-  repo_or_dir: ~
+  repo_or_dir: C:\Users\jaehyeok\.cache\yolov5
   cache_or_local: ~
   data_type: CUSTOM
-  
+
 explain:
-  algorithm: GradCAMpp
+  algorithm: eigencam
   model_algorithm: Default
-  target_layer: ~
+  target_layer: {'0':['model','24','m','0'],'1':['model','24','m','1'],'2':['model','24','m','2']}

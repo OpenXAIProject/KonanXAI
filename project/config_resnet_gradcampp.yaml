@@ -14,21 +14,23 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
+
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./dark_model/3852.weights"
-  cfg_path: "./dark_model/3852.cfg"
+  weight_path: "./resnet50-0676ba61.pth"
+  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
+  cfg_path: ~
   data_path: "./data"
-  data_resize: [640,640]
-  model_name: yolov4
-  framework: darknet
-  source: local
+  data_resize: [224,224]
+  model_name: resnet50
+  framework: torch
+  source: torchvision
   repo_or_dir: ~
-  cache_or_local: ~
+  cache_or_local: cache
   data_type: CUSTOM
-  
+
 explain:
   algorithm: GradCAMpp
   model_algorithm: Default
-  target_layer: ~
+  target_layer: [layer4,'2',relu]

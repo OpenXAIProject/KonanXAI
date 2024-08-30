@@ -95,8 +95,8 @@ class GradCAM:
                     self.att, self.pred, _ = self.model(self.input)
                 else:
                     self.pred = self.model(self.input)
-                label_index = torch.argmax(self.pred).item()
-                self.pred[0][label_index].backward()
+                self.label_index = torch.argmax(self.pred).item()
+                self.pred[0][self.label_index].backward()
                 feature = self.layer.fwd_in[-1]
                 gradient = self.layer.bwd_in[-1]
                 self.feature.append(feature)
@@ -114,8 +114,7 @@ class GradCAM:
     
     def calculate(self):
         self.get_feature_and_gradient()
-        self.heatmaps = []
-        #print('len(self.feature)', len(self.feature)) == 1
+        self.heatmaps = [] 
         for feature, gradient in zip(self.feature, self.gradient):
             b, ch, h, w = gradient.shape
             alpha = gradient.reshape(b, ch, -1).mean(2)
@@ -174,25 +173,26 @@ class GradCAM:
             self.gradient.append(gradient)
         
     def _yolo_get_bbox_pytorch(self):
-        self.preds_origin, raw_logit = self.model(self.input)
-        self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+        self.pred_origin, raw_logit = self.model(self.input)
+        self.logits_origin = torch.concat([data.view(-1,self.pred_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
         with torch.no_grad():
-            self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
+            self.pred, self.logits, self.select_layers = non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
     def _yolo_backward_pytorch(self):
         self.bboxes = []
-        for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
+        self.label_index = []
+        for cls, sel_layer, sel_layer_index in zip(self.pred[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
             layer = self.layer[sel_layer_index]
-            
             # 여기서는 fwd_out, bwd_out을 썼네?
             # feature, gradient, cls[...:4] 에서 .detach().cpu().numpy()를 써야할 이유가 있나?
             feature = layer.fwd_out[-1].unsqueeze(0)
             gradient = layer.bwd_out[0]
             self.feature.append(feature)
             self.gradient.append(gradient)
+            self.label_index.append(int(cls[5].item()))
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
         
  

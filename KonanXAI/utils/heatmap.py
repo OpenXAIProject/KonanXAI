@@ -52,7 +52,7 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             compose_heatmap_image(heatmap, origin_img, bbox[i], save_path = compose_save_path, draw_box = draw_box, framework = framework)
         else:
             compose_heatmap_image(heatmap, origin_img, bbox, save_path = compose_save_path, draw_box = draw_box)
-
+    
 def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_path=None, name=None, draw_box=False, framework=None):
     if framework != "darknet":
         origin_image = np.array(origin_image.squeeze(0).detach()*255).transpose(1,2,0)
@@ -62,3 +62,38 @@ def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_pat
     if draw_box:
         result = cv2.rectangle(result, bbox[0], bbox[1], color=(0,255,0),thickness=3)
     cv2.imwrite(save_path, result)
+    
+def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
+    is_empty = True
+    draw_box = False
+    bbox = None
+    save_path = f"{img_save_path[:-4]}_{algorithm_type}.jpg"
+    compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+    if len(heatmaps)>1:
+        heatmaps, bbox_li = heatmaps
+        bbox = get_box(bbox_li, framework)
+        if len(bbox)!=0:
+            draw_box = True
+    print(f"Image saving.... save path: {img_save_path}")
+    for index, sbox in enumerate(heatmaps):
+        is_empty = False
+        sbox = F.interpolate(sbox, size = img_size, mode="bilinear", align_corners=False)
+        sbox = normalize_heatmap(sbox)
+        if index == 0:
+            heatmap = sbox
+        else:
+            heatmap = torch.where(heatmap > sbox, heatmap, sbox)
+    if is_empty == False:
+        heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
+        cv2.imwrite(save_path, heatmap)
+        ## compose
+        origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
+        origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
+        result = origin_img // 2 + heatmap // 2
+        result = result.astype(np.uint8)
+        if draw_box:
+            for i in range(len(bbox)):
+                result = cv2.rectangle(result, bbox[i][0], bbox[i][1], color=(0,255,0),thickness=3)
+        cv2.imwrite(compose_save_path, result)
+    else: 
+        print("Check out the data set. There are no inferred values.")

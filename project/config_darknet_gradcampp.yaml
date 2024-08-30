@@ -29,6 +29,6 @@ head:
   data_type: CUSTOM
   
 explain:
-  algorithm: GradCAMpp
+  algorithm: GradCAM
   model_algorithm: Default
   target_layer: ~

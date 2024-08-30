@@ -3,71 +3,34 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-#from ...core import darknet
+import darknet
 import numpy as np
 import cv2
-
+import torch
 class EigenCAM(GradCAM):
-    def __init__(self, model, dataset: Datasets, platform):
-        super().__init__(model, dataset, platform)
-    
-    def _norm_heatmap(self, heatmap):
-        smin, smax = heatmap.min(), heatmap.max()
-        if (smax - smin != 0):
-            saliency = (heatmap - smin) / (smax - smin)
+    def calculate(self):
+        self.get_feature_and_gradient()
+        self.heatmaps = []
+        with torch.no_grad():
+            for feature_map in self.feature:
+                activation_batch = feature_map
+                activation_batch[torch.isnan(activation_batch)] = 0
+                for activations in activation_batch:
+                    reshaped_activations = (activations).reshape(activations.shape[0], -1).T
+                    if "yolo" in self.model_name.lower():
+                        reshaped_activations_min,reshaped_activations_max = reshaped_activations.min(),reshaped_activations.max()
+                        reshaped_activations = (reshaped_activations - reshaped_activations_min).div(reshaped_activations_max-reshaped_activations_min).data
+                    else:
+                        reshaped_activations = reshaped_activations - reshaped_activations.mean(axis=0)
+                    reshaped_activations = reshaped_activations.detach().cpu()
+                    _, _, VT = np.linalg.svd(reshaped_activations, full_matrices=True)
+                    projection = reshaped_activations @ VT[0,:]
+                    projection = projection.reshape(activations.shape[1:])
+                self.heatmaps.append(projection.unsqueeze(0).unsqueeze(0))
+        if self.model_name[0:4] == 'yolo':
+            return self.heatmaps, self.bboxes
         else:
-            saliency = heatmap
-        return saliency
-    
-    def scale_image(self,cam, target_size=None):
-            img = cam - np.min(cam)
-            img = img / (1e-7 + np.max(img))
-            if target_size is not None:
-                img = cv2.resize(img, target_size)
-            result = np.float32(img)
-            return result
-    
-    def _get_heatmap(self,feature,size=(640,640)):
-        cam_per_target_layer = []
-        cam = np.maximum(feature, 0)
-        scaled = self.scale_image(cam, target_size=size)
-        # cam_per_target_layer.append(scaled[None,:])
-        # cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1)
-        # cam_per_target_layer = np.maximum(cam_per_target_layer, 0)
-        # result = np.expand_dims(np.mean(cam_per_target_layer, axis=0),axis=0)
-        # saliency = scale_image(result)
-        # saliency = saliency[0,:,:]
-        # saliency = self._norm_heatmap(saliency)
-        return scaled#saliency
-
-    def _gradcam(self):
-        heatmaps = []
-        saliency = None
-        for gradcam in self.gradcam:
-            maps = []
-            if isinstance(gradcam, list):
-                # Multi Layer GradCAM
-                for index, feature in enumerate(gradcam):
-                    heatmap = self._get_heatmap(feature)
-                    maps.append(heatmap[None,:])
-              
-                cam_per_target_layer = np.concatenate(maps, axis=0)
-                # cam_per_target_layer = np.maximum(cam_per_target_layer, 0)
-                result = np.sum(cam_per_target_layer, axis=0)
-                saliency = self.scale_image(result,target_size=(640,640))
-                saliency = saliency#[0,:,:]
-                saliency = self._norm_heatmap(saliency)
-                    # if index == 0:
-                    #     saliency = heatmap
-                    # else:
-                    #     saliency = np.where(saliency < heatmap, heatmap, saliency)
-                # Heatmap
-                heatmap = cv2.applyColorMap(np.uint8(255 * saliency), cv2.COLORMAP_JET)
-            else:
-                feature, weight = gradcam
-                heatmap = self._get_heatmap(feature, weight)
-            heatmaps.append(heatmap)
-        return heatmaps
+            return self.heatmaps
     
     def _yolo_backward_darknet(self):
         net: darknet.Network = self.model.net

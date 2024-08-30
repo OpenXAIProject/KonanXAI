@@ -1,5 +1,5 @@
 import os
-from KonanXAI.utils.heatmap import compose_heatmap_image, get_heatmap
+from KonanXAI.utils.heatmap import get_heatmap, get_scale_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -58,9 +58,11 @@ class Project(Configuration):
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
-            
             heatmap = algorithm.calculate()
-            get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+            if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
+                get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+            else:
+                get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
     def run(self):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,

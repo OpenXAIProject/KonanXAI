@@ -3,35 +3,36 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-#from ...core import darknet
+import darknet
 import numpy as np
 import cv2
 import torch.nn.functional as F
-
+import torch
 class GradCAMpp(GradCAM):
-    def __init__(self, model, dataset: Datasets, platform):
-        super().__init__(model, dataset, platform)
-    
-
     def calculate(self):
         self.get_feature_and_gradient()
         self.heatmaps = []
-        #print('len(self.feature)', len(self.feature)) == 1
-        for feature, gradient in zip(self.feature, self.gradient):
+        for index, (feature, gradient) in enumerate(zip(self.feature, self.gradient)):
             b, ch, h, w = gradient.shape
-            alpha = gradient.reshape(b, ch, -1).mean(2)
-            weights = alpha.reshape(b, ch, 1, 1)
-            heatmap = (weights * feature).sum(1)
+            alpha_num = gradient.pow(2)
+            alpha_denom = gradient.pow(2).mul(2) + \
+                    feature.mul(gradient.pow(3)).view(b, ch, h*w).sum(-1, keepdim=True).view(b, ch, 1, 1)
+            alpha_denom = torch.where(alpha_denom != 0.0, alpha_denom, torch.ones_like(alpha_denom))
+            alpha = alpha_num.div(alpha_denom+1e-7)
+            if 'yolo' in self.model.model_name:
+                self.positive_gradients = F.relu(self.logits[0][index][self.label_index[index]].exp()*gradient) # ReLU(dY/dA) == ReLU(exp(S)*dS/dA))
+            else:
+                self.positive_gradients = F.relu(self.pred[0][self.label_index].exp()*gradient) # ReLU(dY/dA) == ReLU(exp(S)*dS/dA))
+            weights = (alpha*self.positive_gradients).view(b, ch, h*w).sum(-1).view(b, ch, 1, 1)
+            heatmap = (weights * feature).sum(1, keepdim=True)
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
-
+            
         if self.model_name[0:4] == 'yolo':
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps
             
-
-
     def _yolo_backward_darknet(self):
         net: darknet.Network = self.model.net
         self.gradcam = []
