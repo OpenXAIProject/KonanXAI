@@ -5,6 +5,15 @@ import torch.nn.functional as F
 import matplotlib
 from tqdm import tqdm
 from darknet.yolo import BBox
+
+def deprocess_image(img):
+    img = img - np.mean(img)
+    img = img / (np.std(img) + 1e-5)
+    img = img * 0.1
+    img = img + 0.5
+    img = np.clip(img, 0, 1)
+    return np.uint8(img * 255)
+
 def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
@@ -23,6 +32,31 @@ def get_box(bbox_li, framework):
             box = (t[0],t[1]), (t[2],t[3])
             bbox.append(box)
     return bbox
+def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework):
+    draw_box = False
+    bbox = None
+    if len(heatmaps)>2:
+        heatmaps, bbox_li, guided_imgs = heatmaps
+        bbox = get_box(bbox_li, framework)
+        if len(bbox)!=0:
+            draw_box = True
+    else:
+        heatmaps, guided_imgs = heatmaps
+    print(f"Image saving.... save path: {img_save_path}")
+    for i, (heatmap, guided_img) in enumerate(tqdm(zip(heatmaps, guided_imgs))):
+        compose_save_path = img_save_path[:-4] + '_compose_{}.jpg'.format(i)
+        heatmap = F.interpolate(heatmap, size = img_size, mode="bilinear", align_corners=False)
+        heatmap = normalize_heatmap(heatmap)
+        heatmap_mask = heatmap.squeeze(0).squeeze(0).cpu().numpy()
+        heatmap_mask = cv2.merge([heatmap_mask, heatmap_mask, heatmap_mask])
+        heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
+        compose_guided_img = deprocess_image(heatmap_mask * guided_img).squeeze(0)
+        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
+        if bbox != None:
+            result = cv2.rectangle(compose_guided_img, bbox[i][0], bbox[i][1], color=(0,255,0),thickness=3)
+            cv2.imwrite(compose_save_path, result)
+        else:
+            cv2.imwrite(compose_save_path, compose_guided_img)
 def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
     draw_box = False
     bbox = None
@@ -62,7 +96,7 @@ def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_pat
     if draw_box:
         result = cv2.rectangle(result, bbox[0], bbox[1], color=(0,255,0),thickness=3)
     cv2.imwrite(save_path, result)
-    
+
 def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
     is_empty = True
     draw_box = False

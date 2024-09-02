@@ -1,5 +1,5 @@
 import os
-from KonanXAI.utils.heatmap import get_heatmap, get_scale_heatmap
+from KonanXAI.utils.heatmap import get_heatmap, get_scale_heatmap, get_guided_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -41,7 +41,7 @@ class Project(Configuration):
                 else:
                     target = getattr(target,m)
             trainer.set_target_layer(target)
-        trainer.run(train=False)
+        trainer.run()
         print("end")
     def explain(self):
         for i, data in enumerate(self.dataset):
@@ -59,8 +59,11 @@ class Project(Configuration):
             img_save_path = f"{root}/{img_path[-1]}"
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
             heatmap = algorithm.calculate()
+                
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
                 get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+            elif "guided" in self.algorithm_name:
+                get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             

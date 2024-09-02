@@ -21,7 +21,7 @@ class GradCAM:
         '''
         input: [batch, channel, height, width] torch.Tensor 
         '''
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
@@ -29,7 +29,7 @@ class GradCAM:
             self.input = input
             self.input_size = self.input.shape
         else:
-            self.input = input[0].to(device)
+            self.input = input[0].to(self.device)
             self.input_size = self.input.shape[2:4]
                         
         self.target_layer = config['target_layer']
@@ -65,7 +65,7 @@ class GradCAM:
             self.layer.bwd_in = []
             self.layer.bwd_out = []
             fwd_handle = self.layer.register_forward_hook(self._fwd_hook)
-            bwd_handle = self.layer.register_full_backward_hook(self._bwd_hook)
+            bwd_handle = self.layer.register_backward_hook(self._bwd_hook)
         return fwd_handle, bwd_handle
         
     

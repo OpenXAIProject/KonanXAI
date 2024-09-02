@@ -2,7 +2,7 @@ import yaml
 import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
 from KonanXAI.model_improvement.fgsm import FGSM
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
@@ -66,7 +66,7 @@ class Configuration:
         
         
     def _explain_algorithm_parser(self):
-        cams = ['GradCAM','GradCAMpp','EigenCAM']
+        cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
         lrps = ['LRP', 'LRPYolo']
         if self.algorithm_name.lower() in [cam.lower() for cam in cams]:
             self._gradcam_parser()
@@ -98,7 +98,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo']
         if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -107,6 +107,8 @@ class Configuration:
                 self.algorithm = GradCAM
             elif self.algorithm_name.lower() == 'gradcampp':
                 self.algorithm = GradCAMpp
+            elif self.algorithm_name.lower() == "guidedgradcam":
+                self.algorithm = GuidedGradCAM
             elif self.algorithm_name.lower() == 'eigencam':
                 self.algorithm = EigenCAM
             elif self.algorithm_name.lower() == 'lrp':
