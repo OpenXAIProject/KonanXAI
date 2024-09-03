@@ -121,7 +121,8 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
         heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
         cv2.imwrite(save_path, heatmap)
         ## compose
-        origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
+        if framework != "darknet":
+            origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
         origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
         result = origin_img // 2 + heatmap // 2
         result = result.astype(np.uint8)

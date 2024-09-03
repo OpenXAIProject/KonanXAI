@@ -133,7 +133,7 @@ class GradCAM:
         self.bboxes = []
         self.bbox_layer = {}
         for i, layer in enumerate(self.model.layers):
-            if layer.type == 28:
+            if layer.type == darknet.LAYER_TYPE.YOLO:
             # 아래 코드 에러
             #if layer.type == darknet.LAYER_TYPE.YOLO:
                 # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
@@ -161,6 +161,7 @@ class GradCAM:
             idx = box.entry + (5 + box.class_idx) * stride
             # set delta
             target_layer.delta[idx] = out[idx]
+            self.logits = torch.tensor(out[idx])
             self.model.backward()
             # Get Features
             # for target in target_layer:
