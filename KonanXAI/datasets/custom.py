@@ -7,7 +7,7 @@ class CUSTOM(Datasets):
         super().__init__(framework, src_path)
         self.framework = framework
         self.src_path = src_path
-        self.classes = 5
+        self.classes = 1000
         self.make_cache = {}
         
     def load_src_path(self):

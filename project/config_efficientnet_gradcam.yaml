@@ -30,4 +30,5 @@ head:
 
 explain:
   algorithm: GradCAM
+  model_algorithm: Default
   target_layer: ['features', '8', '0']

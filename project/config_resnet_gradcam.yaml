@@ -19,6 +19,7 @@ head:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
+  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
   cfg_path: ~
   data_path: "./data"
   data_resize: [224,224]
@@ -31,4 +32,5 @@ head:
 
 explain:
   algorithm: GradCAM
+  model_algorithm: Default
   target_layer: [layer4,'2',relu]

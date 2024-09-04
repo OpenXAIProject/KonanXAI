@@ -31,4 +31,5 @@ head:
 
 explain:
   algorithm: GradCAM
+  model_algorithm: Default
   target_layer: {'0':['model','24','m','0'],'1':['model','24','m','1'],'2':['model','24','m','2']}

@@ -3,7 +3,6 @@
 #   save_path: 추론 결과 저장 위치(str)
 #   weight_path: 학습 파일 위치(str)
 #   cfg_path: yaml or cfg 경로(str)
-#   data_path: 사용할 데이터셋 경로(str) 
 #   data_resize: 모델 input에 맞는 크기(list or tuple)
 #   model_name: 모델 이름(str)
 #   framework: 프레임워크 타입(str)
@@ -14,21 +13,32 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
+
 head:
-  project_type: 'explain'
-  save_path: "./heatmap/"
-  weight_path: "./dark_model/3852.weights"
-  cfg_path: "./dark_model/3852.cfg"
-  data_path: "./ai_data"
-  data_resize: [640,640]
-  model_name: yolov4
-  framework: darknet
-  source: local
+  project_type: 'train'
+  save_path: "./checkpoint"
+  weight_path: ~
+  # weight_path: "./vgg19-dcbb9e9d.pth"
+  cfg_path: ~
+  data_resize: [224,224]
+  data_path: "D:/Datasets/ai_fire/train"
+  model_name: resnet50
+  framework: torch
+  source: torchvision
   repo_or_dir: ~
-  cache_or_local: ~
-  data_type: CUSTOM
-  
-explain:
-  algorithm: GradCAM
-  model_algorithm: Default
-  target_layer: ~
+  cache_or_local: cache
+  data_type: DANN_AI_FIRE
+
+train:
+  epoch: 10
+  learning_rate: 0.0001
+  batch_size: 128
+  optimizer: 'adam'
+  loss_function: 'CrossEntropyLoss'
+  save_step: 10
+  improvement_algorithm: { 
+    algorithm: dann_grad,
+    transfer_weights: ~,
+    target_layer: [layer4,'2',relu],
+    gpu_count: 1
+  }
