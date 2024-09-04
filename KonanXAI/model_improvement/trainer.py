@@ -66,7 +66,7 @@ class Trainer:
         self.model.load_state_dict(state_dict, strict = True)
         
 
-    def _hook_pre_forward(self, x_batch, y_batch, epoch):
+    def _hook_pre_forward(self, x_batch, y_batch, epoch, i):
         pass
     
     def _hook_pre_backward(self, x_batch, y_batch, pred, loss, epoch):
@@ -98,23 +98,26 @@ class Trainer:
         x = x.to(self.device)
         y = y.to(self.device)
         return x, y, c
-        
-    def train(self):
+    
+    def _train_init(self):
         self.model.train()
         self.datasets.set_train()
         self.datasets.set_batch(self.batch)
         self.datasets.set_fit_size()
         
+    def train(self):
+        self._train_init()
         for epoch in range(self.epoch):
             self.datasets.shuffle()
             avg = 0
+            i = 0
             print(f"[TRAIN] STEP {epoch + 1} / {self.epoch}")
             for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
                 x, y, c = self._set_device(x_batch, y_batch, custom)
                 # x = x_batch.to(self.device)
                 # y = y_batch.to(self.device)
                 # Forward
-                self._hook_pre_forward(x, y, epoch)
+                self._hook_pre_forward(x, y, epoch, i)
                 pred = self._forward(x, y, c)
                 loss = self._loss(pred, y)
                 self._hook_pre_backward(x, y, pred, loss, epoch)
@@ -122,6 +125,7 @@ class Trainer:
                 self.optimizer.zero_grad()
                 self._backward(loss)
                 self._update()
+                i += 1
                 avg += loss.item()
                 self._hook_next_update(x, y, pred, loss, epoch)
             avg /= len(self.datasets) * self.batch

@@ -3,6 +3,8 @@ import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.model_improvement.dann import DANN
+from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
@@ -10,6 +12,8 @@ from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
 from KonanXAI.model_improvement.domain_generalization import DomainGeneralization
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
 import torchvision.models as models
+
+from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import KonanXAI as XAI
 import torch.optim as optim
@@ -118,7 +122,7 @@ class Configuration:
                 
         
     def _train_check_config(self):
-        improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default','FGSM']
+        improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']
         loss_functions = ['CrossEntropyLoss', 'NLLLoss', 'MSELoss']
         if os.path.isdir(self.save_path) == False:
@@ -151,10 +155,7 @@ class Configuration:
             self.model_algorithm = self.algorithm_name.lower()
             self.improvement_algorithm = ABN
             # self.improvement_algorithm.name = 'abn'
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = make_attention_resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = make_attention_vgg19
+            self._make_abn_model()
         elif self.algorithm_name.lower() == 'domaingeneralization':
             self.model_algorithm = self.algorithm_name.lower()
             self.set_freq = self.improvement_algorithm['set_freq']
@@ -175,6 +176,17 @@ class Configuration:
             self.improvement_algorithm.epsilon = epsilon
             self.improvement_algorithm.alpha = alpha
             self._make_model()
+        elif self.algorithm_name.lower() == 'dann':
+            self.model_algorithm = self.algorithm_name.lower()
+            self.improvement_algorithm = DANN
+            self._make_dann_model()
+        elif self.algorithm_name.lower() == 'dann_grad':
+            self.model_algorithm = self.algorithm_name.lower()
+            self.target_layer = self.improvement_algorithm['target_layer']
+            self.improvement_algorithm = DANN_GRAD
+            self.improvement_algorithm.target_layer = self.target_layer
+            self._make_dann_model()
+            
         if self.gpu_count >0:
             gpus = []
             for i in range(self.gpu_count):
@@ -183,8 +195,22 @@ class Configuration:
         else:
             msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."
             raise Exception(msg)
+        
     def _make_model(self):
         if self.model_name.lower().startswith("resnet"):
             self.make_model = models.resnet50
         elif self.model_name.lower().startswith("vgg"):
             self.make_model = models.vgg19
+         
+    def _make_abn_model(self):
+        if self.model_name.lower().startswith("resnet"):
+            self.make_model = make_attention_resnet50
+        elif self.model_name.lower().startswith("vgg"):
+            self.make_model = make_attention_vgg19
+            
+    def _make_dann_model(self):
+        if self.model_name.lower().startswith("resnet"):
+            self.make_model = make_dann_resnet50
+        elif self.model_name.lower().startswith("vgg"):
+            raise Exception("Not Supported")
+            # self.make_model = models.vgg19

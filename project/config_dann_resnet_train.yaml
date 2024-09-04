@@ -22,24 +22,22 @@ head:
   cfg_path: ~
   data_resize: [224,224]
   data_path: "D:/Datasets/ai_fire/train"
-  model_name: vgg19
+  model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: ~
   cache_or_local: cache
-  data_type: AI_FIRE
+  data_type: DANN_AI_FIRE
 
 train:
-  epoch: 10
+  epoch: 50
   learning_rate: 0.0001
   batch_size: 16
   optimizer: 'adam'
   loss_function: 'CrossEntropyLoss'
   save_step: 10
   improvement_algorithm: { 
-    algorithm: DomainGeneralization,
-    set_freq: 5,
-    target_layer: [features,'36'],
+    algorithm: Dann,
     transfer_weights: ~,
     gpu_count: 1
   }

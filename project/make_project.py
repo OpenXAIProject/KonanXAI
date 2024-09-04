@@ -6,6 +6,7 @@ from KonanXAI.datasets import load_dataset
 import random
 import numpy as np
 import torch
+import torch.nn as nn
 """
 2024-07-02 jjh
  
@@ -18,13 +19,20 @@ def set_seed(seed_value=77):
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value) 
+    
+
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
+    
     def train(self):
         set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         model = self.make_model(num_classes= self.dataset.classes)
+        for name, module in model.named_modules():
+            if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
+                module.inplace = False  
+
         optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
         criterion = self.loss_function()
         trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)

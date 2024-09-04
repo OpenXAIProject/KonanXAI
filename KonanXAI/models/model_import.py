@@ -9,6 +9,7 @@ import os
 
 # import 경로만 모아놔야 하는데..
 from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
+from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
 
 #from KonanXAI._core import darknet
 
@@ -72,7 +73,7 @@ def torch_model_load(
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
         if weight_path == None:
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
+            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
             model.model_name = model_name
             model.eval()
             return model
@@ -85,7 +86,7 @@ def torch_model_load(
                     model = make_attention_resnet50(num_classes = num_classes)
                 elif "vgg" in model_name:
                     model = make_attention_vgg19(num_classes= num_classes)
-                    
+                    # model = make_dann_vgg19(num_classes= num_classes)
             if isinstance(pt, OrderedDict):
                 state_dict = pt
             else:
