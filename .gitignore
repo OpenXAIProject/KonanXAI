@@ -19,6 +19,7 @@ x86
 *.JPEG
 *.png
 *.PNG
+*.h5
 /data_backup
 /heatmap/*
 /dark_model

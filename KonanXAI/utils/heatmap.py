@@ -5,10 +5,16 @@ import torch.nn.functional as F
 import matplotlib
 from tqdm import tqdm
 from darknet.yolo import BBox
+from torchvision.utils import save_image
+
+
 def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
+
+def absolute_normalize(heatmap):
+    return torch.abs(heatmap)
 
 def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
     
@@ -70,11 +76,15 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
             if bbox != None:
                 heatmap = cv2.rectangle(heatmap, bbox[i][0], bbox[i][1],color=(0,255,0),thickness=3)
-        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
-        if bbox != None:
-            compose_heatmap_image(heatmap, origin_img, bbox[i], save_path = compose_save_path, draw_box = draw_box, framework = framework)
-        else:
-            compose_heatmap_image(heatmap, origin_img, bbox, save_path = compose_save_path, draw_box = draw_box)
+        elif 'grad' in algorithm_type.lower():
+            heatmap = absolute_normalize(heatmap)
+
+        save_image(heatmap, f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg")
+        # cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
+        # if bbox != None:
+        #     compose_heatmap_image(heatmap, origin_img, bbox[i], save_path = compose_save_path, draw_box = draw_box, framework = framework)
+        # else:
+        #     compose_heatmap_image(heatmap, origin_img, bbox, save_path = compose_save_path, draw_box = draw_box)
 
 def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_path=None, name=None, draw_box=False, framework=None):
     if framework != "darknet":

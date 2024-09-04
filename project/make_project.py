@@ -48,8 +48,8 @@ class Project(Configuration):
             trainer.set_target_layer(target)
         trainer.run()
         print("end")
-    def explain(self):
 
+    def explain(self):
         for i, data in enumerate(self.dataset):
             if self.framework.lower() == 'darknet':
                 origin_img = data.origin_img
@@ -57,6 +57,7 @@ class Project(Configuration):
             else:
                 origin_img = data[0]
                 img_size = data[3]
+            
             algorithm_type = self.config['algorithm']
             img_path = self.dataset.train_items[i][0].split('\\')
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
@@ -70,6 +71,10 @@ class Project(Configuration):
             heatmap = algorithm.calculate()
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
+    def explainer(self):
+        explainers = self.algorithm(self.framework, self.model, self.dataset, self.config)
+        explainers.apply()
+
 
     def run(self):
 
@@ -79,7 +84,14 @@ class Project(Configuration):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize)
 
-        print(self.dataset[0])
+
+        if self.project_type == 'explain':
+            self.explain()
+        elif self.project_type == 'train':
+            self.train()
+        elif self.project_type == 'explainer':
+            self.explainer()
+
 
 
     def run_for_clustering(self):

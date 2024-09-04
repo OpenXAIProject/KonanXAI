@@ -2,6 +2,7 @@ import torch
 import torchvision
 import torch.nn as nn
 import urllib
+from collections import OrderedDict
 
 import os
 
@@ -73,15 +74,29 @@ def torch_model_load(
             model.eval()
             return model
         else:
-            weight = torch.load(weight_path)
-            last_key = list(weight.keys())[-1]
-            num_of_classes = weight[last_key].shape[0]
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_of_classes)
-            model.load_state_dict(torch.load(weight_path))
-            model.model_name = model_name
-            model.num_of_classes = num_of_classes
+            pt = torch.load(weight_path)
+            num_classes = 1000
+            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
+            
+            if isinstance(pt, OrderedDict):
+                state_dict = pt
+            else:
+                model_key = next(iter(model.state_dict()))
+                state_dict = {}
+                if 'module.' in model_key:
+                    for k, v in pt['model_state_dict'].items():
+                        key = 'module.'+ k 
+                        state_dict[key] = v
+                else:
+                    for k, v in pt['model_state_dict'].items():
+                        key = k[7:] if k.startswith('module.') else k
+                        state_dict[key] = v
+            model.load_state_dict(state_dict)
+            model.model_name = model_name.lower()
+            model.output_size = num_classes
             model.eval()
             return model
+
     
     # elif source == 'torch/hub':
     #     model = torch.hub()

@@ -2,18 +2,21 @@ import yaml
 import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, Gradient, GradientXInput, SmoothGrad
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
 from KonanXAI.model_improvement.domain_generalization import DomainGeneralization
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
+from KonanXAI.explainer.counterfactual import Counterfactual
+from KonanXAI.explainer.clustering import SpectralClustering
 import torchvision.models as models
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import KonanXAI as XAI
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
+
 class Configuration:
     def __init__(self, config_path):
         self.config_path = config_path
@@ -26,6 +29,7 @@ class Configuration:
     def _parser_config(self):
         self._public_parser()
         self._public_check_config()
+
         if self.project_type.lower() == 'explain':
             self._explain_parser()
             self._explain_algorithm_parser()
@@ -33,6 +37,13 @@ class Configuration:
         elif self.project_type.lower() == 'train':
             self._train_parser()
             self._train_check_config()
+
+        elif self.project_type.lower() == 'explainer':
+            self._explainer_parser()
+            self._explainer_algorithm_parser()
+            self._explainer_check_config()
+
+
             
     def _public_parser(self):
         self.project_type = self.config['head']['project_type']
@@ -63,14 +74,27 @@ class Configuration:
     def _explain_parser(self):
         self.explains = self.config['explain']
         self.algorithm_name = self.explains['algorithm']
+
+    def _explainer_parser(self):
+        self.explainers = self.config['explainer']
+        self.explainer_name = self.explainers['algorithm']
+
     def _explain_algorithm_parser(self):
         cams = ['GradCAM','GradCAMpp','EigenCAM']
         lrps = ['LRP', 'LRPYolo']
+        grads = ['Gradient', 'InputXGradient']
+        
         if self.algorithm_name.lower() in [cam.lower() for cam in cams]:
             self._gradcam_parser()
         
         elif self.algorithm_name.lower() in [lrp.lower() for lrp in lrps]:
             self._lrp_parser()
+
+        elif self.algorithm_name.lower() in [grad.lower() for grad in grads]:
+            self._gradient_parser()
+
+        elif self.algorithm_name.lower() == 'smoothgrad':
+            self._smoothgrad_parser()
         
     def _gradcam_parser(self):
         self.config = {}
@@ -81,12 +105,27 @@ class Configuration:
     def _lrp_parser(self):
         self.config = {}
         self.config['algorithm'] = self.algorithm_name
-        self.config['rule'] = rule = list(self.explain_algorithm[0].items())[0][1][0]['rule']
+        self.config['rule'] = rule = self.explains['rule']
         self.config['yaml_path'] = self.cfg_path
         
+    def _gradient_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['target_class'] = self.explains['target_class']
+        
+
+    def _smoothgrad_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['target_class'] = self.explains['target_class']
+        self.config['std'] = self.explains['std']
+        self.config['noise_level'] = self.explains['noise_level']
+        self.config['sample_size'] = self.explains['sample_size']
+
+
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
-        projects = ['train','explain']
+        projects = ['train','explain', 'explainer']
         if self.project_type.lower() not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
@@ -97,7 +136,8 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo', 
+                        'Gradient', 'GradientXInput', 'SmoothGrad']
         if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -112,6 +152,12 @@ class Configuration:
                 self.algorithm = LRP
             elif self.algorithm_name.lower() == 'lrpyolo':
                 self.algorithm = LRPYolo
+            elif self.algorithm_name.lower() == 'gradient':
+                self.algorithm = Gradient
+            elif self.algorithm_name.lower() == 'gradientxinput':
+                self.algorithm = GradientXInput
+            elif self.algorithm_name.lower() == 'smoothgrad':
+                self.algorithm = SmoothGrad
                 
         
     def _train_check_config(self):
@@ -176,4 +222,40 @@ class Configuration:
         else:
             msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."
             raise Exception(msg)
+        
 
+
+    def _explainer_algorithm_parser(self):
+        explainers = ['SpectralClustering', 'Counterfactual']
+        if self.explainer_name.lower() in 'clutering':
+            self._clustering_parser()
+        elif self.explainer_name.lower() in 'counterfactual':
+            self._counterfactual_parser()
+
+    def _clustering_parser(self):
+        pass
+
+    def _counterfactual_parser(self):
+        self.config = {}
+        self.config['methods'] = self.explainers['methods']
+        self.config['input_index'] = self.explainers['input_index']
+        self.config['target_label'] = self.explainers['target_label']
+        self.config['coeff'] = self.explainers['coeff']
+        self.config['epoch'] = self.explainers['epoch']
+        self.config['learning_rate'] = self.explainers['learning_rate']
+
+
+
+    def _explainer_check_config(self):
+        explainers = ['SpectralClustering', 'Counterfactual']
+
+        if self.explainer_name.lower() not in [explainer.lower() for explainer in explainers]:
+            msg = f"The type you entered is:'{self.explainer_name}' Supported types are: {explainers}"
+            raise Exception(msg)
+        
+        else:
+            if self.explainer_name.lower() == 'spectralclustering':
+                self.algorithm = SpectralClustering
+            elif self.explainer_name.lower() == 'counterfactual':
+                self.algorithm = Counterfactual
+        
