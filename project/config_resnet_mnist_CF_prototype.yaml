@@ -10,28 +10,26 @@
 #   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
 # model_type, platform_type, data_type, explain_type은 대소문자 상관 X
 
-
 head:
-  save_path: "./heatmap/"
-  weight_path: "./resnet50_military_data_epoch10_cuda.pt"
-  cfg_path: None
-  data_path: "../dataset/military_data/military_data/107mm/"
+  project_type: 'explainer'
+  save_path: "./counterfactual/"
+  weight_path: "./resnet50_mnist_epoch10.pt"
+  cfg_path: ~
   data_resize: [224,224]
+  data_path: "../dataset/MNIST/raw"
   model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: ~
   cache_or_local: cache
-  data_type: CUSTOM
+  data_type: MNIST
 
-explain: 
-  algorithm: GradCAM
-  target_layer: [layer4,'2',conv3]
-  
 explainer: {
-  methods: Clustering,
-  algorithm: SpectralClustering,
-  h5_dataset_file_path: "./military_dataset.h5",
-  h5_attr_file_path: "./military_dataset_resnet_gradcam.h5",
-  label_json_path: "./military_data.json"
+  methods: CounterFactual,
+  algorithm: prototype,
+  input_index: 0,
+  target_label: 7, 
+  lambda: 0.1,
+  epoch: 1000,
+  learning_rate: 0.01
 }

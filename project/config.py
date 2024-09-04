@@ -77,6 +77,7 @@ class Configuration:
 
     def _explainer_parser(self):
         self.explainers = self.config['explainer']
+        self.methods = self.explainers['methods']
         self.explainer_name = self.explainers['algorithm']
 
     def _explain_algorithm_parser(self):
@@ -222,14 +223,13 @@ class Configuration:
         else:
             msg = f"The value you entered is:'{self.gpu_count}' The value must be greater than or equal to 1."
             raise Exception(msg)
-        
-
+ 
 
     def _explainer_algorithm_parser(self):
-        explainers = ['SpectralClustering', 'Counterfactual']
-        if self.explainer_name.lower() in 'clutering':
+        
+        if self.methods.lower() in 'clutering':
             self._clustering_parser()
-        elif self.explainer_name.lower() in 'counterfactual':
+        elif self.methods.lower() in 'counterfactual':
             self._counterfactual_parser()
 
     def _clustering_parser(self):
@@ -237,10 +237,10 @@ class Configuration:
 
     def _counterfactual_parser(self):
         self.config = {}
-        self.config['methods'] = self.explainers['methods']
+        self.config['algorithm'] = self.explainers['algorithm']
         self.config['input_index'] = self.explainers['input_index']
         self.config['target_label'] = self.explainers['target_label']
-        self.config['coeff'] = self.explainers['coeff']
+        self.config['lambda'] = self.explainers['lambda']
         self.config['epoch'] = self.explainers['epoch']
         self.config['learning_rate'] = self.explainers['learning_rate']
 

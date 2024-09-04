@@ -25,11 +25,11 @@ head:
   data_type: MNIST
 
 explainer: {
-  algorithm: CounterFactual,
-  methods: Wachter,
+  methods: CounterFactual,
+  algorithm: Wachter,
   input_index: 0,
   target_label: 7, 
-  coeff: 0.1,
+  lambda: 0.1,
   epoch: 1000,
   learning_rate: 0.01
 }
