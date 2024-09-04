@@ -76,6 +76,7 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             cmap = matplotlib.cm.bwr
             heatmap = heatmap / torch.max(heatmap)
             heatmap = (heatmap +1.)/2.
+            heatmap = heatmap.detach().cpu().numpy()
             rgb = cmap(heatmap.flatten())[...,0:3].reshape([heatmap.shape[-2], heatmap.shape[-1], 3])
             heatmap = np.uint8(rgb*255) 
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
