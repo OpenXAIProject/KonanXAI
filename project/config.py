@@ -2,7 +2,14 @@ import yaml
 import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
+<<<<<<< HEAD
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, Gradient, GradientXInput, SmoothGrad
+=======
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.model_improvement.dann import DANN
+from KonanXAI.model_improvement.dann_grad import DANN_GRAD
+from KonanXAI.model_improvement.fgsm import FGSM
+>>>>>>> 377e7955aeae9983f92cdb4eff6bbeb72cf677c6
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
@@ -11,6 +18,8 @@ from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
 from KonanXAI.explainer.counterfactual import Counterfactual
 from KonanXAI.explainer.clustering import SpectralClustering
 import torchvision.models as models
+
+from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import KonanXAI as XAI
 import torch.optim as optim
@@ -73,6 +82,7 @@ class Configuration:
         
     def _explain_parser(self):
         self.explains = self.config['explain']
+        self.model_algorithm = self.explains['model_algorithm']
         self.algorithm_name = self.explains['algorithm']
 
     def _explainer_parser(self):
@@ -81,7 +91,7 @@ class Configuration:
         self.explainer_name = self.explainers['algorithm']
 
     def _explain_algorithm_parser(self):
-        cams = ['GradCAM','GradCAMpp','EigenCAM']
+        cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
         lrps = ['LRP', 'LRPYolo']
         grads = ['Gradient', 'InputXGradient']
         
@@ -137,8 +147,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM', 'LRP', 'LRPYolo', 
-                        'Gradient', 'GradientXInput', 'SmoothGrad']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo']
         if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -147,6 +156,8 @@ class Configuration:
                 self.algorithm = GradCAM
             elif self.algorithm_name.lower() == 'gradcampp':
                 self.algorithm = GradCAMpp
+            elif self.algorithm_name.lower() == "guidedgradcam":
+                self.algorithm = GuidedGradCAM
             elif self.algorithm_name.lower() == 'eigencam':
                 self.algorithm = EigenCAM
             elif self.algorithm_name.lower() == 'lrp':
@@ -162,7 +173,7 @@ class Configuration:
                 
         
     def _train_check_config(self):
-        improvement_algorithms = ['ABN', 'DomainGeneralization', 'Default']
+        improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']
         loss_functions = ['CrossEntropyLoss', 'NLLLoss', 'MSELoss']
         if os.path.isdir(self.save_path) == False:
@@ -192,29 +203,41 @@ class Configuration:
         # improvement algorithm
         
         if self.algorithm_name.lower() == 'abn':
+            self.model_algorithm = self.algorithm_name.lower()
             self.improvement_algorithm = ABN
-            self.improvement_algorithm.name = 'abn'
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = make_attention_resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = make_attention_vgg19
+            # self.improvement_algorithm.name = 'abn'
+            self._make_abn_model()
         elif self.algorithm_name.lower() == 'domaingeneralization':
+            self.model_algorithm = self.algorithm_name.lower()
             self.set_freq = self.improvement_algorithm['set_freq']
             self.target_layer = self.improvement_algorithm['target_layer']
             self.improvement_algorithm = DomainGeneralization
-            self.improvement_algorithm.name = 'dg'            
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = models.resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = models.vgg19
+            # self.improvement_algorithm.name = 'dg'            
+            self._make_model()
         elif self.algorithm_name.lower() == 'default':
+            self.model_algorithm = self.algorithm_name.lower()
             self.improvement_algorithm = Trainer
-            self.improvement_algorithm.name = 'default'
-            if self.model_name.lower().startswith("resnet"):
-                self.make_model = models.resnet50
-            elif self.model_name.lower().startswith("vgg"):
-                self.make_model = models.vgg19
-                
+            # self.improvement_algorithm.name = 'default'
+            self._make_model()
+        elif self.algorithm_name.lower() == 'fgsm':
+            epsilon = self.improvement_algorithm['epsilon']
+            alpha = self.improvement_algorithm['alpha']
+            self.model_algorithm = self.algorithm_name.lower()
+            self.improvement_algorithm = FGSM
+            self.improvement_algorithm.epsilon = epsilon
+            self.improvement_algorithm.alpha = alpha
+            self._make_model()
+        elif self.algorithm_name.lower() == 'dann':
+            self.model_algorithm = self.algorithm_name.lower()
+            self.improvement_algorithm = DANN
+            self._make_dann_model()
+        elif self.algorithm_name.lower() == 'dann_grad':
+            self.model_algorithm = self.algorithm_name.lower()
+            self.target_layer = self.improvement_algorithm['target_layer']
+            self.improvement_algorithm = DANN_GRAD
+            self.improvement_algorithm.target_layer = self.target_layer
+            self._make_dann_model()
+            
         if self.gpu_count >0:
             gpus = []
             for i in range(self.gpu_count):

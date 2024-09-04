@@ -31,4 +31,5 @@ head:
 
 explain:
   algorithm: LRP
+  model_algorithm: Default
   rule: Epslion

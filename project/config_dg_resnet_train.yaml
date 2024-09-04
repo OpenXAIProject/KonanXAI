@@ -17,7 +17,7 @@
 head:
   project_type: 'train'
   save_path: "./checkpoint"
-  weight_path: "./resnet50-0676ba61.pth"
+  weight_path: ~
   cfg_path: ~
   data_resize: [224,224]
   data_path: "D:/Datasets/ai_fire/train"
@@ -37,8 +37,8 @@ train:
   save_step: 10
   improvement_algorithm: { 
     algorithm: DomainGeneralization,
-    set_freq: 5,
+    set_freq: 1,
     target_layer: [layer4,'2',relu],
-    transfer_weights: ~,
+    transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
     gpu_count: 1
   }

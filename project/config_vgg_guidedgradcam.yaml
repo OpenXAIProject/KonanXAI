@@ -14,21 +14,22 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
+
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./dark_model/3852.weights"
-  cfg_path: "./dark_model/3852.cfg"
-  data_path: "./ai_data"
-  data_resize: [640,640]
-  model_name: yolov4
-  framework: darknet
-  source: local
+  weight_path: "./vgg19-dcbb9e9d.pth"
+  cfg_path: ~
+  data_path: "./data"
+  data_resize: [224,224]
+  model_name: vgg19
+  framework: torch
+  source: torchvision
   repo_or_dir: ~
-  cache_or_local: ~
+  cache_or_local: cache
   data_type: CUSTOM
-  
+
 explain:
-  algorithm: GradCAM
+  algorithm: guidedgradcam
   model_algorithm: Default
-  target_layer: ~
+  target_layer: [features,'36']

@@ -17,7 +17,8 @@
 head:
   project_type: 'train'
   save_path: "./checkpoint"
-  weight_path: "./vgg19-dcbb9e9d.pth"
+  weight_path: ~
+  # weight_path: "./vgg19-dcbb9e9d.pth"
   cfg_path: ~
   data_resize: [224,224]
   data_path: "D:/Datasets/ai_fire/train"

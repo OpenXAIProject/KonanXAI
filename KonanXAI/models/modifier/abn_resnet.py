@@ -41,7 +41,7 @@ class Attention_ResNet(ResNet):
         fe = x
         ax = self.bn_att(self.att_layer4(x))
         ax = self.relu(self.bn_att2(self.att_conv(ax)))
-        bs, cs, ys, xs = ax.shape
+        # bs, cs, ys, xs = ax.shape
         self.att = self.sigmoid(self.bn_att3(self.att_conv3(ax)))
         # self.att = self.att.view(bs, 1, ys, xs)
         ax = self.att_conv2(ax)

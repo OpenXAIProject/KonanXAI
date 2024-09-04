@@ -64,7 +64,7 @@ class DomainGeneralization(Trainer):
         self.target_layer.register_forward_hook(DomainGeneralization._fwd_mask_hook)
         self.target_layer.mask = None
         
-    def _hook_pre_forward(self, x_batch, y_batch, epoch):
+    def _hook_pre_forward(self, x_batch, y_batch, epoch, i):
         self.current_epoch = epoch + 1
         
     def _forward(self, x, y, c):

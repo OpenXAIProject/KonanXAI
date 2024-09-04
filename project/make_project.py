@@ -9,7 +9,7 @@ from KonanXAI.datasets import load_dataset
 import random
 import numpy as np
 import torch
-
+import torch.nn as nn
 """
 2024-07-02 jjh
  
@@ -72,6 +72,7 @@ class Project(Configuration):
             get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
     def explainer(self):
+    
         explainers = self.algorithm(self.framework, self.model, self.dataset, self.config)
         explainers.apply()
 
