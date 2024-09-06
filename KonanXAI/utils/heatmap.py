@@ -18,6 +18,7 @@ def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
+
 def get_box(bbox_li, framework):
     bbox = []
     if framework == "darknet":
@@ -57,6 +58,7 @@ def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framew
             cv2.imwrite(compose_save_path, result)
         else:
             cv2.imwrite(compose_save_path, compose_guided_img)
+            
 def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
     draw_box = False
     bbox = None
@@ -133,3 +135,66 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
         cv2.imwrite(compose_save_path, result)
     else: 
         print("Check out the data set. There are no inferred values.")
+        
+def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
+    if framework != "darknet":
+        origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
+    origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
+    if heatmaps == None:
+        return
+    if isinstance(heatmaps,list):
+        for i, heatmap in enumerate(heatmaps):
+            compose_save_path = f"{img_save_path[:-4]}_compose_{i}.jpg"
+            ig_image, mixed_image = convert_ig_image(heatmap, origin_img)
+            cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", ig_image)
+            cv2.imwrite(compose_save_path, mixed_image)
+    else:
+        compose_save_path = img_save_path[:-4] + '_compose.jpg'
+        ig_image, mixed_image = convert_ig_image(heatmaps, origin_img)
+        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}.jpg", ig_image)
+        cv2.imwrite(compose_save_path, mixed_image)
+    
+        
+    # img = Image.fromarray(linear_attr.astype(np.uint8))
+    # img.save(save_path + "/" + file_name)
+    # img = Image.fromarray(mixed_image.astype(np.uint8))
+    # img.save(save_path + "/mixed_" + file_name)
+def convert_ig_image(heatmap, origin_img):
+    positive = np.clip(heatmap, 0, 1)
+    gray_ig = np.average(positive, axis=2)
+    
+    linear_attr = linear_transform(gray_ig, 99, 0, 0.0, plot_distribution=False)
+    linear_attr = np.expand_dims(linear_attr, 2) * [0, 255, 0]
+
+    alpha = 0.7
+    origin = np.array(origin_img) 
+    mixed_image = (1 - alpha) * origin + alpha * linear_attr.astype(np.uint8) 
+    
+    ig_image = np.array(linear_attr, dtype=np.uint8)
+    mixed_image = np.array(mixed_image, dtype=np.uint8)
+    return ig_image, mixed_image
+
+def linear_transform(attributions, clip_above_percentile=99.9, clip_below_percentile=70.0, low=0.2, plot_distribution=False):
+    m = compute_threshold_by_top_percentage(attributions, percentage=100-clip_above_percentile, plot_distribution=plot_distribution)
+    e = compute_threshold_by_top_percentage(attributions, percentage=100-clip_below_percentile, plot_distribution=plot_distribution)
+    transformed = (1 - low) * (np.abs(attributions) - e) / (m - e) + low
+    transformed *= np.sign(attributions)
+    transformed *= (transformed >= low)
+    transformed = np.clip(transformed, 0.0, 1.0)
+    return transformed
+
+def compute_threshold_by_top_percentage(attributions, percentage=60, plot_distribution=True):
+    if percentage < 0 or percentage > 100:
+        raise ValueError('percentage must be in [0, 100]')
+    if percentage == 100:
+        return np.min(attributions)
+    flat_attributions = attributions.flatten()
+    attribution_sum = np.sum(flat_attributions)
+    sorted_attributions = np.sort(np.abs(flat_attributions))[::-1]
+    cum_sum = 100.0 * np.cumsum(sorted_attributions) / attribution_sum
+    threshold_idx = np.where(cum_sum >= percentage)[0][0]
+    threshold = sorted_attributions[threshold_idx]
+    if plot_distribution:
+        raise NotImplementedError 
+    return threshold
+
