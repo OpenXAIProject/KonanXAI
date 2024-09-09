@@ -25,7 +25,7 @@ class GradCAM:
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
-        if framework.lower() == "darknet":
+        if framework == "darknet":
             self.input = input
             self.input_size = self.input.shape
         else:

@@ -70,11 +70,11 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
     print(f"Image saving.... save path: {img_save_path}")
     for i, heatmap in enumerate(tqdm(heatmaps)):
         compose_save_path = img_save_path[:-4] + '_compose_{}.jpg'.format(i)
-        if 'cam' in algorithm_type.lower():
+        if 'cam' in algorithm_type:
             heatmap = F.interpolate(heatmap, size = img_size, mode="bilinear", align_corners=False)
             heatmap = normalize_heatmap(heatmap)
             heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
-        elif 'lrp' in algorithm_type.lower():
+        elif 'lrp' in algorithm_type:
             cmap = matplotlib.cm.bwr
             heatmap = heatmap / torch.max(heatmap)
             heatmap = (heatmap +1.)/2.
@@ -140,7 +140,7 @@ def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type
     if framework != "darknet":
         origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
     origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
-    if heatmaps == None:
+    if not isinstance(heatmaps,(list,tuple,np.ndarray)):
         return
     if isinstance(heatmaps,list):
         for i, heatmap in enumerate(heatmaps):

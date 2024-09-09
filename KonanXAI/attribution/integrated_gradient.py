@@ -22,7 +22,7 @@ class IG:
         self.random_baseline = config['random_baseline']
         self.random_iter = config['random_iter']
         self.gradient_steps = config['gradient_step']
-        if framework.lower() == "darknet":
+        if framework == "darknet":
             self.input = input
             self.input_size = self.input.shape
         else:
@@ -46,28 +46,30 @@ class IG:
     
     def calculate(self):
         target_label = self.get_gradient()
-        if len(target_label) == 0:
-            return
-        iteration = self.random_iter if self.random_iter else 1
-        igs = []
-        for i in tqdm(range(iteration)):
-            baseline = self._set_baseline()
-            ig = self._integrated_gradients(baseline, target_label)
+        if isinstance(target_label,int) or len(target_label)>0:
+            iteration = self.random_iter if self.random_iter else 1
+            igs = []
+            for i in tqdm(range(iteration)):
+                baseline = self._set_baseline()
+                ig = self._integrated_gradients(baseline, target_label)
+                if isinstance(ig, list):
+                    igs_yolo = []
+                    for v in ig:
+                        igs_yolo.append(v)
+                    igs.append(igs_yolo)
+                else:
+                    igs.append(ig)
             if isinstance(ig, list):
-                igs_yolo = []
-                for v in ig:
-                    igs_yolo.append(v)
-                igs.append(igs_yolo)
-            else:
-                igs.append(ig)
-        if isinstance(ig, list):
-            heatmap = []
-            igs = np.stack(igs,axis=1)
-            for map in igs:
-                heatmap.append(np.average(np.array(map), axis=0))
-        else:    
-            heatmap = np.average(np.array(igs), axis=0)
-        return heatmap       
+                heatmap = []
+                igs = np.stack(igs,axis=1)
+                for map in igs:
+                    heatmap.append(np.average(np.array(map), axis=0))
+            else:    
+                heatmap = np.average(np.array(igs), axis=0)
+            return heatmap       
+        elif len(target_label) == 0:
+            return
+        
                         
     def get_gradient(self):
         if isinstance(self.input, torch.Tensor):
@@ -123,6 +125,7 @@ class IG:
             calc_grad = torch.sum(out)
             calc_grad.backward(retain_graph=True)
             grads = input.grad.detach().cpu().numpy()
+            input.grad = None
             return grads
         
         x = self._preprocess(scale_inputs)
@@ -141,10 +144,7 @@ class IG:
             for grad in grad_list:
                 result.append(calc_grads(x, self.model, grad))
             return result
-            # logits_origin = torch.concat([data.view(-1,out.shape[-1])[...,5:] for data in logit],dim=0)
-            # for index, cls in target_label:
-            #     grads.append(calc_grads(x, self.model, logits_origin[index][int(cls)]))
-            # return grads                
+            
         else:
             out = self.model(x)
             out = F.softmax(out, dim=1)

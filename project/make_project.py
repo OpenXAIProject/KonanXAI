@@ -53,7 +53,7 @@ class Project(Configuration):
         print("end")
     def explain(self):
         for i, data in enumerate(self.dataset):
-            if self.framework.lower() == 'darknet':
+            if self.framework == 'darknet':
                 origin_img = data.origin_img
                 img_size = data.im_size
             else:
@@ -72,7 +72,7 @@ class Project(Configuration):
                 get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "guided" in self.algorithm_name:
                 get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            elif "ig" in self.algorithm_name:
+            elif "ig" == self.algorithm_name:
                 get_ig_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
