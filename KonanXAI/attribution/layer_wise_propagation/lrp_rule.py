@@ -85,9 +85,9 @@ class LRPModule:
     
     # Abstract
     def backprop(self, R, rule, alpha):
-        if rule.lower() == 'epslion':
+        if rule == 'epslion':
             return self.epslion(R, rule, alpha)
-        elif rule.lower() == 'AlphaBeta':
+        elif rule == 'AlphaBeta':
             return self.alphabeta(R, rule, alpha)
         
     def __repr__(self):

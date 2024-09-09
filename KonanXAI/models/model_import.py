@@ -75,7 +75,7 @@ def torch_model_load(
     # 다른 기능이 필요한게 있나?
     if source == 'torchvision':
         if weight_path == None:
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
+            model = torch.hub.load(__version_of_torchvision__[0], model_name, num_classes = num_classes)
             model.model_name = model_name
             model.eval()
             return model
@@ -107,8 +107,8 @@ def torch_model_load(
                         key = k[7:] if k.startswith('module.') else k
                         state_dict[key] = v
             model.load_state_dict(state_dict)
-            model.model_name = model_name.lower()
-            model.model_algorithm = model_algorithm.lower()
+            model.model_name = model_name
+            model.model_algorithm = model_algorithm
             model.output_size = num_classes
             model.eval()
             return model

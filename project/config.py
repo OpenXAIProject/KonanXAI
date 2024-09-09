@@ -1,5 +1,6 @@
 import yaml
 import os, sys
+from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM, Gradient, GradientXInput, SmoothGrad
@@ -34,12 +35,11 @@ class Configuration:
     def _parser_config(self):
         self._public_parser()
         self._public_check_config()
-
-        if self.project_type.lower() == 'explain':
+        if self.project_type == 'explain':
             self._explain_parser()
             self._explain_algorithm_parser()
             self._explain_check_config()
-        elif self.project_type.lower() == 'train':
+        elif self.project_type == 'train':
             self._train_parser()
             self._train_check_config()
 
@@ -51,14 +51,14 @@ class Configuration:
 
             
     def _public_parser(self):
-        self.project_type = self.config['head']['project_type']
+        self.project_type = self.config['head']['project_type'].lower()
         self.save_path = self.config['head']['save_path']
         self.weight_path = self.config['head']['weight_path']
         self.cfg_path = self.config['head']['cfg_path']
         self.data_path = self.config['head']['data_path']
         self.data_resize = self.config['head']['data_resize']
-        self.model_name = self.config['head']['model_name']
-        self.framework = self.config['head']['framework']
+        self.model_name = self.config['head']['model_name'].lower()
+        self.framework = self.config['head']['framework'].lower()
         self.source = self.config['head']['source']
         self.repo_or_dir = self.config['head']['repo_or_dir']
         self.cache_or_local = self.config['head']['cache_or_local']
@@ -68,11 +68,11 @@ class Configuration:
         self.epoch = self.config['train']['epoch']
         self.learning_rate = self.config['train']['learning_rate']
         self.batch_size = self.config['train']['batch_size']
-        self.optimizer = self.config['train']['optimizer']
-        self.loss_function = self.config['train']['loss_function']
+        self.optimizer = self.config['train']['optimizer'].lower()
+        self.loss_function = self.config['train']['loss_function'].lower()
         self.save_step = self.config['train']['save_step']
         self.improvement_algorithm = self.config['train']['improvement_algorithm']
-        self.algorithm_name = self.improvement_algorithm['algorithm']
+        self.algorithm_name = self.improvement_algorithm['algorithm'].lower()
         self.transfer_weights = self.improvement_algorithm['transfer_weights']
         self.gpu_count = self.improvement_algorithm['gpu_count']
         
@@ -94,8 +94,11 @@ class Configuration:
         if self.algorithm_name.lower() in [cam.lower() for cam in cams]:
             self._gradcam_parser()
         
-        elif self.algorithm_name.lower() in [lrp.lower() for lrp in lrps]:
+        elif self.algorithm_name in [lrp.lower() for lrp in lrps]:
             self._lrp_parser()
+            
+        elif self.algorithm_name == "ig":
+            self._ig_parser()
 
         elif self.algorithm_name.lower() in [grad.lower() for grad in grads]:
             self._gradient_parser()
@@ -112,8 +115,15 @@ class Configuration:
     def _lrp_parser(self):
         self.config = {}
         self.config['algorithm'] = self.algorithm_name
-        self.config['rule'] = rule = self.explains['rule']
+        self.config['rule'] = self.explains['rule'].lower()
         self.config['yaml_path'] = self.cfg_path
+    
+    def _ig_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['random_baseline'] = self.explains['random_baseline']
+        self.config['random_iter'] = self.explains['random_iter']
+        self.config['gradient_step'] = self.explains['gradient_step']
         
     def _gradient_parser(self):
         self.config = {}
@@ -133,33 +143,35 @@ class Configuration:
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
         projects = ['train','explain', 'explainer']
-        if self.project_type.lower() not in [project.lower() for project in projects]:
+        if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
         elif not isinstance(self.data_resize, (tuple,list)):
             raise Exception("Supported types are: 'tuple' or 'list'")
-        elif self.framework.lower() not in [framework.lower() for framework in frameworks]:
+        elif self.framework not in [framework.lower() for framework in frameworks]:
             msg = f"The type you entered is:'{self.framework}' Supported types are: {frameworks}"
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo']
-        if self.algorithm_name.lower() not in [attribution.lower() for attribution in attributions]:
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG']
+        if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
         else:
-            if self.algorithm_name.lower() == 'gradcam':
+            if self.algorithm_name == 'gradcam':
                 self.algorithm = GradCAM
-            elif self.algorithm_name.lower() == 'gradcampp':
+            elif self.algorithm_name == 'gradcampp':
                 self.algorithm = GradCAMpp
-            elif self.algorithm_name.lower() == "guidedgradcam":
+            elif self.algorithm_name == "guidedgradcam":
                 self.algorithm = GuidedGradCAM
-            elif self.algorithm_name.lower() == 'eigencam':
+            elif self.algorithm_name == 'eigencam':
                 self.algorithm = EigenCAM
-            elif self.algorithm_name.lower() == 'lrp':
+            elif self.algorithm_name == 'lrp':
                 self.algorithm = LRP
-            elif self.algorithm_name.lower() == 'lrpyolo':
+            elif self.algorithm_name == 'lrpyolo':
                 self.algorithm = LRPYolo
+            elif self.algorithm_name == 'ig':
+                self.algorithm = IG
             elif self.algorithm_name.lower() == 'gradient':
                 self.algorithm = Gradient
             elif self.algorithm_name.lower() == 'gradientxinput':
@@ -175,60 +187,60 @@ class Configuration:
         if os.path.isdir(self.save_path) == False:
                 os.makedirs(self.save_path) 
         # paser check                
-        if self.algorithm_name.lower() not in [improvement_algorithm.lower() for improvement_algorithm in improvement_algorithms]:
+        if self.algorithm_name not in [improvement_algorithm.lower() for improvement_algorithm in improvement_algorithms]:
             msg = f"The type you entered is:'{self.improvement_algorithm}' Supported types are: {improvement_algorithms}"
             raise Exception(msg)
-        elif self.optimizer.lower() not in [optimizer.lower() for optimizer in optimizers]:
+        elif self.optimizer not in [optimizer.lower() for optimizer in optimizers]:
             msg = f"The type you entered is:'{self.optimizer}' Supported types are: {optimizers}"
             raise Exception(msg)
-        elif self.loss_function.lower() not in [loss_function.lower() for loss_function in loss_functions]:
+        elif self.loss_function not in [loss_function.lower() for loss_function in loss_functions]:
             msg = f"The type you entered is:'{self.loss_function}' Supported types are: {loss_functions}"
             raise Exception(msg)
         # optimizer
-        if self.optimizer.lower() == 'adam':
+        if self.optimizer == 'adam':
             self.optimizer = optim.Adam
-        elif self.optimizer.lower() == 'sgd':
+        elif self.optimizer == 'sgd':
             self.optimizer = optim.SGD
         # loss function
-        if self.loss_function.lower() == 'crossentropyloss':
+        if self.loss_function == 'crossentropyloss':
             self.loss_function = nn.CrossEntropyLoss
-        elif self.loss_function.lower() == 'nllloss':
+        elif self.loss_function == 'nllloss':
             self.loss_function = F.nll_loss
-        elif self.loss_function.lower() == 'mseloss':
+        elif self.loss_function == 'mseloss':
             self.loss_function = nn.MSELoss
         # improvement algorithm
         
-        if self.algorithm_name.lower() == 'abn':
-            self.model_algorithm = self.algorithm_name.lower()
+        if self.algorithm_name == 'abn':
+            self.model_algorithm = self.algorithm_name
             self.improvement_algorithm = ABN
             # self.improvement_algorithm.name = 'abn'
             self._make_abn_model()
-        elif self.algorithm_name.lower() == 'domaingeneralization':
-            self.model_algorithm = self.algorithm_name.lower()
+        elif self.algorithm_name == 'domaingeneralization':
+            self.model_algorithm = self.algorithm_name
             self.set_freq = self.improvement_algorithm['set_freq']
             self.target_layer = self.improvement_algorithm['target_layer']
             self.improvement_algorithm = DomainGeneralization
             # self.improvement_algorithm.name = 'dg'            
             self._make_model()
-        elif self.algorithm_name.lower() == 'default':
-            self.model_algorithm = self.algorithm_name.lower()
+        elif self.algorithm_name == 'default':
+            self.model_algorithm = self.algorithm_name
             self.improvement_algorithm = Trainer
             # self.improvement_algorithm.name = 'default'
             self._make_model()
-        elif self.algorithm_name.lower() == 'fgsm':
+        elif self.algorithm_name == 'fgsm':
             epsilon = self.improvement_algorithm['epsilon']
             alpha = self.improvement_algorithm['alpha']
-            self.model_algorithm = self.algorithm_name.lower()
+            self.model_algorithm = self.algorithm_name
             self.improvement_algorithm = FGSM
             self.improvement_algorithm.epsilon = epsilon
             self.improvement_algorithm.alpha = alpha
             self._make_model()
-        elif self.algorithm_name.lower() == 'dann':
-            self.model_algorithm = self.algorithm_name.lower()
+        elif self.algorithm_name == 'dann':
+            self.model_algorithm = self.algorithm_name
             self.improvement_algorithm = DANN
             self._make_dann_model()
-        elif self.algorithm_name.lower() == 'dann_grad':
-            self.model_algorithm = self.algorithm_name.lower()
+        elif self.algorithm_name == 'dann_grad':
+            self.model_algorithm = self.algorithm_name
             self.target_layer = self.improvement_algorithm['target_layer']
             self.improvement_algorithm = DANN_GRAD
             self.improvement_algorithm.target_layer = self.target_layer

@@ -13,7 +13,7 @@ class GuidedGradCAM(GradCAM):
         self.first_layer = list(self.model.children())[0].to(self.device)
         if "yolo" in self.model_name:
             self.first_layer = self.first_layer[0].conv
-        elif "resnet" in self.model_name.lower():
+        elif "resnet" in self.model_name:
             self.first_layer = self.first_layer
         else:
             self.first_layer = self.first_layer[0]

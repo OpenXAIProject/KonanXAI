@@ -12,8 +12,8 @@ def load_dataset(framework, data_path = None, data_type = 'CUSTOM',
                  maxlen=-1, resize = None, mode = None):
     dataset = globals().get(data_type)(framework = framework, src_path = data_path)
     dataset.set_fit_size(resize)
-    if mode.lower() == 'train':
+    if mode == 'train':
         dataset.set_train()
-    elif mode.lower() == 'explain':
+    elif mode == 'explain':
         dataset.set_test()
     return dataset

@@ -17,7 +17,7 @@ class EigenCAM(GradCAM):
                 activation_batch[torch.isnan(activation_batch)] = 0
                 for activations in activation_batch:
                     reshaped_activations = (activations).reshape(activations.shape[0], -1).T
-                    if "yolo" in self.model_name.lower():
+                    if "yolo" in self.model_name:
                         reshaped_activations_min,reshaped_activations_max = reshaped_activations.min(),reshaped_activations.max()
                         reshaped_activations = (reshaped_activations - reshaped_activations_min).div(reshaped_activations_max-reshaped_activations_min).data
                     else:
