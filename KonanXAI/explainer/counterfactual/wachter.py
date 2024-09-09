@@ -30,36 +30,23 @@ class Wachter(Counterfactual):
     
     '''
     def __init__(self, framework, model, dataset, config):
-        self.methods = config['methods']
-        self.input_index = config['input_index']
-        print(dataset.train_items)
-        self.input = dataset[self.input_index][0]
-        self.target_label = config['target_label']
-        self.coeff = config['coeff']
-        self.epoch = config['epoch']
-        self.learning_rate = config['learning_rate'] 
+        Counterfactual.__init__(self, framework, model, dataset, config)
 
-    def _check_methods(self):
-        if self.methods.lower() == 'wachter':
-            pass
 
     def _perturb_input(self):
-        if self.methods.lower() == 'wachter':
-            self.cf_image = self.input
+        self.cf_image = self.input
 
     def _define_loss_function(self):
-        if self.methods.lower() == 'wachter':
-            self.pdistance = nn.PairwiseDistance(p=0.2, eps = 1e-6, keepdim=False)
-            self.criterion = nn.CrossEntropyLoss()
+        self.pdistance = nn.PairwiseDistance(p=0.2, eps = 1e-6, keepdim=False)
+        self.criterion = nn.CrossEntropyLoss()
             
 
     def _define_optimizer(self):
-        if self.methods.lower() == 'wachter':
-            self.optimizer = optim.SGD(self.cf_image, lr = self.learning_rate, momentum = 0.9)
+        self.optimizer = optim.SGD(self.cf_image, lr = self.learning_rate, momentum = 0.9)
 
 
 
-    def apply(self):
+    def calculate(self):
         for iter in self.epoch:
             self._perturb_input()
             pred = self.model(self.cf_image)

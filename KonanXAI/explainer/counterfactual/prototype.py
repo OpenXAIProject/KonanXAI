@@ -29,52 +29,38 @@ class Prototype(Counterfactual):
     
     '''
     def __init__(self, framework, model, dataset, config):
-        self.methods = config['methods']
-        self.input_index = config['input_index']
-        print(dataset.train_items)
-        self.input = dataset[self.input_index][0]
-        self.target_label = config['target_label']
-        self.coeff = config['coeff']
-        self.epoch = config['epoch']
-        self.learning_rate = config['learning_rate'] 
-
-    def _check_methods(self):
-        if self.methods.lower() == 'wachter':
-            pass
+        Counterfactual.__init__(self, framework, model, dataset, config)
 
     def _perturb_input(self):
-        if self.methods.lower() == 'wachter':
-            self.cf_image = self.input
+        pass
 
     def _define_loss_function(self):
-        if self.methods.lower() == 'wachter':
-            self.pdistance = nn.PairwiseDistance(p=0.2, eps = 1e-6, keepdim=False)
-            self.criterion = nn.CrossEntropyLoss()
+        pass
             
 
     def _define_optimizer(self):
-        if self.methods.lower() == 'wachter':
-            self.optimizer = optim.SGD(self.cf_image, lr = self.learning_rate, momentum = 0.9)
+        pass
 
 
 
-    def apply(self):
-        for iter in self.epoch:
-            self._perturb_input()
-            pred = self.model(self.cf_image)
-            _, pred_label = torch.max(pred.data, 1)
-            target_label = [self.target_label]
-            target_label = torch.tensor(target_label, device = 'cuda:0')
+    def calculate(self):
+        print(4)
+        # for iter in self.epoch:
+        #     self._perturb_input()
+        #     pred = self.model(self.cf_image)
+        #     _, pred_label = torch.max(pred.data, 1)
+        #     target_label = [self.target_label]
+        #     target_label = torch.tensor(target_label, device = 'cuda:0')
 
-            loss = self.coeff * self.criterion(pred, target_label) + self.pdistance(self.cf_image, self.input).sum()
+        #     loss = self.coeff * self.criterion(pred, target_label) + self.pdistance(self.cf_image, self.input).sum()
 
-            loss.backward()
-            self.optimizer.step()
-            cf_label = pred_label
-            if (iter %100 == 0):
-                print(f'loss {loss} target_label {target_label} predicted {pred_label}')
+        #     loss.backward()
+        #     self.optimizer.step()
+        #     cf_label = pred_label
+        #     if (iter %100 == 0):
+        #         print(f'loss {loss} target_label {target_label} predicted {pred_label}')
             
-                save_image(self.cf_image, f'./cf_image_{iter}_{pred_label}.jpg')
+        #         save_image(self.cf_image, f'./cf_image_{iter}_{pred_label}.jpg')
 
 
 

@@ -2,20 +2,16 @@ import yaml
 import os, sys
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-<<<<<<< HEAD
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, Gradient, GradientXInput, SmoothGrad
-=======
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM, Gradient, GradientXInput, SmoothGrad
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
->>>>>>> 377e7955aeae9983f92cdb4eff6bbeb72cf677c6
 from KonanXAI.model_improvement.abn import ABN
 from KonanXAI.model_improvement.trainer import Trainer
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50
 from KonanXAI.model_improvement.domain_generalization import DomainGeneralization
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
-from KonanXAI.explainer.counterfactual import Counterfactual
+from KonanXAI.explainer.counterfactual import Wachter, Prototype
 from KonanXAI.explainer.clustering import SpectralClustering
 import torchvision.models as models
 
@@ -270,7 +266,7 @@ class Configuration:
 
 
     def _explainer_check_config(self):
-        explainers = ['SpectralClustering', 'Counterfactual']
+        explainers = ['SpectralClustering', 'Wachter', 'Prototype']
 
         if self.explainer_name.lower() not in [explainer.lower() for explainer in explainers]:
             msg = f"The type you entered is:'{self.explainer_name}' Supported types are: {explainers}"
@@ -279,6 +275,8 @@ class Configuration:
         else:
             if self.explainer_name.lower() == 'spectralclustering':
                 self.algorithm = SpectralClustering
-            elif self.explainer_name.lower() == 'counterfactual':
-                self.algorithm = Counterfactual
+            elif self.explainer_name.lower() == 'wachter':
+                self.algorithm = Wachter
+            elif self.explainer_name.lower() == 'Prototype':
+                self.algorithm = Prototype
         

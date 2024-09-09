@@ -22,6 +22,7 @@ def set_seed(seed_value=77):
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value) 
+
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
@@ -74,7 +75,7 @@ class Project(Configuration):
     def explainer(self):
     
         explainers = self.algorithm(self.framework, self.model, self.dataset, self.config)
-        explainers.apply()
+        explainers.calculate()
 
 
     def run(self):

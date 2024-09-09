@@ -17,8 +17,8 @@ import torchvision.models as models
 from torchvision import transforms
 from torchvision import datasets
 
-from ..utils.h5file import create_dataset, append_sample, create_attribution_database, append_attributions
-from ..attribution import GradCAM
+from KonanXAI.utils.h5file import create_dataset, append_sample, create_attribution_database, append_attributions
+from KonanXAI.attribution import GradCAM
 import darknet
 
 

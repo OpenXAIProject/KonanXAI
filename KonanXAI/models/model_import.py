@@ -4,7 +4,8 @@ import torchvision
 import torch.nn as nn
 import urllib
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
-from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50from collections import OrderedDict
+from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50 
+from collections import OrderedDict
 
 import os
 
@@ -79,9 +80,36 @@ def torch_model_load(
             model.eval()
             return model
         else:
-            model = torch.hub.load(__version_of_torchvision__[0], model_name.lower())
-            model.load_state_dict(torch.load(weight_path))
-            model.model_name = model_name
+            pt = torch.load(weight_path)
+            if model_algorithm == None:
+                model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
+            
+            elif model_algorithm.lower() in ["default", "domaingeneralization", 'fgsm']:
+                model = torch.hub.load(__version_of_torchvision__[0], model_name.lower(), num_classes = num_classes)
+            elif model_algorithm.lower() == 'abn':
+                if "resnet" in model_name:
+                    model = make_attention_resnet50(num_classes = num_classes)
+                elif "vgg" in model_name:
+                    model = make_attention_vgg19(num_classes= num_classes)
+            
+                    # model = make_dann_vgg19(num_classes= num_classes)
+            if isinstance(pt, OrderedDict):
+                state_dict = pt
+            else:
+                model_key = next(iter(model.state_dict()))
+                state_dict = {}
+                if 'module.' in model_key:
+                    for k, v in pt['model_state_dict'].items():
+                        key = 'module.'+ k 
+                        state_dict[key] = v
+                else:
+                    for k, v in pt['model_state_dict'].items():
+                        key = k[7:] if k.startswith('module.') else k
+                        state_dict[key] = v
+            model.load_state_dict(state_dict)
+            model.model_name = model_name.lower()
+            model.model_algorithm = model_algorithm.lower()
+            model.output_size = num_classes
             model.eval()
             return model
 
