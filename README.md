@@ -64,7 +64,7 @@
         - ex) [layer4,'2',relu]
     - ### rule:
         - lrp의 경우 어떤 rule을 사용할지 지정합니다.
-        - ex) Epslion
+        - ex) Epsilon
 
 - ## train의 필수 구성은 다음과 같습니다.
     - ### epoch:

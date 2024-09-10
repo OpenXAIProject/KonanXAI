@@ -51,7 +51,7 @@ class LRPModule:
         C = torch.autograd.grad(Z, X, S, retain_graph=True)
         return C
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         if len(self.module.X.shape) == 3:
             self.module.X = self.module.X.unsqueeze(0)
         Z = self.forward(self.module.X)
@@ -85,8 +85,8 @@ class LRPModule:
     
     # Abstract
     def backprop(self, R, rule, alpha):
-        if rule == 'epslion':
-            return self.epslion(R, rule, alpha)
+        if rule == 'epsilon':
+            return self.epsilon(R, rule, alpha)
         elif rule == 'AlphaBeta':
             return self.alphabeta(R, rule, alpha)
         
@@ -97,7 +97,7 @@ class LRPModule:
             return str(self.__class__.__name__)
 
 class ConvNd(LRPModule):
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         x = self.module.X.clone()
         w = self.module.weight.clone()
 
@@ -265,7 +265,7 @@ class Sequential(LRPModule):
             x = module.forward(x)
         return x
     
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         for index, module in enumerate(reversed(self.modules)):
 
             R = module.backprop(R, rule, alpha)
@@ -318,7 +318,7 @@ class ReLU(LRPModule):
                 m.Y.append(output_tensor[0])
             self.module.hook_handle = self.module.register_forward_hook(relu_forward_hook)
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         X = self.module.X[self.idx]
         Z = self.forward(X)
         S = safe_divide(R, Z)
@@ -343,7 +343,7 @@ class SiLU(LRPModule):
                 m.Y.append(output_tensor[0])
             self.module.hook_handle = self.module.register_forward_hook(silu_forward_hook)
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         X = self.module.X[self.idx]
         if isinstance(R,dict):
             key, rel = next(iter(R.items()))
@@ -376,7 +376,7 @@ class Sigmoid(LRPModule):
                 m.Y.append(output_tensor[0])
             self.module.hook_handle = self.module.register_forward_hook(sigmoid_forward_hook)
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         X = self.module.X[self.idx]
         Z = self.forward(X)
         S = safe_divide(R, Z)
@@ -414,7 +414,7 @@ class Add(LRPModule):
     def forward(self, x):
         return torch.add(*x)
     
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         for i, m in enumerate(self.modules):
             if i == 0 and m[-1].module._get_name().lower() == 'silu':
                 layer_index = m[-1].idx
@@ -518,7 +518,7 @@ class Mul(LRPModule):
     def forward(self, x):
         return torch.mul(*x)
     
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         for i, m in enumerate(self.modules):
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
@@ -599,7 +599,7 @@ class Clone(LRPModule):
         self.origin = origin
         self.idx = idx
         self.num = num
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         Z = []
         if isinstance(self.origin, tuple):
             self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
@@ -643,11 +643,11 @@ class Detect(LRPModule):
             for m in module:
                 if isinstance(m, nn.modules.conv._ConvNd):
                     self.module.append(ConvNd(m))
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         res = {}
         for index, (key, relevance) in enumerate(R.items()):
             relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
-            rel = self.module[index].epslion(relevance, rule, alpha)
+            rel = self.module[index].epsilon(relevance, rule, alpha)
             res[key] = rel
         return dict(sorted(res.items(),reverse=True))
     
@@ -662,7 +662,7 @@ class Cat(LRPModule):
     def forward(self, x, dim):
         return torch.cat(x, dim)
     
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         for v in self.module.modules:
             if hasattr(v.modules[-1],"modules"):
                 if hasattr(v.modules[-1].modules[-1], "idx"):
@@ -704,7 +704,7 @@ class Route(LRPModule):
     def __init__(self, cat0, cat1):
         self.cat0 = cat0
         self.cat1 = cat1
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         split = R.shape[1] // 2
         rel = {}
         rel[str(self.cat0)] = R[:,:split,:,:]
@@ -716,7 +716,7 @@ class Upsample(LRPModule):
           self.param = param
           self.module = nn.Upsample(**param)
           pass
-      def epslion(self, R, rule, alpha):
+      def epsilon(self, R, rule, alpha):
         invert_upsample = {
             1: F.avg_pool1d,
             2: F.avg_pool2d,
@@ -745,7 +745,7 @@ class StochasticDepth(LRPModule):
         self.handle = []
         self.handle.append(prev_module.register_forward_hook(stochastic_forward_hook))
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         R = R.reshape(self.X.shape)
         scaled_out = self.X * self.p
         denominator = scaled_out + 1e-9 * torch.sign(scaled_out)
@@ -766,7 +766,7 @@ class Flatten(LRPModule):
         self.handle = []
         self.handle.append(prev_module.register_forward_hook(flatten_forward_hook))
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         R = R.reshape(self.X.shape)
         return R
     
@@ -781,14 +781,14 @@ class Input(LRPModule):
         self.handle = []
         super().__init__(self)
 
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         return R
     
     def alphabeta(self, R, rule, alpha):
         return R
 
 class BatchNormNd(LRPModule):
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         X = self.module.X
         weight = self.module.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3) / (
             (self.module.running_var.unsqueeze(0).unsqueeze(2).unsqueeze(3).pow(2)).pow(0.5))
@@ -843,7 +843,7 @@ class AdaptiveAvgPoolNd(LRPModule):
     #     return relevance_out
     
 class MaxpoolNd(LRPModule):
-    def epslion(self, R, rule, alpha):
+    def epsilon(self, R, rule, alpha):
         X = self.module.X.detach().clone()
         if len(X.shape) == 3:
             X = X.unsqueeze(0)

@@ -32,5 +32,5 @@ head:
 explain:
   algorithm: LRPYolo
   model_algorithm: Default
-  rule: Epslion
+  rule: Epsilon
 

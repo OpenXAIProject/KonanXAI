@@ -33,4 +33,4 @@ head:
 explain:
   algorithm: LRP
   model_algorithm: DomainGeneralization
-  rule: Epslion
+  rule: Epsilon
