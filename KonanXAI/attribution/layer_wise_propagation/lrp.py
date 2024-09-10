@@ -23,11 +23,10 @@ class LRP:
         self.rule = config['rule']
         self.alpha = None
         self.yaml_path = None
-        if self.alpha != 'None':
-            try:
-                self.alpha = int(self.alpha)
-            except: #epsilon rule default = 1e-8
-                self.alpha = sys.float_info.epsilon
+        if "alpha" in config:
+            self.alpha = config["alpha"]
+        else:
+            self.alpha = sys.float_info.epsilon
 
     def calculate(self):
         model =  copy.deepcopy(self.model)

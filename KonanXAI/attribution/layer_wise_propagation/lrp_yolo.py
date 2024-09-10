@@ -22,11 +22,10 @@ class LRPYolo:
         self.rule = config['rule']
         self.alpha = None
         self.yaml_path = config['yaml_path']
-        if self.alpha != 'None':
-            try:
-                self.alpha = int(self.alpha)
-            except: #epsilon rule default = 1e-8
-                self.alpha = sys.float_info.epsilon
+        if "alpha" in config:
+            self.alpha = config["alpha"]
+        else:
+            self.alpha = sys.float_info.epsilon
                 
     def tensor_parsing(self,pred, t_shape):
         tensor_1 = pred[:t_shape[0][2]*t_shape[0][3]*t_shape[0][1]].view(t_shape[0])

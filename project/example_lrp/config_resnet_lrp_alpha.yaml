@@ -18,20 +18,19 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./yolov5s.pt"
-  cfg_path: "./yolov5s.yaml"
+  weight_path: "./resnet50-0676ba61.pth"
+  cfg_path: ~
   data_path: "./data"
-  data_resize: [640,640]
-  model_name: yolov5s
+  data_resize: [224,224]
+  model_name: resnet50
   framework: torch
-  source: github
-  repo_or_dir: ultralytics/yolov5
+  source: torchvision
+  repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
-
-explain:
-  algorithm: LRPYolo
-  model_algorithm: Default
-  rule: Epsilon
   
-
+explain:
+  algorithm: LRP
+  model_algorithm: Default
+  rule: alphabeta
+  alpha: 2

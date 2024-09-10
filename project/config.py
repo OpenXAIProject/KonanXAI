@@ -91,6 +91,8 @@ class Configuration:
         self.config = {}
         self.config['algorithm'] = self.algorithm_name
         self.config['rule'] = self.explains['rule'].lower()
+        if self.config['rule'] == "alphabeta":
+            self.config['alpha'] = self.explains['alpha']
         self.config['yaml_path'] = self.cfg_path
     
     def _ig_parser(self):
