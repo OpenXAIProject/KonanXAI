@@ -52,7 +52,7 @@ class Project(Configuration):
 
     def explain(self):
         for i, data in enumerate(self.dataset):
-            if self.framework == 'darknet':
+            if self.framework.lower() == 'darknet':
                 origin_img = data.origin_img
                 img_size = data.im_size
             else:
@@ -70,16 +70,14 @@ class Project(Configuration):
 
             
             heatmap = algorithm.calculate()
-                
-            if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
-                get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            elif "guided" in self.algorithm_name:
-                get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            elif "ig" == self.algorithm_name:
-                get_ig_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            else:
-                get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+            get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
+    def explainer(self):
+    
+        explainers = self.algorithm(self.framework, self.model, self.dataset, self.config)
+        explainers.calculate()
+
+
     def run(self):
 
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
