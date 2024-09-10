@@ -73,15 +73,19 @@ class LRPModule:
     def alphabeta(self, R, rule, alpha):
         beta = 1 - alpha
     
-        X = self.module.X 
-        Z = self.forward(X)
-
+        if len(self.module.X.shape) == 3:
+            self.module.X = self.module.X.unsqueeze(0)
+        Z = self.forward(self.module.X)
         S = safe_divide(R, Z)
-        
+        C = self.gradprop(Z, self.module.X, S)[0]
 
-        relevance_out = X * self.gradprop(Z, X, S)[0]
-        
-        return relevance_out
+        if torch.is_tensor(self.module.X) == False:
+            outputs = []
+            outputs.append(self.module.X[0] * C)
+            outputs.append(self.module.X[1] * C)
+        else:
+            outputs = self.module.X * (C)
+        return outputs
     
     # Abstract
     def backprop(self, R, rule, alpha):
@@ -150,8 +154,17 @@ class ConvNd(LRPModule):
                     padding = self.module.padding, groups = self.module.groups,)
         return z
     
+    # backward 필요한가?
+    # def signed_backward(self, x, weight):
+    #     conv_bwd = {nn.Conv1d: F.conv_transpose1d, nn.Conv2d: F.conv_transpose2d, nn.Conv3d: F.conv_transpose3d}[type(self.module)]
+    #     cp = conv_bwd(s, weight=w, bias=None, padding=self.module.padding, 
+    #                         output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
+    #                         dilation=self.module.dilation, groups=self.module.groups,)
+        
+    
     def alphabeta(self, R, rule, alpha):
         beta = 1 - alpha
+
         x_pos = self.module.X.clamp(min=0)
         x_neg = self.module.X.clamp(max=0)
         w_pos = self.module.weight.clamp(min=0)
