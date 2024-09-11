@@ -3,7 +3,9 @@ import os, sys
 from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM, Gradient, GradientXInput, SmoothGrad
+from KonanXAI.explainer.counterfactual import Wachter, Prototype
+from KonanXAI.explainer.clustering import SpectralClustering
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
@@ -37,6 +39,10 @@ class Configuration:
         elif self.project_type == 'train':
             self._train_parser()
             self._train_check_config()
+        elif self.project_type == 'explainer':
+            self._explainer_parser()
+            self._explainer_algorithm_parser()
+            self._explainer_check_config()
             
     def _public_parser(self):
         self.project_type = self.config['head']['project_type'].lower()
@@ -68,11 +74,18 @@ class Configuration:
         self.explains = self.config['explain']
         self.model_algorithm = self.explains['model_algorithm'].lower()
         self.algorithm_name = self.explains['algorithm'].lower()
+
+    def _explainer_parser(self):
+        self.explainers = self.config['explainer']
+        self.model_algorithm = self.explainers['algorithm'].lower()
+        self.methods = self.explainers['methods'].lower()
+        self.explainer_name = self.explainers['algorithm'].lower()
         
         
     def _explain_algorithm_parser(self):
         cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
         lrps = ['LRP', 'LRPYolo']
+        grads = ['Gradient', 'InputXGradient']
         if self.algorithm_name in [cam.lower() for cam in cams]:
             self._gradcam_parser()
         
@@ -81,6 +94,12 @@ class Configuration:
             
         elif self.algorithm_name == "ig":
             self._ig_parser()
+        
+        elif self.algorithm_name in [grad.lower() for grad in grads]:
+            self._gradient_parser()
+
+        elif self.algorithm_name == 'smoothgrad':
+            self._smoothgrad_parser()
         
     def _gradcam_parser(self):
         self.config = {}
@@ -99,10 +118,23 @@ class Configuration:
         self.config['random_baseline'] = self.explains['random_baseline']
         self.config['random_iter'] = self.explains['random_iter']
         self.config['gradient_step'] = self.explains['gradient_step']
+    
+    def _gradient_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['target_class'] = self.explains['target_class']
+
+    def _smoothgrad_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.algorithm_name
+        self.config['target_class'] = self.explains['target_class']
+        self.config['std'] = self.explains['std']
+        self.config['noise_level'] = self.explains['noise_level']
+        self.config['sample_size'] = self.explains['sample_size']
         
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
-        projects = ['train','explain']
+        projects = ['train','explain', 'explainer']
         if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
@@ -132,6 +164,12 @@ class Configuration:
                 self.algorithm = LRPYolo
             elif self.algorithm_name == 'ig':
                 self.algorithm = IG
+            elif self.algorithm_name == 'gradient':
+                self.algorithm = Gradient
+            elif self.algorithm_name == 'gradientxinput':
+                self.algorithm = GradientXInput
+            elif self.algorithm_name == 'smoothgrad':
+                self.algorithm = SmoothGrad
                 
         
     def _train_check_config(self):
@@ -227,3 +265,36 @@ class Configuration:
         elif self.model_name.startswith("vgg"):
             raise Exception("Not Supported")
             # self.make_model = models.vgg19
+
+    def _explainer_algorithm_parser(self):
+        if self.methods.lower() in 'clustering':
+            self._clustering_parser()
+        elif self.methods.lower() in 'counterfactual':
+            self._counterfactual_parser()
+
+    def _clustering_parser(self):
+        pass
+
+    def _counterfactual_parser(self):
+        self.config = {}
+        self.config['algorithm'] = self.explainers['algorithm']
+        self.config['input_index'] = self.explainers['input_index']
+        self.config['target_label'] = self.explainers['target_label']
+        self.config['lambda'] = self.explainers['lambda']
+        self.config['epoch'] = self.explainers['epoch']
+        self.config['learning_rate'] = self.explainers['learning_rate']
+
+    def _explainer_check_config(self):
+        explainers = ['SpectralClustering', 'Wachter', 'Prototype']
+
+        if self.explainer_name.lower() not in [explainer.lower() for explainer in explainers]:
+            msg = f"The type you entered is:'{self.explainer_name}' Supported types are: {explainers}"
+            raise Exception(msg)
+        
+        else:
+            if self.explainer_name.lower() == 'spectralclustering':
+                self.algorithm = SpectralClustering
+            elif self.explainer_name.lower() == 'wachter':
+                self.algorithm = Wachter
+            elif self.explainer_name.lower() == 'Prototype':
+                self.algorithm = Prototype
