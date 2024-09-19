@@ -154,11 +154,11 @@ def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type
         cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}.jpg", ig_image)
         cv2.imwrite(compose_save_path, mixed_image)
     
-        
-    # img = Image.fromarray(linear_attr.astype(np.uint8))
-    # img.save(save_path + "/" + file_name)
-    # img = Image.fromarray(mixed_image.astype(np.uint8))
-    # img.save(save_path + "/mixed_" + file_name)
+def get_lime_image(heatmap, img_save_path):
+    heatmap = np.array(heatmap*255, dtype=np.uint8)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(img_save_path,heatmap)
+    
 def convert_ig_image(heatmap, origin_img):
     positive = np.clip(heatmap, 0, 1)
     gray_ig = np.average(positive, axis=2)

@@ -1,5 +1,5 @@
 import os
-from KonanXAI.utils.heatmap import get_heatmap, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
+from KonanXAI.utils.heatmap import get_heatmap, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -74,6 +74,8 @@ class Project(Configuration):
                 get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "ig" == self.algorithm_name:
                 get_ig_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+            elif "lime" == self.algorithm_name:
+                get_lime_image(heatmap, img_save_path)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             

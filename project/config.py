@@ -4,6 +4,7 @@ from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.attribution.lime_image import LimeImage
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
@@ -73,6 +74,7 @@ class Configuration:
     def _explain_algorithm_parser(self):
         cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
         lrps = ['LRP', 'LRPYolo']
+        self.config = {}
         if self.algorithm_name in [cam.lower() for cam in cams]:
             self._gradcam_parser()
         
@@ -81,14 +83,13 @@ class Configuration:
             
         elif self.algorithm_name == "ig":
             self._ig_parser()
-        
+        elif self.algorithm_name == "lime":
+            self._lime_parser()
     def _gradcam_parser(self):
-        self.config = {}
         self.config['target_layer'] = self.explains['target_layer']
         self.config['algorithm'] = self.algorithm_name
     
     def _lrp_parser(self):
-        self.config = {}
         self.config['algorithm'] = self.algorithm_name
         self.config['rule'] = self.explains['rule'].lower()
         if self.config['rule'] == "alphabeta":
@@ -96,11 +97,19 @@ class Configuration:
         self.config['yaml_path'] = self.cfg_path
     
     def _ig_parser(self):
-        self.config = {}
         self.config['algorithm'] = self.algorithm_name
         self.config['random_baseline'] = self.explains['random_baseline']
         self.config['random_iter'] = self.explains['random_iter']
         self.config['gradient_step'] = self.explains['gradient_step']
+        
+    def _lime_parser(self):
+        self.config['algorithm'] = self.algorithm_name
+        self.config['segments'] = self.explains['segments']
+        self.config['seed'] = self.explains['seed']
+        self.config['num_samples'] = self.explains['num_samples']
+        self.config['num_features'] = self.explains['num_features']
+        self.config['positive_only'] = self.explains['positive_only']
+        self.config['hide_rest'] = self.explains['hide_rest']
         
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
@@ -115,7 +124,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime']
         if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -134,7 +143,8 @@ class Configuration:
                 self.algorithm = LRPYolo
             elif self.algorithm_name == 'ig':
                 self.algorithm = IG
-                
+            elif self.algorithm_name == "lime":
+                self.algorithm = LimeImage
         
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
