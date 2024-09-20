@@ -1,5 +1,4 @@
 from project.make_project import Project
-
 # config_path = './project/example_gradcam/config_darknet.yaml'
 # config_path = './project/example_gradcampp/config_darknet_gradcampp.yaml'
 # config_path = './project/example_eigencam/config_darknet_eigencam.yaml'
@@ -7,7 +6,8 @@ from project.make_project import Project
 # config_path = './project/example_gradcam/config_efficientnet_gradcam.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alpha.yaml'
-config_path = './project/example_lime/config_resnet_lime.yaml'
+# config_path = './project/example_lime/config_resnet_lime.yaml'
+config_path = './project/example_kernelshap/config_resnet_kernelshap.yaml'
 # config_path = './project/example_gradcam/config_resnet_gradcam.yaml'
 # config_path = './project/example_gradcampp/config_resnet_gradcampp.yaml'
 # config_path = './project/example_guided_gradcam/config_resnet_guidedgradcam.yaml'

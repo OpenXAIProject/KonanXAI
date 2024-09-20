@@ -3,6 +3,7 @@ import cv2
 import torch
 import torch.nn.functional as F
 import matplotlib
+from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
 from darknet.yolo import BBox
 
@@ -33,6 +34,7 @@ def get_box(bbox_li, framework):
             box = (t[0],t[1]), (t[2],t[3])
             bbox.append(box)
     return bbox
+
 def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework):
     draw_box = False
     bbox = None
@@ -158,6 +160,29 @@ def get_lime_image(heatmap, img_save_path):
     heatmap = np.array(heatmap*255, dtype=np.uint8)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     cv2.imwrite(img_save_path,heatmap)
+ 
+def get_kernelshap_image(origin_img, heatmap, img_savepath,framework):
+    def rgba_to_rgb(rgba_image):
+        background = np.ones((224, 224, 3), dtype=np.float32)
+        alpha = rgba_image[:,:,3]
+        for c in range(3):
+            background[:,:,c] = rgba_image[:,:,c] * alpha + background[:,:,c] * (1 - alpha)
+        return background
+    colors = []
+    for l in np.linspace(1,0,100):
+        colors.append((245/255,39/255,87/255,l))
+    for l in np.linspace(0,1,100):
+        colors.append((24/255,196/255,93/255,l))
+    cm = LinearSegmentedColormap.from_list("shap", colors)
+    heatmap = rgba_to_rgb(cm(heatmap))
+    
+    if framework != "darknet":
+        origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
+    origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
+    heatmap = heatmap * 255
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+    compose = heatmap * 0.5 + origin_img * 0.5
+    cv2.imwrite(img_savepath, compose)
     
 def convert_ig_image(heatmap, origin_img):
     positive = np.clip(heatmap, 0, 1)
@@ -197,4 +222,3 @@ def compute_threshold_by_top_percentage(attributions, percentage=60, plot_distri
     if plot_distribution:
         raise NotImplementedError 
     return threshold
-

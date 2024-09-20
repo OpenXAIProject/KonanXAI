@@ -1,5 +1,5 @@
 import os
-from KonanXAI.utils.heatmap import get_heatmap, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
+from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -26,7 +26,6 @@ class Project(Configuration):
         Configuration.__init__(self, config_path)
     
     def train(self):
-        set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         model = self.make_model(num_classes= self.dataset.classes)
         for name, module in model.named_modules():
@@ -76,6 +75,8 @@ class Project(Configuration):
                 get_ig_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "lime" == self.algorithm_name:
                 get_lime_image(heatmap, img_save_path)
+            elif "kernelshap" == self.algorithm_name:
+                get_kernelshap_image(origin_img, heatmap, img_save_path, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             
@@ -85,8 +86,11 @@ class Project(Configuration):
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
-        
-        
+        if self.config.get('seed') != None:
+            set_seed(self.config['seed'])
+        else:
+            set_seed(777)
+            
         if self.project_type == "explain":
             self.explain()
         elif self.project_type == "train":

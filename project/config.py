@@ -1,6 +1,7 @@
 import yaml
 import os, sys
 from KonanXAI.attribution.integrated_gradient import IG
+from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
@@ -85,6 +86,9 @@ class Configuration:
             self._ig_parser()
         elif self.algorithm_name == "lime":
             self._lime_parser()
+        elif self.algorithm_name == "kernelshap":
+            self._kernelshap_parser()    
+            
     def _gradcam_parser(self):
         self.config['target_layer'] = self.explains['target_layer']
         self.config['algorithm'] = self.algorithm_name
@@ -111,6 +115,12 @@ class Configuration:
         self.config['positive_only'] = self.explains['positive_only']
         self.config['hide_rest'] = self.explains['hide_rest']
         
+    def _kernelshap_parser(self):
+        self.config['algorithm'] = self.algorithm_name
+        self.config['segments'] = self.explains['segments']
+        self.config['seed'] = self.explains['seed']
+        self.config['nsamples'] = self.explains['nsamples']
+    
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
         projects = ['train','explain']
@@ -124,7 +134,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap']
         if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -145,6 +155,8 @@ class Configuration:
                 self.algorithm = IG
             elif self.algorithm_name == "lime":
                 self.algorithm = LimeImage
+            elif self.algorithm_name == "kernelshap":
+                self.algorithm = KernelShap
         
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
