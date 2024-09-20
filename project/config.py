@@ -34,7 +34,6 @@ class Configuration:
         self._public_check_config()
         if self.project_type == 'explain':
             self._explain_parser()
-            self._explain_algorithm_parser()
             self._explain_check_config()
         elif self.project_type == 'train':
             self._train_parser()
@@ -55,71 +54,95 @@ class Configuration:
         self.data_type = self.config['head']['data_type']
         
     def _train_parser(self):
-        self.epoch = self.config['train']['epoch']
-        self.learning_rate = self.config['train']['learning_rate']
-        self.batch_size = self.config['train']['batch_size']
-        self.optimizer = self.config['train']['optimizer'].lower()
-        self.loss_function = self.config['train']['loss_function'].lower()
-        self.save_step = self.config['train']['save_step']
-        self.improvement_algorithm = self.config['train']['improvement_algorithm']
-        self.algorithm_name = self.improvement_algorithm['algorithm'].lower()
-        self.transfer_weights = self.improvement_algorithm['transfer_weights']
-        self.gpu_count = self.improvement_algorithm['gpu_count']
+        lower_parser = ['optimizer', 'loss_function', 'algorithm']
+        for key, value in self.config['train'].items():
+            if isinstance(value, dict):
+                for key_, value_ in self.config['train'][key].items():
+                    if key_ in lower_parser:
+                        key_ = 'algorithm_name' if key_ in 'algorithm' else key_ 
+                        setattr(self, key_, value_.lower())
+                    else:
+                        setattr(self, key_, value_)
+            if key in lower_parser:
+                setattr(self, key, value.lower())
+            else:
+                setattr(self, key, value)
+        
+        # self.epoch = self.config['train']['epoch']
+        # self.learning_rate = self.config['train']['learning_rate']
+        # self.batch_size = self.config['train']['batch_size']
+        # self.optimizer = self.config['train']['optimizer'].lower()
+        # self.loss_function = self.config['train']['loss_function'].lower()
+        # self.save_step = self.config['train']['save_step']
+        # self.improvement_algorithm = self.config['train']['improvement_algorithm']
+        # self.algorithm_name = self.improvement_algorithm['algorithm'].lower()
+        # self.transfer_weights = self.improvement_algorithm['transfer_weights']
+        # self.gpu_count = self.improvement_algorithm['gpu_count']
         
     def _explain_parser(self):
         self.explains = self.config['explain']
         self.model_algorithm = self.explains['model_algorithm'].lower()
         self.algorithm_name = self.explains['algorithm'].lower()
-        
-        
-    def _explain_algorithm_parser(self):
-        cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
-        lrps = ['LRP', 'LRPYolo']
         self.config = {}
-        if self.algorithm_name in [cam.lower() for cam in cams]:
-            self._gradcam_parser()
+        lower_parser = ['rule','algorithm']
+        for key, value in self.explains.items():
+            if key in lower_parser:
+                self.config[key] = value.lower()
+            else:
+                self.config[key] = value
         
-        elif self.algorithm_name in [lrp.lower() for lrp in lrps]:
-            self._lrp_parser()
+    # def _explain_algorithm_parser(self):
+    #     self.config = {}
+    #     lower_parser = ['rule','algorithm']
+    #     for key, value in self.explains.items():
+    #         if key in lower_parser:
+    #             self.config[key] = value.lower()
+    #         else:
+    #             self.config[key] = value
+    #     if self.algorithm_name in [cam.lower() for cam in cams]:
+    #         self._gradcam_parser()
+        
+    #     elif self.algorithm_name in [lrp.lower() for lrp in lrps]:
+    #         self._lrp_parser()
             
-        elif self.algorithm_name == "ig":
-            self._ig_parser()
-        elif self.algorithm_name == "lime":
-            self._lime_parser()
-        elif self.algorithm_name == "kernelshap":
-            self._kernelshap_parser()    
+    #     elif self.algorithm_name == "ig":
+    #         self._ig_parser()
+    #     elif self.algorithm_name == "lime":
+    #         self._lime_parser()
+    #     elif self.algorithm_name == "kernelshap":
+    #         self._kernelshap_parser()    
             
-    def _gradcam_parser(self):
-        self.config['target_layer'] = self.explains['target_layer']
-        self.config['algorithm'] = self.algorithm_name
+    # def _gradcam_parser(self):
+    #     self.config['target_layer'] = self.explains['target_layer']
+    #     self.config['algorithm'] = self.algorithm_name
     
-    def _lrp_parser(self):
-        self.config['algorithm'] = self.algorithm_name
-        self.config['rule'] = self.explains['rule'].lower()
-        if self.config['rule'] == "alphabeta":
-            self.config['alpha'] = self.explains['alpha']
-        self.config['yaml_path'] = self.cfg_path
+    # def _lrp_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['rule'] = self.explains['rule'].lower()
+    #     if self.config['rule'] == "alphabeta":
+    #         self.config['alpha'] = self.explains['alpha']
+    #     self.config['yaml_path'] = self.cfg_path
     
-    def _ig_parser(self):
-        self.config['algorithm'] = self.algorithm_name
-        self.config['random_baseline'] = self.explains['random_baseline']
-        self.config['random_iter'] = self.explains['random_iter']
-        self.config['gradient_step'] = self.explains['gradient_step']
+    # def _ig_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['random_baseline'] = self.explains['random_baseline']
+    #     self.config['random_iter'] = self.explains['random_iter']
+    #     self.config['gradient_step'] = self.explains['gradient_step']
         
-    def _lime_parser(self):
-        self.config['algorithm'] = self.algorithm_name
-        self.config['segments'] = self.explains['segments']
-        self.config['seed'] = self.explains['seed']
-        self.config['num_samples'] = self.explains['num_samples']
-        self.config['num_features'] = self.explains['num_features']
-        self.config['positive_only'] = self.explains['positive_only']
-        self.config['hide_rest'] = self.explains['hide_rest']
+    # def _lime_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['segments'] = self.explains['segments']
+    #     self.config['seed'] = self.explains['seed']
+    #     self.config['num_samples'] = self.explains['num_samples']
+    #     self.config['num_features'] = self.explains['num_features']
+    #     self.config['positive_only'] = self.explains['positive_only']
+    #     self.config['hide_rest'] = self.explains['hide_rest']
         
-    def _kernelshap_parser(self):
-        self.config['algorithm'] = self.algorithm_name
-        self.config['segments'] = self.explains['segments']
-        self.config['seed'] = self.explains['seed']
-        self.config['nsamples'] = self.explains['nsamples']
+    # def _kernelshap_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['segments'] = self.explains['segments']
+    #     self.config['seed'] = self.explains['seed']
+    #     self.config['nsamples'] = self.explains['nsamples']
     
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']

@@ -112,7 +112,7 @@ class Trainer:
             avg = 0
             i = 0
             print(f"[TRAIN] STEP {epoch + 1} / {self.epoch}")
-            for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
+            for (x_batch, y_batch, custom, _, _) in tqdm(self.datasets):
                 x, y, c = self._set_device(x_batch, y_batch, custom)
                 # x = x_batch.to(self.device)
                 # y = y_batch.to(self.device)
@@ -141,7 +141,7 @@ class Trainer:
         self.datasets.set_fit_size()
         acc = 0
         top5_error = 0
-        for (x_batch, y_batch, custom, _) in tqdm(self.datasets):
+        for (x_batch, y_batch, custom, _, _) in tqdm(self.datasets):
             x = x_batch.to(self.device)
             y = y_batch.to(self.device)
             pred = self.model(x)
