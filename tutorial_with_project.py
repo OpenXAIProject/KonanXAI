@@ -5,7 +5,7 @@ from project.make_project import Project
 # config_path = './project/example_eigencam/config_darknet_eigencam.yaml'
 # config_path = './project/example_lrp/config_efficientnet_lrp.yaml'
 # config_path = './project/example_gradcam/config_efficientnet_gradcam.yaml'
-# config_path = './project/example_lrp/config_resnet_lrp.yaml'
+# config_path = './project/example_lrp/config_resnet_lrp_epsilon.yaml'
 # config_path = './project/example_gradcam/config_resnet_gradcam.yaml'
 # config_path = './project/example_gradcampp/config_resnet_gradcampp.yaml'
 # config_path = './project/example_guided_gradcam/config_resnet_guidedgradcam.yaml'

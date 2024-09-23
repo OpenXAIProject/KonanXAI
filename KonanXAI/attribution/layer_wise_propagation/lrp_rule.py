@@ -192,7 +192,7 @@ class ConvNd(LRPModule):
             _, _, H, W = R[str(key)].size()
         else:
             rel = R
-            _, _, H, W = R[str(key)].size()
+            _, _, H, W = R.size()
 
         Hnew = (H - 1) * self.module.stride[0] - 2*self.module.padding[0] +\
                         self.module.dilation[0]*(self.module.kernel_size[0]-1) +\
@@ -977,29 +977,15 @@ class Dropout(LRPModule):
 class AdaptiveAvgPoolNd(LRPModule):
     
     def alphabeta(self, R, rule, alpha):
-        beta = 1 - alpha
-
-        print(R.sum())
-        X = self.module.X
-        Z = self.forward(X)
-
-        Z_pos = Z.clamp(min=0)
-        Z_neg = Z.clamp(max=0)
-    
-        S_pos = safe_divide(R, Z_pos)
-        S_neg = safe_divide(R, Z_neg)
-
-        C_pos = X * self.gradprop(Z_pos, X, S_pos)[0]
-        C_neg = X * self.gradprop(Z_neg, X, S_neg)[0]
-        
-    
-
-        activator = self.forward(C_pos)
-        inhibitor = self.forward(C_neg)
-
-        relevance_out = alpha * activator + beta * inhibitor
-
-        return relevance_out
+        X = self.module.X.detach().clone()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
+        X.requires_grad = True
+        Z = self.forward(X)  
+        S = safe_divide(R, Z, alpha)
+        C = self.gradprop(Z, X, S)[0]
+        relevance = X * C
+        return relevance
     
 class MaxpoolNd(LRPModule):
     def epsilon(self, R, rule, alpha):
