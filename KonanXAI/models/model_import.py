@@ -10,7 +10,7 @@ import os
 # import 경로만 모아놔야 하는데..
 from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
-
+__all__ = ["model_import"]
 #from KonanXAI._core import darknet
 
 # torch/hub로 torchvision 모델 불러오려고 하니 hubconf.py 없어서 에러 생김
@@ -45,8 +45,8 @@ def load_weight():
 #     #return folder_tree
 #     pass
 
-def torch_local_model_load(local_path, model_name, weight_path):
-    local = TorchLocal(local_path, model_name)
+def torch_local_model_load(local_path, model_name, weight_path, num_classes, model_algorithm):
+    local = TorchLocal(local_path, model_name, num_classes, model_algorithm)
     model = local._load(weight_path)
     #_get_file_tree(local_path)
     return model
@@ -119,7 +119,7 @@ def torch_model_load(
 
     elif source == 'local':
         local_path = repo_or_dir
-        model = torch_local_model_load(local_path, model_name, weight_path)
+        model = torch_local_model_load(local_path, model_name, weight_path, num_classes, model_algorithm)
         return model
 
 
@@ -211,8 +211,5 @@ def model_import(
                                     model_name = model_name, cache_or_local = cache_or_local,
                                     weight_path = weight_path,
                                     cfg_path = cfg_path)
-
-
-
 
     return model
