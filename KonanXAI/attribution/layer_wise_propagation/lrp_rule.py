@@ -75,16 +75,36 @@ class LRPModule:
     
         if len(self.module.X.shape) == 3:
             self.module.X = self.module.X.unsqueeze(0)
-        Z = self.forward(self.module.X)
-        S = safe_divide(R, Z)
-        C = self.gradprop(Z, self.module.X, S)[0]
+        x_pos = self.module.X.clamp(min=0)
+        x_neg = self.module.X.clamp(max=0)
+        w_pos = self.module.weight.clamp(min=0)
+        w_neg = self.module.weight.clamp(max=0)
 
+        def forward(x_pos, x_neg, w_pos, w_neg):
+            z1 = self.signed_forward(x_pos, w_pos)
+            z2 = self.signed_forward(x_neg, w_neg)
+
+            s1 = safe_divide(R, z1)
+            s2 = safe_divide(R, z2)
+
+            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
+            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
+            return c1 + c2
+
+        outputs = []
         if torch.is_tensor(self.module.X) == False:
-            outputs = []
-            outputs.append(self.module.X[0] * C)
-            outputs.append(self.module.X[1] * C)
+            for i in range(len(self.module.X)):
+                activator = forward(x_pos[i], x_neg[i], w_pos[i], w_neg[i])
+                inhibitor = forward(x_pos[i], x_neg[i], w_neg[i], w_pos[i])
+                relevance_out = alpha * activator + beta * inhibitor
+                outputs.append(relevance_out)
         else:
-            outputs = self.module.X * (C)
+            activator = forward(x_pos, x_neg, w_pos, w_neg)
+            inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
+
+            relevance_out = alpha * activator + beta * inhibitor
+            outputs = relevance_out
+
         return outputs
     
     # Abstract
@@ -154,13 +174,7 @@ class ConvNd(LRPModule):
                     padding = self.module.padding, groups = self.module.groups,)
         return z
     
-    # backward 필요한가?
-    # def signed_backward(self, x, weight):
-    #     conv_bwd = {nn.Conv1d: F.conv_transpose1d, nn.Conv2d: F.conv_transpose2d, nn.Conv3d: F.conv_transpose3d}[type(self.module)]
-    #     cp = conv_bwd(s, weight=w, bias=None, padding=self.module.padding, 
-    #                         output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
-    #                         dilation=self.module.dilation, groups=self.module.groups,)
-        
+
     
     def alphabeta(self, R, rule, alpha):
         beta = 1 - alpha
@@ -170,53 +184,59 @@ class ConvNd(LRPModule):
         w_pos = self.module.weight.clamp(min=0)
         w_neg = self.module.weight.clamp(max=0)
 
+    
+        
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            rel = rel.detach()
+            _, _, H, W = R[str(key)].size()
+        else:
+            rel = R
+            _, _, H, W = R.size()
+
+        Hnew = (H - 1) * self.module.stride[0] - 2*self.module.padding[0] +\
+                        self.module.dilation[0]*(self.module.kernel_size[0]-1) +\
+                        self.module.output_padding[0]+1
+        Wnew = (W - 1) * self.module.stride[1] - 2*self.module.padding[1] +\
+                        self.module.dilation[1]*(self.module.kernel_size[1]-1) +\
+                        self.module.output_padding[1]+1
+        _, _, Hin, Win = self.module.X.size()
+
         def forward(x_pos, x_neg, w_pos, w_neg):
             z1 = self.signed_forward(x_pos, w_pos)
             z2 = self.signed_forward(x_neg, w_neg)
 
-            s1 = safe_divide(R, z1)
-            s2 = safe_divide(R, z2)
+            s1 = safe_divide(rel, z1)
+            s2 = safe_divide(rel, z2)
 
-            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
-            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
+            conv_bwd = {nn.Conv1d: F.conv_transpose1d, nn.Conv2d: F.conv_transpose2d, nn.Conv3d: F.conv_transpose3d}[type(self.module)]
+        
+            c1 = conv_bwd(s1, weight=w_pos, bias=None, padding=self.module.padding, 
+                            output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
+                            dilation=self.module.dilation, groups=self.module.groups,)
+            c2 = conv_bwd(s2, weight=w_neg, bias=None, padding=self.module.padding, 
+                            output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
+                            dilation=self.module.dilation, groups=self.module.groups,)
+            c1 = c1 * x_pos
+            c2 = c2 * x_neg
             return c1 + c2
+
 
         activator = forward(x_pos, x_neg, w_pos, w_neg)
         inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
 
         relevance_out = alpha * activator + beta * inhibitor
-
-        return relevance_out
+        if isinstance(R, dict):
+            R[str(key)] = relevance_out
+        
+        return R if isinstance(R, dict) else relevance_out
     
 class Linear(LRPModule):
     def signed_forward(self, x, weight):
         z = F.linear(x, weight)
         return z
     
-    def alphabeta(self, R, rule, alpha):
-        beta = 1 - alpha
-        x_pos = self.module.X.clamp(min=0)
-        x_neg = self.module.X.clamp(max=0)
-        w_pos = self.module.weight.clamp(min=0)
-        w_neg = self.module.weight.clamp(max=0)
 
-        def forward(x_pos, x_neg, w_pos, w_neg):
-            z1 = self.signed_forward(x_pos, w_pos)
-            z2 = self.signed_forward(x_neg, w_neg)
-
-            s1 = safe_divide(R, z1)
-            s2 = safe_divide(R, z2)
-
-            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
-            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
-            return c1 + c2
-
-        activator = forward(x_pos, x_neg, w_pos, w_neg)
-        inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
-
-        relevance_out = alpha * activator + beta * inhibitor
-
-        return relevance_out
 
 class Sequential(LRPModule):
     def __init__(self, modules):
@@ -286,36 +306,11 @@ class Sequential(LRPModule):
         return R if isinstance(R, dict) else R.detach()
     
     def alphabeta(self, R, rule, alpha):
-        i = 0
-        
-        for module in reversed(self.modules):
-            if isinstance(R, (list, tuple)):
-                s = None
-                for r in R:
-                    if s is None:
-                        s = torch.sum(r)
-                    else:
-                        s = torch.add(s, torch.sum(r))
-                # print("Input Relevance :", s)
-            else:
-                pass
-                # print("Input Relevance :", torch.sum(R))
+        for index, module in enumerate(reversed(self.modules)):
 
             R = module.backprop(R, rule, alpha)
-
-            if isinstance(R, (list, tuple)):
-                s = None
-                for r in R:
-                    if s is None:
-                        s = torch.sum(r)
-                    else:
-                        s = torch.add(s, torch.sum(r))
-                # print("Output Relevance :", s)
-            else:
-                pass
-                # print("Output Relevance :", torch.sum(R))
         
-        return R.detach()
+        return R if isinstance(R, dict) else R.detach()
 
     
 class ReLU(LRPModule):
@@ -341,6 +336,8 @@ class ReLU(LRPModule):
 
         return outputs
 
+    # 일단 이걸로 돌려보고 LRPModule코드로도 돌려보고 2개로 해야할 듯
+    # 그냥 identity로 backprop하면 소실이 좀 줄어들거 같은데..
     def alphabeta(self, R, rule, alpha):
         return R
 class SiLU(LRPModule):
@@ -478,31 +475,48 @@ class Add(LRPModule):
         return self.forward(*x)
     
     def alphabeta(self, R, rule, alpha):
+        beta = 1 - alpha
         for i, m in enumerate(self.modules):
+            if i == 0 and m[-1].module._get_name().lower() == 'silu':
+                layer_index = m[-1].idx
+                self.X[0] = m[-1].module.Y[layer_index]
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
-                    self.X[i] = m[-1].X.detach()
+                    handle_x1 = None
+                    for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
+                        if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
+                            jump_idx = self.modules[-1].modules[0].act_idx
+                            handle_x1 = self.modules[-1].modules[0].handle[jump_idx].id
+                            self.modules[-1].modules[0].act_idx -= 1
+                            break
+                    if handle_x1 == None:
+                        handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                        self.modules[-1].modules[0].act_idx -= 1
+                    self.X[i] = m[-1].X[handle_x1].detach()
+                    break
+            elif self.X[-1] is not None:
+                if len(self.modules[-1].modules[0].handle) == 0:
+                    break
+                else:
+                    handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                    self.modules[-1].modules[0].act_idx -= 1
                     break
         for x in self.X:
             x.requires_grad_(True)
 
         R = R.squeeze()
-
-        X = self.X
         Z = self.forward(self.X)
-        Z_pos = Z.clamp(min=0)
-        Z_neg = Z.clamp(max=0)
-            
-        S_1 = safe_divide(R, Z_pos)
-        S_2 = safe_divide(R, Z_neg)
-
-        C_11 = X[0] * self.gradprop(Z_pos, X[0], S_1)[0]
-        C_21 = X[1] * self.gradprop(Z_pos, X[1], S_1)[0]
-        C_12 = X[0] * self.gradprop(Z_neg, X[0], S_2)[0]
-        C_22 = X[1] * self.gradprop(Z_neg, X[1], S_2)[0]
+        S = safe_divide(R, Z)
+        C = self.gradprop(Z, self.X, S)[0]
+        if torch.is_tensor(self.X) == False:
+            outputs = []
+            outputs.append(self.X[0] * C)
+            outputs.append(self.X[1] * C)
+        else:
+            outputs = self.X * (C)
+        R = outputs
 
         mR = ()
-
         for i, m in enumerate(self.modules):
             mR = mR + (m.backprop(R[i], rule, alpha), )
 
@@ -574,28 +588,67 @@ class Mul(LRPModule):
         return self.forward(*x)
     
     def alphabeta(self, R, rule, alpha):
+        beta = 1 - alpha
         for i, m in enumerate(self.modules):
+            if i == 0 and m[-1].module._get_name().lower() == 'silu':
+                layer_index = m[-1].idx
+                self.X[0] = m[-1].module.Y[layer_index]
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
-                    self.X[i] = m[-1].X.detach()
+                    handle_x1 = None
+                    for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
+                        if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
+                            jump_idx = self.modules[-1].modules[0].act_idx
+                            handle_x1 = self.modules[-1].modules[0].handle[jump_idx].id
+                            self.modules[-1].modules[0].act_idx -= 1
+                            break
+                    if handle_x1 == None:
+                        handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                        self.modules[-1].modules[0].act_idx -= 1
+                    self.X[i] = m[-1].X[handle_x1].detach()
+                    break
+            elif self.X[-1] is not None:
+                if len(self.modules[-1].modules[0].handle) == 0:
+                    break
+                else:
+                    handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
+                    self.modules[-1].modules[0].act_idx -= 1
                     break
         for x in self.X:
             x.requires_grad_(True)
 
         R = R.squeeze()
 
-        X = self.X
-        Z = self.forward(self.X)
-        Z_pos = Z.clamp(min=0)
-        Z_neg = Z.clamp(max=0)
-            
-        S_1 = safe_divide(R, Z_pos)
-        S_2 = safe_divide(R, Z_neg)
+        x_pos = self.module.X.clamp(min=0)
+        x_neg = self.module.X.clamp(max=0)
+        w_pos = self.module.weight.clamp(min=0)
+        w_neg = self.module.weight.clamp(max=0)
 
-        C_11 = X[0] * self.gradprop(Z_pos, X[0], S_1)[0]
-        C_21 = X[1] * self.gradprop(Z_pos, X[1], S_1)[0]
-        C_12 = X[0] * self.gradprop(Z_neg, X[0], S_2)[0]
-        C_22 = X[1] * self.gradprop(Z_neg, X[1], S_2)[0]
+        def forward(x_pos, x_neg, w_pos, w_neg):
+            z1 = self.signed_forward(x_pos, w_pos)
+            z2 = self.signed_forward(x_neg, w_neg)
+
+            s1 = safe_divide(R, z1)
+            s2 = safe_divide(R, z2)
+
+            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
+            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
+            return c1 + c2
+
+        outputs = []
+        if torch.is_tensor(self.module.X) == False:
+            for i in range(len(self.module.X)):
+                activator = forward(x_pos[i], x_neg[i], w_pos[i], w_neg[i])
+                inhibitor = forward(x_pos[i], x_neg[i], w_neg[i], w_pos[i])
+                relevance_out = alpha * activator + beta * inhibitor
+                outputs.append(relevance_out)
+        else:
+            activator = forward(x_pos, x_neg, w_pos, w_neg)
+            inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
+
+            relevance_out = alpha * activator + beta * inhibitor
+            outputs = relevance_out
+
 
         mR = ()
 
@@ -638,14 +691,26 @@ class Clone(LRPModule):
     
     def alphabeta(self, R, rule, alpha):
         Z = []
-        X = self.origin.X.detach()
+        if isinstance(self.origin, tuple):
+            self.origin = (self.origin[0].X.detach() + self.origin[1].X.detach())
+        if isinstance(self.origin, nn.modules.pooling._MaxPoolNd):
+            X = self.origin.Y.unsqueeze(0).detach()
+        elif len(R)>2:
+            X = self.origin.Y.detach()
+        else:
+            if self.idx != None:
+                X = self.origin.X[self.idx].detach()
+            else:
+                X = self.origin.X[-1].detach()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
         X.requires_grad = True
         for _ in range(self.num):
             Z.append(X)
         S = [safe_divide(r, z) for r, z in zip(R, Z)]
         C = self.gradprop(Z, X, S)[0]
-        R = X * C
         
+        R = X * C
         return R
     
 class Detect(LRPModule):
@@ -663,6 +728,15 @@ class Detect(LRPModule):
             rel = self.module[index].epsilon(relevance, rule, alpha)
             res[key] = rel
         return dict(sorted(res.items(),reverse=True))
+    
+    def alphabeta(self, R, rule, alpha):
+        res = {}
+        for index, (key, relevance) in enumerate(R.items()):
+            relevance = torch.cat([relevance[..., i] for i in range(relevance.size(-1))],dim=1)
+            rel = self.module[index].alphabeta(relevance, rule, alpha)
+            res[key] = rel
+        return dict(sorted(res.items(),reverse=True))
+
     
 class Cat(LRPModule):
     def __init__(self, *modules, dim = 1):
@@ -713,6 +787,46 @@ class Cat(LRPModule):
         self.X.clear()
         return mR
     
+    def alphabeta(self, R, rule, alpha):
+        for v in self.module.modules:
+            if hasattr(v.modules[-1],"modules"):
+                if hasattr(v.modules[-1].modules[-1], "idx"):
+                    index = v.modules[-1].modules[-1].idx
+                    self.X.append(v.modules[-1].modules[-1].module.Y[index].unsqueeze(0))
+                else:
+                    input_handle = v[-1][-1].modules[-1].modules[0].handle[v[-1][-1].modules[-1].modules[0].act_idx].id
+                    input_tensor = v[-1][-1].modules[-1].modules[0].X[input_handle]
+                    seq_tensor = v.modules[-1].modules[-1].modules[0].forward(input_tensor)
+                    add_tensor = seq_tensor+input_tensor
+                    self.X.append(add_tensor)
+            elif hasattr(v.modules[-1],"module"):
+                if hasattr(v.modules[-1],"idx"):
+                    index = v.modules[-1].idx
+                    self.X.append(v.modules[-1].module.Y[index].unsqueeze(0))
+                elif isinstance(v.modules[-1],MaxpoolNd):
+                    self.X.append(v.modules[-1].module.forward(self.X[-1]))
+                else:
+                    self.X.append(v.modules[-1].module.Y.unsqueeze(0))
+            
+        Z = self.forward(self.X, self.dim)
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            S = safe_divide(rel, Z)
+        else:    
+            S = safe_divide(R, Z)
+        C = self.gradprop(Z, self.X, S)
+
+        out = []
+        for x, c in zip(self.X, C):
+            out.append(x * c)
+        mR = ()
+        for i, m in enumerate(self.modules):
+            mR = mR + (m.backprop(out[i], rule, alpha), )
+        self.X.clear()
+        return mR
+
+
+
 class Route(LRPModule):
     def __init__(self, cat0, cat1):
         self.cat0 = cat0
@@ -723,13 +837,20 @@ class Route(LRPModule):
         rel[str(self.cat0)] = R[:,:split,:,:]
         rel[str(self.cat1)] = R[:,split:,:,:]
         return rel
+    
+    def alphabeta(self, R, rule, alpha):
+        split = R.shape[1] // 2
+        rel = {}
+        rel[str(self.cat0)] = R[:,:split,:,:]
+        rel[str(self.cat1)] = R[:,split:,:,:]
+        return rel
   
 class Upsample(LRPModule):
-      def __init__(self, param:dict):
-          self.param = param
-          self.module = nn.Upsample(**param)
-          pass
-      def epsilon(self, R, rule, alpha):
+    def __init__(self, param:dict):
+        self.param = param
+        self.module = nn.Upsample(**param)
+        pass
+    def epsilon(self, R, rule, alpha):
         invert_upsample = {
             1: F.avg_pool1d,
             2: F.avg_pool2d,
@@ -746,6 +867,26 @@ class Upsample(LRPModule):
         R['upsample'] = relevance
         del R[key]
         return R
+    
+    def alphabeta(self, R, rule, alpha):
+        invert_upsample = {
+            1: F.avg_pool1d,
+            2: F.avg_pool2d,
+            3: F.avg_pool3d}[2]
+        if isinstance(self.param['scale_factor'], float):
+            ks = int(self.param['scale_factor'])
+        if isinstance(R, dict):
+            key, rel = next(iter(R.items()))
+            inverted = invert_upsample(R[str(key)], kernel_size = ks, stride = ks)
+        else:
+            inverted = invert_upsample(R, kernel_size = ks, stride = ks)
+        inverted *= ks**2
+        relevance = inverted
+        R['upsample'] = relevance
+        del R[key]
+        return R
+      
+
 class StochasticDepth(LRPModule):
     def __init__(self, prev_module, p, mod, training):
         self.X = None
@@ -768,6 +909,11 @@ class StochasticDepth(LRPModule):
         return R
     
     def alphabeta(self, R, rule, alpha):
+        R = R.reshape(self.X.shape)
+        scaled_out = self.X * self.p
+        denominator = scaled_out + 1e-9 * torch.sign(scaled_out)
+        relevance_ratio = R / denominator
+        R = self.Y * relevance_ratio
         R = R.reshape(self.X.shape)
         return R
 class Flatten(LRPModule):
@@ -829,34 +975,31 @@ class Dropout(LRPModule):
         return R
 
 class AdaptiveAvgPoolNd(LRPModule):
-    pass
-    # def alphabeta(self, R, rule, alpha):
-    #     beta = 1 - alpha
-
-    #     print(R.sum())
-    #     X = self.module.X
-    #     Z = self.forward(X)
-
-    #     Z_pos = Z.clamp(min=0)
-    #     Z_neg = Z.clamp(max=0)
     
-    #     S_pos = safe_divide(R, Z_pos)
-    #     S_neg = safe_divide(R, Z_neg)
-
-    #     C_pos = X * self.gradprop(Z_pos, X, S_pos)[0]
-    #     C_neg = X * self.gradprop(Z_neg, X, S_neg)[0]
-        
-    
-
-    #     activator = self.forward(C_pos)
-    #     inhibitor = self.forward(C_neg)
-
-    #     relevance_out = alpha * activator + beta * inhibitor
-
-    #     return relevance_out
+    def alphabeta(self, R, rule, alpha):
+        X = self.module.X.detach().clone()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
+        X.requires_grad = True
+        Z = self.forward(X)  
+        S = safe_divide(R, Z, alpha)
+        C = self.gradprop(Z, X, S)[0]
+        relevance = X * C
+        return relevance
     
 class MaxpoolNd(LRPModule):
     def epsilon(self, R, rule, alpha):
+        X = self.module.X.detach().clone()
+        if len(X.shape) == 3:
+            X = X.unsqueeze(0)
+        X.requires_grad = True
+        Z = self.forward(X)  
+        S = safe_divide(R, Z, alpha)
+        C = self.gradprop(Z, X, S)[0]
+        relevance = X * C
+        return relevance
+    
+    def alphabeta(self, R, rule, alpha):
         X = self.module.X.detach().clone()
         if len(X.shape) == 3:
             X = X.unsqueeze(0)
