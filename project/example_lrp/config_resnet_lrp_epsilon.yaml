@@ -24,8 +24,8 @@ head:
   data_resize: [224,224]
   model_name: resnet50
   framework: torch
-  source: torchvision
-  repo_or_dir: ~
+  source: local
+  repo_or_dir: "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0"
   cache_or_local: cache
   data_type: CUSTOM
   

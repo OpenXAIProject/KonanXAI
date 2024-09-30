@@ -28,3 +28,5 @@ x86
 /xai_darknet
 /yolov5
 /checkpoint
+/build
+/konan_xai.egg-info

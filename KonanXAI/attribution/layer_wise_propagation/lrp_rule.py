@@ -91,7 +91,7 @@ class LRPModule:
     def backprop(self, R, rule, alpha):
         if rule == 'epsilon':
             return self.epsilon(R, rule, alpha)
-        elif rule == 'AlphaBeta':
+        elif rule == 'alphabeta':
             return self.alphabeta(R, rule, alpha)
         
     def __repr__(self):

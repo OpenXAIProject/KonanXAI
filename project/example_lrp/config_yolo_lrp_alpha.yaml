@@ -18,19 +18,21 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./resnet50-0676ba61.pth"
-  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
-  cfg_path: ~
+  weight_path: "./yolov5s.pt"
+  cfg_path: "./yolov5s.yaml"
   data_path: "./data"
-  data_resize: [224,224]
-  model_name: resnet50
+  data_resize: [640,640]
+  model_name: yolov5s
   framework: torch
-  source: local
-  repo_or_dir: "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0"
+  source: github
+  repo_or_dir: ultralytics/yolov5
   cache_or_local: cache
   data_type: CUSTOM
 
 explain:
-  algorithm: GradCAM
+  algorithm: LRPYolo
   model_algorithm: Default
-  target_layer: [layer4,'2',relu]
+  rule: Alphabeta
+  alpha: 2
+  
+

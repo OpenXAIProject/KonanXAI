@@ -4,8 +4,8 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import darknet
-
-
+from pathlib import Path
+import importlib.util
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 
 
@@ -130,9 +130,10 @@ class TorchGit(Torch):
 
 
 class TorchLocal(Torch):
-    def __init__(self, repo_or_dir, model_name):
+    def __init__(self, repo_or_dir, model_name, num_classes, model_algorithm='default'):
         Torch.__init__(self, repo_or_dir, model_name)
-
+        self.num_classes = num_classes
+        self.model_algorithm = model_algorithm
     def _load(self, weight_path):
         print(self.path)
         
@@ -143,11 +144,19 @@ class TorchLocal(Torch):
         # 아래는 ultralytics/yolov5 리포지토리 코드
         # hubconf 공통으로 작성했을 때 읽어들이는 코드 필요
         if self.check_hubconf == True:
-            import hubconf
-            model = hubconf._create(self.model_name)
-            model = torch.load(weight_path)['model']
-            model.float().fuse().eval()
+            # import hubconf
+            # model = hubconf._create(self.model_name)
+            if self.model_name in "yolo":
+                model = torch.load(weight_path)['model']
+                model.float().fuse().eval()
+            else:
+                model = torch.hub.load(repo_or_dir = self.repo_or_dir, source = 'local', model= self.model_name, num_classes = self.num_classes)
+                pt = torch.load(weight_path)
+                model.load_state_dict(pt)
+                model.float().eval()
             model.model_name = self.model_name
+            model.model_algorithm = self.model_algorithm
+            model.output_size = self.num_classes
             return model
         # hubconf 규약대로 작성한 경우 어떻게 로드할 지 작성해야    
         
@@ -350,12 +359,3 @@ class Ultralytics(TorchLocal):
     #     from models.common import C3, Conv, Bottleneck, Concat, SPPF
     #     from models.experimental import Ensemble
     #     from models.experimental import Ensemble
-
-
-
-            
-
-    
-        
-
-

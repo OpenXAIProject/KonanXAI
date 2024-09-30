@@ -19,18 +19,19 @@ head:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
-  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
   cfg_path: ~
   data_path: "./data"
   data_resize: [224,224]
   model_name: resnet50
   framework: torch
-  source: local
-  repo_or_dir: "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0"
+  source: torchvision
+  repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
-
+  
 explain:
-  algorithm: GradCAM
+  algorithm: kernelshap
   model_algorithm: Default
-  target_layer: [layer4,'2',relu]
+  segments: {algo_type: slic, n_segments: 50, compactnes: 30, sigma: 3}
+  seed: 415
+  nsamples: 100

@@ -1,11 +1,13 @@
 import yaml
 import os, sys
 from KonanXAI.attribution.integrated_gradient import IG
+from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM, Gradient, GradientXInput, SmoothGrad
 from KonanXAI.explainer.counterfactual import Wachter, Prototype
 from KonanXAI.explainer.clustering import SpectralClustering
+from KonanXAI.attribution.lime_image import LimeImage
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
@@ -34,7 +36,6 @@ class Configuration:
         self._public_check_config()
         if self.project_type == 'explain':
             self._explain_parser()
-            self._explain_algorithm_parser()
             self._explain_check_config()
         elif self.project_type == 'train':
             self._train_parser()
@@ -59,79 +60,96 @@ class Configuration:
         self.data_type = self.config['head']['data_type']
         
     def _train_parser(self):
-        self.epoch = self.config['train']['epoch']
-        self.learning_rate = self.config['train']['learning_rate']
-        self.batch_size = self.config['train']['batch_size']
-        self.optimizer = self.config['train']['optimizer'].lower()
-        self.loss_function = self.config['train']['loss_function'].lower()
-        self.save_step = self.config['train']['save_step']
-        self.improvement_algorithm = self.config['train']['improvement_algorithm']
-        self.algorithm_name = self.improvement_algorithm['algorithm'].lower()
-        self.transfer_weights = self.improvement_algorithm['transfer_weights']
-        self.gpu_count = self.improvement_algorithm['gpu_count']
+        lower_parser = ['optimizer', 'loss_function', 'algorithm']
+        for key, value in self.config['train'].items():
+            if isinstance(value, dict):
+                for key_, value_ in self.config['train'][key].items():
+                    if key_ in lower_parser:
+                        key_ = 'algorithm_name' if key_ in 'algorithm' else key_ 
+                        setattr(self, key_, value_.lower())
+                    else:
+                        setattr(self, key_, value_)
+            if key in lower_parser:
+                setattr(self, key, value.lower())
+            else:
+                setattr(self, key, value)
+        
+        # self.epoch = self.config['train']['epoch']
+        # self.learning_rate = self.config['train']['learning_rate']
+        # self.batch_size = self.config['train']['batch_size']
+        # self.optimizer = self.config['train']['optimizer'].lower()
+        # self.loss_function = self.config['train']['loss_function'].lower()
+        # self.save_step = self.config['train']['save_step']
+        # self.improvement_algorithm = self.config['train']['improvement_algorithm']
+        # self.algorithm_name = self.improvement_algorithm['algorithm'].lower()
+        # self.transfer_weights = self.improvement_algorithm['transfer_weights']
+        # self.gpu_count = self.improvement_algorithm['gpu_count']
         
     def _explain_parser(self):
         self.explains = self.config['explain']
         self.model_algorithm = self.explains['model_algorithm'].lower()
         self.algorithm_name = self.explains['algorithm'].lower()
-
-    def _explainer_parser(self):
-        self.explainers = self.config['explainer']
-        self.model_algorithm = self.explainers['algorithm'].lower()
-        self.methods = self.explainers['methods'].lower()
-        self.explainer_name = self.explainers['algorithm'].lower()
+        self.config = {}
+        lower_parser = ['rule','algorithm']
+        for key, value in self.explains.items():
+            if key in lower_parser:
+                self.config[key] = value.lower()
+            else:
+                self.config[key] = value
         
+    # def _explain_algorithm_parser(self):
+    #     self.config = {}
+    #     lower_parser = ['rule','algorithm']
+    #     for key, value in self.explains.items():
+    #         if key in lower_parser:
+    #             self.config[key] = value.lower()
+    #         else:
+    #             self.config[key] = value
+    #     if self.algorithm_name in [cam.lower() for cam in cams]:
+    #         self._gradcam_parser()
         
-    def _explain_algorithm_parser(self):
-        cams = ['GradCAM','GradCAMpp',"GuidedGradCAM",'EigenCAM']
-        lrps = ['LRP', 'LRPYolo']
-        grads = ['Gradient', 'InputXGradient']
-        if self.algorithm_name in [cam.lower() for cam in cams]:
-            self._gradcam_parser()
-        
-        elif self.algorithm_name in [lrp.lower() for lrp in lrps]:
-            self._lrp_parser()
+    #     elif self.algorithm_name in [lrp.lower() for lrp in lrps]:
+    #         self._lrp_parser()
             
-        elif self.algorithm_name == "ig":
-            self._ig_parser()
-        
-        elif self.algorithm_name in [grad.lower() for grad in grads]:
-            self._gradient_parser()
-
-        elif self.algorithm_name == 'smoothgrad':
-            self._smoothgrad_parser()
-        
-    def _gradcam_parser(self):
-        self.config = {}
-        self.config['target_layer'] = self.explains['target_layer']
-        self.config['algorithm'] = self.algorithm_name
+    #     elif self.algorithm_name == "ig":
+    #         self._ig_parser()
+    #     elif self.algorithm_name == "lime":
+    #         self._lime_parser()
+    #     elif self.algorithm_name == "kernelshap":
+    #         self._kernelshap_parser()    
+            
+    # def _gradcam_parser(self):
+    #     self.config['target_layer'] = self.explains['target_layer']
+    #     self.config['algorithm'] = self.algorithm_name
     
-    def _lrp_parser(self):
-        self.config = {}
-        self.config['algorithm'] = self.algorithm_name
-        self.config['rule'] = self.explains['rule'].lower()
-        self.config['yaml_path'] = self.cfg_path
+    # def _lrp_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['rule'] = self.explains['rule'].lower()
+    #     if self.config['rule'] == "alphabeta":
+    #         self.config['alpha'] = self.explains['alpha']
+    #     self.config['yaml_path'] = self.cfg_path
     
-    def _ig_parser(self):
-        self.config = {}
-        self.config['algorithm'] = self.algorithm_name
-        self.config['random_baseline'] = self.explains['random_baseline']
-        self.config['random_iter'] = self.explains['random_iter']
-        self.config['gradient_step'] = self.explains['gradient_step']
-    
-    def _gradient_parser(self):
-        self.config = {}
-        self.config['algorithm'] = self.algorithm_name
-        self.config['target_class'] = self.explains['target_class']
-
-    def _smoothgrad_parser(self):
-        self.config = {}
-        self.config['algorithm'] = self.algorithm_name
-        self.config['target_class'] = self.explains['target_class']
-        self.config['std'] = self.explains['std']
-        self.config['noise_level'] = self.explains['noise_level']
-        self.config['sample_size'] = self.explains['sample_size']
+    # def _ig_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['random_baseline'] = self.explains['random_baseline']
+    #     self.config['random_iter'] = self.explains['random_iter']
+    #     self.config['gradient_step'] = self.explains['gradient_step']
         
+    # def _lime_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['segments'] = self.explains['segments']
+    #     self.config['seed'] = self.explains['seed']
+    #     self.config['num_samples'] = self.explains['num_samples']
+    #     self.config['num_features'] = self.explains['num_features']
+    #     self.config['positive_only'] = self.explains['positive_only']
+    #     self.config['hide_rest'] = self.explains['hide_rest']
+        
+    # def _kernelshap_parser(self):
+    #     self.config['algorithm'] = self.algorithm_name
+    #     self.config['segments'] = self.explains['segments']
+    #     self.config['seed'] = self.explains['seed']
+    #     self.config['nsamples'] = self.explains['nsamples']
+    
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
         projects = ['train','explain', 'explainer']
@@ -145,7 +163,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap']
         if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -170,7 +188,10 @@ class Configuration:
                 self.algorithm = GradientXInput
             elif self.algorithm_name == 'smoothgrad':
                 self.algorithm = SmoothGrad
-                
+            elif self.algorithm_name == "lime":
+                self.algorithm = LimeImage
+            elif self.algorithm_name == "kernelshap":
+                self.algorithm = KernelShap
         
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
