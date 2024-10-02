@@ -17,7 +17,7 @@
 
 head:
   project_type: 'explain'
-  save_path: "./heatmap/"
+  save_path: "./heatmap/Gradient"
   weight_path: "./resnet50-0676ba61.pth"
   cfg_path: ~
   data_path: "./data"
@@ -28,9 +28,8 @@ head:
   repo_or_dir: ~
   cache_or_local: cache
   data_type: CUSTOM
-  
+
 explain:
-  algorithm: LRP
+  algorithm: Gradient
   model_algorithm: Default
-  rule: alphabeta
-  alpha: 2
+  target_class: ~

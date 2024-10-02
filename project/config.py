@@ -4,9 +4,7 @@ from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
-from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM, Gradient, GradientXInput, SmoothGrad
-from KonanXAI.explainer.counterfactual import Wachter, Prototype
-from KonanXAI.explainer.clustering import SpectralClustering
+from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
 from KonanXAI.attribution.lime_image import LimeImage
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
@@ -24,36 +22,34 @@ import KonanXAI as XAI
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
+
 class Configuration:
     def __init__(self, config_path):
         self.config_path = config_path
         with open(self.config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
         self._parser_config()        
+
         
     def _parser_config(self):
         self._public_parser()
         self._public_check_config()
-        if self.project_type == 'explain':
+        if self.project_type.lower() == 'explain':
             self._explain_parser()
             self._explain_check_config()
-        elif self.project_type == 'train':
+        elif self.project_type.lower() == 'train':
             self._train_parser()
             self._train_check_config()
-        elif self.project_type == 'explainer':
-            self._explainer_parser()
-            self._explainer_algorithm_parser()
-            self._explainer_check_config()
             
     def _public_parser(self):
-        self.project_type = self.config['head']['project_type'].lower()
+        self.project_type = self.config['head']['project_type']
         self.save_path = self.config['head']['save_path']
         self.weight_path = self.config['head']['weight_path']
         self.cfg_path = self.config['head']['cfg_path']
         self.data_path = self.config['head']['data_path']
         self.data_resize = self.config['head']['data_resize']
-        self.model_name = self.config['head']['model_name'].lower()
-        self.framework = self.config['head']['framework'].lower()
+        self.model_name = self.config['head']['model_name']
+        self.framework = self.config['head']['framework']
         self.source = self.config['head']['source']
         self.repo_or_dir = self.config['head']['repo_or_dir']
         self.cache_or_local = self.config['head']['cache_or_local']
@@ -152,7 +148,7 @@ class Configuration:
     
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
-        projects = ['train','explain', 'explainer']
+        projects = ['train','explain']
         if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
@@ -182,12 +178,6 @@ class Configuration:
                 self.algorithm = LRPYolo
             elif self.algorithm_name == 'ig':
                 self.algorithm = IG
-            elif self.algorithm_name == 'gradient':
-                self.algorithm = Gradient
-            elif self.algorithm_name == 'gradientxinput':
-                self.algorithm = GradientXInput
-            elif self.algorithm_name == 'smoothgrad':
-                self.algorithm = SmoothGrad
             elif self.algorithm_name == "lime":
                 self.algorithm = LimeImage
             elif self.algorithm_name == "kernelshap":
@@ -286,36 +276,3 @@ class Configuration:
         elif self.model_name.startswith("vgg"):
             raise Exception("Not Supported")
             # self.make_model = models.vgg19
-
-    def _explainer_algorithm_parser(self):
-        if self.methods.lower() in 'clustering':
-            self._clustering_parser()
-        elif self.methods.lower() in 'counterfactual':
-            self._counterfactual_parser()
-
-    def _clustering_parser(self):
-        pass
-
-    def _counterfactual_parser(self):
-        self.config = {}
-        self.config['algorithm'] = self.explainers['algorithm']
-        self.config['input_index'] = self.explainers['input_index']
-        self.config['target_label'] = self.explainers['target_label']
-        self.config['lambda'] = self.explainers['lambda']
-        self.config['epoch'] = self.explainers['epoch']
-        self.config['learning_rate'] = self.explainers['learning_rate']
-
-    def _explainer_check_config(self):
-        explainers = ['SpectralClustering', 'Wachter', 'Prototype']
-
-        if self.explainer_name.lower() not in [explainer.lower() for explainer in explainers]:
-            msg = f"The type you entered is:'{self.explainer_name}' Supported types are: {explainers}"
-            raise Exception(msg)
-        
-        else:
-            if self.explainer_name.lower() == 'spectralclustering':
-                self.algorithm = SpectralClustering
-            elif self.explainer_name.lower() == 'wachter':
-                self.algorithm = Wachter
-            elif self.explainer_name.lower() == 'Prototype':
-                self.algorithm = Prototype
