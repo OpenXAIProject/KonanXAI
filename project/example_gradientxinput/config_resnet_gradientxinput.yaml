@@ -17,7 +17,7 @@
 
 head:
   project_type: 'explain'
-  save_path: "./heatmap/SmoothGrad"
+  save_path: "./heatmap/GradientxInput"
   weight_path: "./resnet50-0676ba61.pth"
   cfg_path: ~
   data_path: "../dataset/sample"
@@ -30,8 +30,6 @@ head:
   data_type: CUSTOM
 
 explain:
-  algorithm: SmoothGrad
+  algorithm: GradientxInput
+  model_algorithm: Default
   target_class: ~
-  std: 0.15
-  noise_level: 0.1
-  sample_size: 50

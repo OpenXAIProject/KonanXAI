@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 # Attribution 상속 지음
 # yolo target_layer = [model, '23', 'cv1','conv']
-class GradientXInput(Gradient):
+class GradientxInput(Gradient):
     def __init__(
             self, 
             framework, 

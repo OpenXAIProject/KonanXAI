@@ -31,6 +31,7 @@ head:
 
 explain:
   algorithm: SmoothGrad
+  model_algorithm: Default
   target_class: ~
   std: 0.15
   noise_level: 0.1

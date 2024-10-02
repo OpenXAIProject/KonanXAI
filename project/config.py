@@ -5,6 +5,7 @@ from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
+from KonanXAI.attribution import Gradient, GradientxInput, SmoothGrad
 from KonanXAI.attribution.lime_image import LimeImage
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
@@ -159,7 +160,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap', 'Gradient', 'GradientxInput', 'Smoothgrad']
         if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -182,6 +183,13 @@ class Configuration:
                 self.algorithm = LimeImage
             elif self.algorithm_name == "kernelshap":
                 self.algorithm = KernelShap
+            elif self.algorithm_name == 'gradient':
+                self.algorithm = Gradient
+            elif self.algorithm_name == 'gradientxinput':
+                self.algorithm = GradientxInput
+            elif self.algorithm_name == 'smoothgrad':
+                self.algorithm = SmoothGrad
+            
         
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
