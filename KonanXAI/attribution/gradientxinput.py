@@ -24,6 +24,11 @@ class GradientxInput(Gradient):
         '''
         Gradient.__init__(self, framework, model, input, config)
 
+    def calculate(self):
+        self.get_saliency()
+        self.saliency = self.saliency * self.input
+        return self.saliency
+
 
                         
 
