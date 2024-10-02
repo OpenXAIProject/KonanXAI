@@ -7,7 +7,6 @@ import copy
 import torch
 from torch import nn
 
-from KonanXAI.utils.evaluation import ExplanationType
 
 # Ensure compatibility with Python 2/3
 ABC = abc.ABC if sys.version_info >= (3, 4) else abc.ABCMeta(str('ABC'), (), {})
@@ -33,17 +32,14 @@ class Metric(ABC):
         **kwargs: 
             Additional keyword arguments.
     """
-
-    SUPPORTED_EXPLANATION_TYPE: ExplanationType = "attribution"
-
     def __init__(
         self,
         model: nn.Module,
-        explainer: Optional[Explainer] = None,
+        # explainer: Optional[Explainer] = None,
         **kwargs
     ):
         self.model = model.eval()  # Set the model to evaluation mode
-        self.explainer = explainer
+        # self.explainer = explainer
         self.device = next(model.parameters()).device  # Determine the device used by the model
 
     def __repr__(self):
@@ -68,14 +64,14 @@ class Metric(ABC):
         """
         return copy.copy(self)
 
-    def set_explainer(self, explainer: Explainer):
-        """
-        Sets the explainer for the metric, ensuring it is associated with the same model.
-        """
-        assert self.model is explainer.model, 'Must have same model of metric.'
-        clone = self.copy()
-        clone.explainer = explainer
-        return clone
+    # def set_explainer(self, explainer: Explainer):
+    #     """
+    #     Sets the explainer for the metric, ensuring it is associated with the same model.
+    #     """
+    #     assert self.model is explainer.model, 'Must have same model of metric.'
+    #     clone = self.copy()
+    #     clone.explainer = explainer
+    #     return clone
 
     def set_kwargs(self, **kwargs):
         """

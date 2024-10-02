@@ -136,7 +136,6 @@ class TorchLocal(Torch):
         self.model_algorithm = model_algorithm
     def _load(self, weight_path):
         print(self.path)
-        
         self.check_hubconf = self._check_hubconf()
         print(self.check_hubconf)
 
@@ -146,8 +145,11 @@ class TorchLocal(Torch):
         if self.check_hubconf == True:
             # import hubconf
             # model = hubconf._create(self.model_name)
-            if self.model_name in "yolo":
+            if "yolo" in self.model_name:
                 model = torch.load(weight_path)['model']
+                for m in model.model:
+                    if isinstance(m, nn.Upsample):
+                        m.recompute_scale_factor = None
                 model.float().fuse().eval()
             else:
                 model = torch.hub.load(repo_or_dir = self.repo_or_dir, source = 'local', model= self.model_name, num_classes = self.num_classes)

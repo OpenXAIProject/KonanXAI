@@ -6,6 +6,7 @@ from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
 from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
 from KonanXAI.attribution.lime_image import LimeImage
+from KonanXAI.evaluation.pixel_flipping import AbPC
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
@@ -38,6 +39,10 @@ class Configuration:
         elif self.project_type == 'train':
             self._train_parser()
             self._train_check_config()
+        elif self.project_type == 'evaluation':
+            self._eval_parser()
+            self._explain_check_config()
+            self._evaluation_check_config()
             
     def _public_parser(self):
         self.project_type = self.config['head']['project_type'].lower()
@@ -85,12 +90,25 @@ class Configuration:
         self.algorithm_name = self.explains['algorithm'].lower()
         self.config = {}
         lower_parser = ['rule','algorithm']
+        if 'lrp' in self.algorithm_name:
+            self.config['yaml_path'] = self.cfg_path
         for key, value in self.explains.items():
             if key in lower_parser:
                 self.config[key] = value.lower()
             else:
                 self.config[key] = value
-        
+                
+    def _eval_parser(self):
+        self.explains = self.config['evaluation']
+        self.model_algorithm = self.explains['model_algorithm'].lower()
+        self.algorithm_name = self.explains['algorithm'].lower()
+        self.config = {}
+        lower_parser = ['rule','algorithm','metric']
+        for key, value in self.explains.items():
+            if key in lower_parser:
+                self.config[key] = value.lower()
+            else:
+                self.config[key] = value
     # def _explain_algorithm_parser(self):
     #     self.config = {}
     #     lower_parser = ['rule','algorithm']
@@ -146,7 +164,7 @@ class Configuration:
     
     def _public_check_config(self):
         frameworks = ['torch', 'darknet']
-        projects = ['train','explain']
+        projects = ['train','explain','evaluation']
         if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
@@ -180,7 +198,9 @@ class Configuration:
                 self.algorithm = LimeImage
             elif self.algorithm_name == "kernelshap":
                 self.algorithm = KernelShap
-        
+    def _evaluation_check_config(self):
+        if self.config['metric'] == 'abpc':
+            self.metric = AbPC
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']

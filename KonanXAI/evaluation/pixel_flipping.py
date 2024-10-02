@@ -9,7 +9,6 @@ from .base import Metric
 
 
 BaselineFunction = Union[Callable[[Tensor], Tensor], Tuple[Callable[[Tensor], Tensor]]]
-
 class PixelFlipping(Metric):
     """
     A metric class for evaluating the correctness of explanations or attributions provided by an explainer 
@@ -36,20 +35,20 @@ class PixelFlipping(Metric):
     def __init__(
         self,
         model: Module,
-        explainer: Optional[Explainer]=None,
+        # explainer: Optional[Explainer]=None,
         channel_dim: int=1,
         n_steps: int=10,
         baseline_fn: Optional[BaselineFunction]=None,
         prob_fn: Optional[Callable[[Tensor], Tensor]]=lambda outputs: outputs.softmax(-1),
         pred_fn: Optional[Callable[[Tensor], Tensor]]=lambda outputs: outputs.argmax(-1),
     ):
-        super().__init__(model, explainer)
+        super().__init__(model)#, explainer)
         self.channel_dim = channel_dim
         self.n_steps = n_steps
         self.baseline_fn = baseline_fn
         self.prob_fn = prob_fn
         self.pred_fn = pred_fn
-
+    
     @torch.no_grad()
     def evaluate(
         self,
@@ -73,14 +72,14 @@ class PixelFlipping(Metric):
             Union[Dict[str, Tensor], Tuple[Dict[str, Tensor]]]: A dictionary or tuple of dictionaries containing
                 the probabilities and predictions at each perturbation step.
         """
-        forward_args, additional_forward_args = self.explainer._extract_forward_args(inputs)
+        # forward_args, additional_forward_args = self.explainer._extract_forward_args(inputs)
         formatted: Dict[str, Tuple[Any]] = format_into_tuple_all(
-            forward_args=forward_args,
-            additional_forward_args=additional_forward_args,
+            forward_args=inputs,
+            additional_forward_args=None,
             attributions=attributions,
             channel_dim=self.channel_dim,
             baseline_fn=self.baseline_fn,
-            attention_mask=attention_mask or (None,)*len(format_into_tuple(forward_args)),
+            attention_mask=attention_mask or (None,)*len(format_into_tuple(attributions)),
         )
         assert all(
             len(formatted['forward_args']) == len(formatted[k]) for k in formatted
@@ -107,12 +106,13 @@ class PixelFlipping(Metric):
                 attrs = torch.where(attn_mask == 1, attrs, mask_value)
 
             valid_n_features = (~attrs.isinf()).sum(-1)
-            n_flipped_per_step = valid_n_features // self.n_steps
+            # n_flipped_per_step = valid_n_features // self.n_steps
+            n_flipped_per_step = torch.div(valid_n_features, self.n_steps, rounding_mode='trunc')
             n_flipped_per_step = n_flipped_per_step.clamp(min=1) # ensure at least a pixel flipped
             sorted_indices = torch.argsort(
                 attrs,
                 descending=descending,
-                stable=True,
+                stable=True #Pytorch 2.X version option
             )
             probs = [_extract_target_probs(init_probs, targets)]
             preds = [init_preds]
@@ -181,7 +181,7 @@ class MoRF(PixelFlipping):
     def __init__(
         self,
         model: Module,
-        explainer: Optional[Explainer]=None,
+        # explainer: Optional[Explainer]=None,
         channel_dim: int=1,
         n_steps: int=10,
         baseline_fn: Optional[BaselineFunction]=None,
@@ -189,7 +189,7 @@ class MoRF(PixelFlipping):
         pred_fn: Optional[Callable[[Tensor], Tensor]]=lambda outputs: outputs.argmax(-1),
     ):
         super().__init__(
-            model, explainer, channel_dim, n_steps,
+            model,  channel_dim, n_steps,
             baseline_fn, prob_fn, pred_fn,
         )
 
@@ -248,7 +248,7 @@ class LeRF(PixelFlipping):
     def __init__(
         self,
         model: Module,
-        explainer: Optional[Explainer]=None,
+        # explainer: Optional[Explainer]=None,
         channel_dim: int=1,
         n_steps: int=10,
         baseline_fn: Optional[BaselineFunction]=None,
@@ -256,7 +256,7 @@ class LeRF(PixelFlipping):
         pred_fn: Optional[Callable[[Tensor], Tensor]]=lambda outputs: outputs.argmax(-1),
     ):
         super().__init__(
-            model, explainer, channel_dim, n_steps,
+            model, channel_dim, n_steps,
             baseline_fn, prob_fn, pred_fn,
         )
 
@@ -317,7 +317,7 @@ class AbPC(PixelFlipping):
     def __init__(
         self,
         model: Module,
-        explainer: Optional[Explainer]=None,
+        # explainer: Optional[Explainer]=None,
         channel_dim: int=1,
         n_steps: int=10,
         baseline_fn: Optional[BaselineFunction]=None,
@@ -326,7 +326,7 @@ class AbPC(PixelFlipping):
         lb: float=-1.,
     ):
         super().__init__(
-            model, explainer, channel_dim, n_steps,
+            model, channel_dim, n_steps,
             baseline_fn, prob_fn, pred_fn,
         )
         self.lb = lb

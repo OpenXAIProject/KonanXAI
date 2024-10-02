@@ -1,4 +1,5 @@
 import os
+from KonanXAI.utils.evaluation import ZeroBaselineFunction
 from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
@@ -79,6 +80,26 @@ class Project(Configuration):
                 get_kernelshap_image(origin_img, heatmap, img_save_path, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+    
+    def eval(self):
+        import torch.nn.functional as F
+        for i, data in enumerate(self.dataset):
+            if self.framework == 'darknet':
+                origin_img = data.origin_img
+                img_size = data.im_size
+            else:
+                origin_img = data[0]
+                img_size = data[3]
+
+            output = self.model(data[0].to('cuda'))
+            algorithm = self.algorithm(self.framework, self.model, data, self.config)
+            heatmap = algorithm.calculate()
+            if isinstance(heatmap, (tuple, list)):
+                heatmap = heatmap[0]
+            heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu()
+            evaluation = self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output.argmax(-1).item(), attributions=heatmap.squeeze(0))
+            print(evaluation)
+            
             
     def run(self):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
@@ -95,5 +116,6 @@ class Project(Configuration):
             self.explain()
         elif self.project_type == "train":
             self.train()
+        elif self.project_type == 'evaluation':
+            self.eval()
             
-                
