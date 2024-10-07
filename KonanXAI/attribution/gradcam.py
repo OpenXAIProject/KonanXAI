@@ -65,7 +65,7 @@ class GradCAM:
             self.layer.bwd_in = []
             self.layer.bwd_out = []
             fwd_handle = self.layer.register_forward_hook(self._fwd_hook)
-            bwd_handle = self.layer.register_backward_hook(self._bwd_hook)
+            bwd_handle = self.layer.register_full_backward_hook(self._bwd_hook)
         return fwd_handle, bwd_handle
         
     

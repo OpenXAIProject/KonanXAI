@@ -1,6 +1,8 @@
 import time
 import torch
 import torchvision
+import torch.nn as nn
+from functools import partial
 from pathlib import Path
 import os,sys
 def non_max_suppression(prediction, logits, conf_thres=0.45, iou_thres=0.45, classes=None, agnostic=False,
@@ -134,3 +136,18 @@ def yolo_choice_layer(dbox, select_layers):
             else:
                 index_tmep.append(2)
         return index_tmep
+def patch_recompute_scale_factor():
+    old_upsample = nn.Upsample
+    
+    # Upsample 클래스를 패치하는 함수
+    def new_upsample(*args, **kwargs):
+        if 'recompute_scale_factor' in kwargs:
+            kwargs.pop('recompute_scale_factor')
+        return old_upsample(*args, **kwargs)
+    
+    # nn.Upsample를 새로운 버전으로 대체
+    nn.Upsample = new_upsample
+    
+def apply_yolov5s_patch():
+    patch_recompute_scale_factor()
+    print("done")
