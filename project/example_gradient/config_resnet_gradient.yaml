@@ -17,7 +17,7 @@
 
 head:
   project_type: 'explain'
-  save_path: "./heatmap/Gradient"
+  save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
   cfg_path: ~
   data_path: "./data"
