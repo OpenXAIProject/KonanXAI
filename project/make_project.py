@@ -1,6 +1,6 @@
 import os
 from KonanXAI.utils.evaluation import ZeroBaselineFunction
-from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
+from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap, linear_transform, normalize_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -8,6 +8,8 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
 """
 2024-07-02 jjh
  
@@ -82,7 +84,6 @@ class Project(Configuration):
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
     
     def eval(self):
-        import torch.nn.functional as F
         for i, data in enumerate(self.dataset):
             if self.framework == 'darknet':
                 origin_img = data.origin_img
@@ -94,10 +95,16 @@ class Project(Configuration):
             output = self.model(data[0].to('cuda'))
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
             heatmap = algorithm.calculate()
+            
             if isinstance(heatmap, (tuple, list)):
-                heatmap = heatmap[0]
-            heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu()
-            evaluation = self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output.argmax(-1).item(), attributions=heatmap.squeeze(0))
+                if "guided" in self.algorithm_name:
+                    heatmap = postprocessed_guided((heatmap[0][0],heatmap[1][0][0]),1, img_size)
+                else:
+                    heatmap = heatmap[0]
+            if self.algorithm_name == 'ig':
+                heatmap = postprocessed_ig(heatmap,0)
+            # heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu()
+            evaluation = self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output.argmax(-1).item(), attributions=heatmap)#.squeeze(0))
             print(evaluation)
             
             
@@ -119,3 +126,29 @@ class Project(Configuration):
         elif self.project_type == 'evaluation':
             self.eval()
             
+def postprocessed_ig(attr, dim):
+    positive = np.clip(attr, 0, 1)
+    gray_ig = np.average(positive, axis=2)
+    linear_attr = linear_transform(gray_ig, 99, 0, 0.0, plot_distribution=False)
+    ig_image = np.array(linear_attr, dtype=np.uint8)
+    res = torch.tensor(ig_image)
+    return res.clamp(min=0).sum(dim).unsqueeze(0)
+
+def postprocessed_guided(attr, dim, img_size):
+    heatmap, guided = attr
+    heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu()
+    heatmap_mask = np.transpose(heatmap.squeeze(0).cpu().numpy(),(1,2,0))
+    res = heatmap_mask*guided
+    res = torch.tensor(np.transpose(res,(2,0,1))).unsqueeze(0)
+    poold = res.pow(2).sum(dim).sqrt()
+    # poold = res.clamp(min=0).sum(dim)
+    # norm = normalize_heatmap(poold)
+    return poold
+
+def deprocess_images(img):
+    img = img - np.mean(img)
+    img = img / (np.std(img) + 1e-5)
+    img = img * 0.1
+    img = img + 0.5
+    img = np.clip(img, 0, 1)
+    return img

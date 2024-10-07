@@ -19,14 +19,14 @@ class GuidedGradCAM(GradCAM):
             self.first_layer = self.first_layer[0]
         self.first_layer.first_layer_in_gradients = []
         self.first_layer.first_layer_out_gradients = []
-        g_fwd_handle = self.first_layer.register_backward_hook(first_layer_hook_function)
+        g_fwd_handle = self.first_layer.register_full_backward_hook(first_layer_hook_function)
         return g_fwd_handle
     
     def update_relus(self):
         model_handle = []
         for module in self.model.modules():
             if isinstance(module,ReLU) or isinstance(module, SiLU):
-                model_handle.append(module.register_backward_hook(relu_hook_function))
+                model_handle.append(module.register_full_backward_hook(relu_hook_function))
         return model_handle
     
     def generate_gradients(self, score):

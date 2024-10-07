@@ -106,8 +106,8 @@ class PixelFlipping(Metric):
                 attrs = torch.where(attn_mask == 1, attrs, mask_value)
 
             valid_n_features = (~attrs.isinf()).sum(-1)
-            # n_flipped_per_step = valid_n_features // self.n_steps
-            n_flipped_per_step = torch.div(valid_n_features, self.n_steps, rounding_mode='trunc')
+            n_flipped_per_step = valid_n_features // self.n_steps
+            # n_flipped_per_step = torch.div(valid_n_features, self.n_steps, rounding_mode='trunc') # pytorch v1.12
             n_flipped_per_step = n_flipped_per_step.clamp(min=1) # ensure at least a pixel flipped
             sorted_indices = torch.argsort(
                 attrs,
