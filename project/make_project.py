@@ -1,11 +1,8 @@
 import os
-import torch
-from KonanXAI.utils.heatmap import compose_heatmap_image, get_heatmap, heatmap_tensor, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap 
-from KonanXAI.utils.h5file import create_attribution_database, create_dataset, append_attributions, append_sample
+from KonanXAI.utils.heatmap import get_heatmap, get_scale_heatmap, get_guided_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
-
 import random
 import numpy as np
 import torch
@@ -22,12 +19,14 @@ def set_seed(seed_value=77):
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value) 
+    
 
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
-
+    
     def train(self):
+        set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         model = self.make_model(num_classes= self.dataset.classes)
         for name, module in model.named_modules():
@@ -54,7 +53,7 @@ class Project(Configuration):
         print("end")
     def explain(self):
         for i, data in enumerate(self.dataset):
-            if self.framework == 'darknet':
+            if self.framework.lower() == 'darknet':
                 origin_img = data.origin_img
                 img_size = data.im_size
             else:
@@ -73,39 +72,20 @@ class Project(Configuration):
                 get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "guided" in self.algorithm_name:
                 get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            elif "ig" == self.algorithm_name:
-                get_ig_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
-            elif "lime" == self.algorithm_name:
-                get_lime_image(heatmap, img_save_path)
-            elif "kernelshap" == self.algorithm_name:
-                get_kernelshap_image(origin_img, heatmap, img_save_path, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
-
             
-    def explainer(self):
-        pass
-
-
-
-
-    
     def run(self):
-
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
-        if self.config.get('seed') != None:
-            set_seed(self.config['seed'])
-        else:
-            set_seed(777)
-            
+        
+        
         if self.project_type == "explain":
             self.explain()
         elif self.project_type == "train":
             self.train()
             
-
                 

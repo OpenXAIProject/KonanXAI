@@ -41,7 +41,8 @@ from project.make_project import Project
 # config_path = './project/example_train/config_dann_grad_resnet_train.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alphabeta.yaml'
 # config_path = './project/example_gradient/config_resnet_gradient.yaml'
-config_path = './project/example_gradientxinput/config_resnet_gradientxinput.yaml'
+# config_path = './project/example_gradientxinput/config_resnet_gradientxinput.yaml'
+config_path = './project/example_smoothgrad/config_resnet_smoothgrad.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
 
 

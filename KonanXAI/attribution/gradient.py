@@ -48,7 +48,6 @@ class Gradient:
                 logits = self.model(self.input)
                 target = torch.zeros_like(logits)
                 for i in range(target.shape[0]):
-                    print(torch.argmax(logits[i]))
                     target[i][self.target_class if self.target_class else torch.argmax(logits[i]).detach().cpu()] = 1
                 self.model.zero_grad()
                 logits.backward(target)
