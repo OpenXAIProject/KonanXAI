@@ -1,6 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from project.make_project import Project
+config_path = './project/example_gradcam/config_dtrain.yaml'
 # config_path = './project/example_evaluation/config_resnet_lrp.yaml'
 # config_path = './project/example_evaluation/config_resnet_gradcam.yaml'
 # config_path = './project/example_evaluation/config_resnet_guidedgradcam.yaml'
@@ -14,7 +15,7 @@ from project.make_project import Project
 # config_path = './project/example_lrp/config_resnet_lrp_alphabeta.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alpha.yaml'
-config_path = './project/example_lime/config_resnet_lime.yaml'
+# config_path = './project/example_lime/config_resnet_lime.yaml'
 # config_path = './project/example_kernelshap/config_resnet_kernelshap.yaml'
 # config_path = './project/example_gradcam/config_resnet_gradcam.yaml'
 # config_path = './project/example_gradcampp/config_resnet_gradcampp.yaml'
@@ -50,7 +51,6 @@ config_path = './project/example_lime/config_resnet_lime.yaml'
 # config_path = './project/example_gradientxinput/config_resnet_gradientxinput.yaml'
 # config_path = './project/example_smoothgrad/config_resnet_smoothgrad.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
-
 
 project = Project(config_path)
 project.run()

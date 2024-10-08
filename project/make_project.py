@@ -63,7 +63,10 @@ class Project(Configuration):
                 origin_img = data[0]
                 img_size = data[3]
             algorithm_type = self.config['algorithm']
-            img_path = self.dataset.test_items[i][0].split('\\')
+            if self.framework == 'dtrain':
+                img_path = ["data/", self.dataset.image_name[i]]
+            else:
+                img_path = self.dataset.image_name[i].split('\\')
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
                 os.makedirs(root)
@@ -118,7 +121,6 @@ class Project(Configuration):
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
-        
         
         if self.project_type == "explain":
             self.explain()

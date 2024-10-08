@@ -8,7 +8,7 @@ import torch
 import numpy as np
 import cv2
 import torch.nn.functional as F
-
+from KonanXAI._core.dtrain.utils import convert_tensor_to_numpy
 # Attribution 상속 지음
 # yolo target_layer = [model, '23', 'cv1','conv']
 class GradCAM:
@@ -33,7 +33,45 @@ class GradCAM:
             self.input_size = self.input.shape[2:4]
                         
         self.target_layer = config['target_layer']
+    def calc_dtrain(self):
+        
+        forward_args = {
+            "train_mode": True
+        }
+        backward_args = {
+            "hook": [],
+        }
+        for key in self.target_layer:
+            hook = {"layer": key, "roles": ["x", "y", "xgrad", "ygrad"]}
+            backward_args["hook"].append(hook)
+        # Convert DtrainTensor
+        if isinstance(self.input, torch.Tensor):
+            ndarray = self.input.cpu().detach().numpy()
+            self.input = self.model.session.createTensorFromArray(ndarray)
+        elif isinstance(self.input, np.ndarray):
+            self.input = self.model.session.createTensorFromArray(self.input)
+        tensor_dict = {}
+        x = {"#": self.input}
+        self.model.execute_forward(x, forward_args, tensor_dict)
+        self.pred = tensor_dict['pred']
+        self.label_index = tensor_dict['pred'].argmax(1).value()
+        self.preds = convert_tensor_to_numpy(self.pred)[0][self.label_index]
+        # probs = tensor_dict['pred'].softmax(1)
+        print("Pred :", self.label_index)
+        y = self.model.session.createTensorZeros(self.pred.shape)
+        y[self.label_index] = 1.0
+        y = {"#": y}
+        tensor_dict = {}
+        self.model.execute_backward(y, backward_args, tensor_dict)
+        feature_map = tensor_dict[self.target_layer[-1] + ".y"]
+        class_grad = tensor_dict[self.target_layer[-1] + ".ygrad"]
+        feature_map = convert_tensor_to_numpy(feature_map)
+        class_grad = convert_tensor_to_numpy(class_grad)
 
+        feature_map = torch.tensor(feature_map).unsqueeze(0)
+        class_grad = torch.tensor(class_grad).unsqueeze(0)
+        return feature_map, class_grad
+        
     def _get_target_layer(self):
         if isinstance(self.target_layer, list):
             self.layer = self.model._modules[self.target_layer[0]]
@@ -111,7 +149,10 @@ class GradCAM:
             self._yolo_backward_darknet()
             return self.feature, self.gradient
 
-    
+        elif self.framework == 'dtrain':
+            self.feature, self.gradient = self.calc_dtrain()
+            return self.feature, self.gradient
+            
     def calculate(self):
         self.get_feature_and_gradient()
         self.heatmaps = [] 

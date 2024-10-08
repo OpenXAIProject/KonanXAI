@@ -15,5 +15,6 @@ def load_dataset(framework, data_path = None, data_type = 'CUSTOM',
     if mode == 'train':
         dataset.set_train()
     elif mode == 'explain':
-        dataset.set_test()
+        dataset.set_train()
+        # dataset.set_test()
     return dataset

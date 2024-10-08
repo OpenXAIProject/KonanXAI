@@ -166,7 +166,7 @@ class Configuration:
     #     self.config['nsamples'] = self.explains['nsamples']
     
     def _public_check_config(self):
-        frameworks = ['torch', 'darknet']
+        frameworks = ['torch', 'darknet','dtrain']
         projects = ['train','explain','evaluation']
         if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
