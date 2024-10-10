@@ -88,10 +88,10 @@ class DeepLIFT:
 
     def rescale_hook(self, module, grad_in, grad_out):
         threshold = 1e-7
+
         reference_x = module.baseline_in.pop()[0]
         x = module.input.pop()[0]
         delta_x = x - reference_x
-
         delta_y = grad_out[0]
 
         multiplier = (delta_y / (delta_x + threshold)).to(self.device)
@@ -105,14 +105,40 @@ class DeepLIFT:
         print(contribution_score.shape)
         print(grad_in[0].shape)
     
-        return grad_in
+        return (contribution_score,)
     
     def reveal_calcel_hook(self, module, grad_in, grad_out):
-        print(module)
         return grad_in
     
     def linear_hook(self, module, grad_in, grad_out):
         print(module)
+        reference_x = module.baseline_in.pop()[0].squeeze(0)
+        x = module.input.pop()[0].squeeze(0)
+        delta_x = x - reference_x
+        delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
+        delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
+        delta_x_zero = (delta_x == 0).float().to(self.device)
+
+        weight = module.weight.detach().clone().to(self.device)
+
+        pos_mask = (torch.matmul(weight, delta_x)>0).float().to(self.device)
+        neg_mask = (torch.matmul(weight, delta_x)<0).float().to(self.device)
+
+        contr_score_pos_pos = pos_mask * (weight * delta_x_pos)
+        contr_score_neg_pos = pos_mask * (weight * delta_x_neg)
+        contr_score_pos_neg = neg_mask * (weight * delta_x_pos)
+        contr_score_neg_neg = neg_mask * (weight * delta_x_neg)
+
+        delta_y = grad_out[0]
+        delta_y_pos = (delta_y > 0).float().to(self.device) * delta_y
+        delta_y_neg = (delta_y < 0).float().to(self.device) * delta_y
+
+        
+
+
+
+
+
         return grad_in
     
     def linear_conv_hook(self, module, grad_in, grad_out):
