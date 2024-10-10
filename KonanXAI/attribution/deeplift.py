@@ -38,26 +38,73 @@ class DeepLIFT:
             self.input_size = self.input.shape[2:4]
         self.baseline = config['baseline']
         self.target_class = config['target_class']
-        self.hooks = []
+        self.forward_baseline_hooks = []
+        self.forward_hooks = []
+        self.backward_hooks = []
                         
     def set_baseline(self):
         if self.baseline == 'zero':
             self.baseline = torch.zeros(self.input.shape).to(self.device)
+        
+    def set_baseline_forward_hook(self):
+        def forward_hook(layer):
+            self.forward_baseline_hooks.append(layer.register_forward_hook(self.baseline_forward_hook))
+        self.model.apply(forward_hook)
+
+
+    def baseline_forward_hook(self, module, input, output):
+        if 'baseline_in' not in dir(module):
+            module.baseline_in = [input]
+            module.baseline_out = [output]
+        else:
+            module.baseline_in.append(input)
+            module.baseline_out.append(output)
+ 
+    def set_forward_hook(self):
+        def forward_hook(layer):
+            self.forward_hooks.append(layer.register_forward_hook(self.forward_hook))
+        self.model.apply(forward_hook)
+
+    def forward_hook(self, module, input, output):
+        if 'input' not in dir(module):
+            module.input = [input]
+            module.output = [output]
+        else:
+            module.input.append(input)
+            module.output.append(output)
+        
     
-    def set_hook(self):
-        def register_hook(layer):
+    def set_backward_hook(self):
+        def backward_hook(layer):
             if isinstance(layer, torch.nn.ReLU):
-                self.hooks.append(layer.register_backward_hook(self.rescale_hook))
+                self.backward_hooks.append(layer.register_backward_hook(self.rescale_hook))
             elif isinstance(layer, torch.nn.Linear):
-                self.hooks.append(layer.register_backward_hook(self.linear_hook))
+                self.backward_hooks.append(layer.register_backward_hook(self.linear_hook))
             elif isinstance(layer, torch.nn.Conv2d):
-                self.hooks.append(layer.register_backward_hook(self.linear_conv_hook))
+                self.backward_hooks.append(layer.register_backward_hook(self.linear_conv_hook))
             else:
-                self.hooks.append(layer.register_backward_hook(self.identity_hook))
-        self.model.apply(register_hook)
+                self.backward_hooks.append(layer.register_backward_hook(self.identity_hook))
+        self.model.apply(backward_hook)
 
     def rescale_hook(self, module, grad_in, grad_out):
-        print(module)
+        threshold = 1e-7
+        reference_x = module.baseline_in.pop()[0]
+        x = module.input.pop()[0]
+        delta_x = x - reference_x
+
+        delta_y = grad_out[0]
+
+        multiplier = (delta_y / (delta_x + threshold)).to(self.device)
+        far_zero_x = (delta_x.abs() > threshold).float().to(self.device)
+        conbribution_score_far_zero = far_zero_x * multiplier
+
+        near_zero_x = (delta_x.abs() <= threshold).to(self.device)
+        contribution_score_near_zero = near_zero_x * multiplier
+
+        contribution_score = contribution_score_near_zero + conbribution_score_far_zero
+        print(contribution_score.shape)
+        print(grad_in[0].shape)
+    
         return grad_in
     
     def reveal_calcel_hook(self, module, grad_in, grad_out):
@@ -78,20 +125,36 @@ class DeepLIFT:
     
     def calculate(self):
         self.set_baseline()
-        self.set_hook()
+        self.set_baseline_forward_hook()
+        
+        
         
         self.model.eval()
         self.baseline = self.model(self.baseline)
+
+        for handle in self.forward_baseline_hooks:
+            handle.remove()
+        
+
+        self.set_forward_hook()
+        self.set_backward_hook()
         if self.model.model_algorithm == 'abn':
             attr, pred, _ = self.model(self.input)
         else:
             pred = self.model(self.input)
+        
+        for handle in self.forward_hooks:
+            handle.remove()
+
+        
+        
 
         self.model.zero_grad()
+        delta = pred - self.baseline
         index = pred.argmax().item()
-        grad_out = torch.zeros(pred.shape).to(self.device)
-        grad_out[0][index] = 1.0
-        pred.backward(grad_out)
+        gradient = torch.zeros(pred.shape).to(self.device)
+        gradient[0][index] = delta[0][index]
+        pred.backward(gradient)
         
 
 
