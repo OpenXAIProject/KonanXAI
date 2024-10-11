@@ -66,7 +66,7 @@ class Project(Configuration):
             if self.framework == 'dtrain':
                 img_path = ["data/", self.dataset.image_name[i]]
             else:
-                img_path = self.dataset.image_name[i].split('\\')
+                img_path = self.dataset.test_items[i][0].split('\\')
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
                 os.makedirs(root)
