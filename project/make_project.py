@@ -1,6 +1,7 @@
 import os
-from KonanXAI.utils.evaluation import ZeroBaselineFunction
-from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap, linear_transform, normalize_heatmap
+from KonanXAI.utils.data_convert import convert_tensor
+from KonanXAI.utils.evaluation import ZeroBaselineFunction, heatmap_postprocessing, postprocessed_guided, postprocessed_ig
+from KonanXAI.utils.heatmap import get_heatmap, get_kernelshap_image, get_lime_image, get_scale_heatmap, get_guided_heatmap, get_ig_heatmap
 from project.config import Configuration
 from KonanXAI.models.model_import import model_import 
 from KonanXAI.datasets import load_dataset
@@ -27,7 +28,7 @@ def set_seed(seed_value=77):
 class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
-    
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     def train(self):
         set_seed(777)
         os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -35,7 +36,6 @@ class Project(Configuration):
         for name, module in model.named_modules():
             if isinstance(module, (nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU)):
                 module.inplace = False  
-
         optimizer = self.optimizer(model.parameters(), lr = self.learning_rate)
         criterion = self.loss_function()
         trainer = self.improvement_algorithm(model, optimizer, criterion, self.dataset, self.learning_rate,self.batch_size, self.epoch, self.save_path)
@@ -53,15 +53,10 @@ class Project(Configuration):
                     target = getattr(target,m)
             trainer.set_target_layer(target)
         trainer.run()
-        print("end")
+
     def explain(self):
         for i, data in enumerate(self.dataset):
-            if self.framework.lower() == 'darknet':
-                origin_img = data.origin_img
-                img_size = data.im_size
-            else:
-                origin_img = data[0]
-                img_size = data[3]
+            origin_img, img_size, output = self.preprocessing(data)
             algorithm_type = self.config['algorithm']
             if self.framework == 'dtrain':
                 img_path = ["data/", self.dataset.image_name[i]]
@@ -72,7 +67,7 @@ class Project(Configuration):
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
-            heatmap = algorithm.calculate()
+            heatmap = algorithm.calculate(targets=output)
                 
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
                 get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
@@ -88,32 +83,38 @@ class Project(Configuration):
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
     
     def eval(self):
+        set_seed(777)
         for i, data in enumerate(self.dataset):
-            if self.framework == 'darknet':
-                origin_img = data.origin_img
-                img_size = data.im_size
-            else:
-                origin_img = data[0]
-                img_size = data[3]
-
-            output = self.model(data[0].to('cuda'))
+            print(f"Evaluation: {i+1}/{len(self.dataset)}")
+            origin_img, img_size, output = self.preprocessing(data)
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
+            algorithm.type = self.algorithm_name
+            algorithm.data_type = self.dataset.dataset_name
             heatmap = algorithm.calculate()
+            heatmap = heatmap_postprocessing(self.algorithm_name, img_size, heatmap)
             
-            if isinstance(heatmap, (tuple, list)):
-                if "guided" in self.algorithm_name:
-                    heatmap = postprocessed_guided((heatmap[0][0],heatmap[1][0][0]),1, img_size)
-                else:
-                    heatmap = heatmap[0]
-
-            if self.algorithm_name == 'ig':
-                heatmap = postprocessed_ig(heatmap,0)
-            elif len(heatmap.shape) == 4:
-                heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu().squeeze(0)
-                             
-            evaluation = self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output.argmax(-1).item(), attributions=heatmap)#.squeeze(0))
+            if self.config['metric'] == 'abpc':                 
+                evaluation = self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output, attributions=heatmap)#.squeeze(0))
+            elif self.config['metric'] == 'sensitivity':
+                evaluation = self.metric(model = self.model).evaluate(inputs= origin_img.to(self.device),targets=output, attributions=heatmap, explainer = algorithm)
             print(evaluation)
             
+    def preprocessing(self, data):
+        if self.framework == 'darknet':
+            origin_img = data.origin_img
+            img_size = data.im_size
+        else:
+            origin_img = data[0]
+            img_size = data[3]
+        if data[1] == -1:
+            if self.dataset.dataset_name == "imagenet":
+                infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0)
+            else:
+                infer_data = data[0]
+            output = self.model(infer_data.to(self.device)).argmax(-1).item()
+        else: 
+            output = data[1]
+        return origin_img, img_size, output
             
     def run(self):
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
@@ -128,30 +129,3 @@ class Project(Configuration):
             self.train()
         elif self.project_type == 'evaluation':
             self.eval()
-            
-def postprocessed_ig(attr, dim):
-    positive = np.clip(attr, 0, 1)
-    gray_ig = np.average(positive, axis=2)
-    linear_attr = linear_transform(gray_ig, 99, 0, 0.0, plot_distribution=False)
-    ig_image = np.array(linear_attr, dtype=np.uint8)
-    res = torch.tensor(ig_image)
-    return res.clamp(min=0).sum(dim).unsqueeze(0)
-
-def postprocessed_guided(attr, dim, img_size):
-    heatmap, guided = attr
-    heatmap = F.interpolate(heatmap, img_size, mode='bilinear').detach().cpu()
-    heatmap_mask = np.transpose(heatmap.squeeze(0).cpu().numpy(),(1,2,0))
-    res = heatmap_mask*guided
-    res = torch.tensor(np.transpose(res,(2,0,1))).unsqueeze(0)
-    poold = res.pow(2).sum(dim).sqrt()
-    # poold = res.clamp(min=0).sum(dim)
-    # norm = normalize_heatmap(poold)
-    return poold
-
-def deprocess_images(img):
-    img = img - np.mean(img)
-    img = img / (np.std(img) + 1e-5)
-    img = img * 0.1
-    img = img + 0.5
-    img = np.clip(img, 0, 1)
-    return img

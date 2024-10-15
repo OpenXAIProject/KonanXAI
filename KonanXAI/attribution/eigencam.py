@@ -8,8 +8,8 @@ import numpy as np
 import cv2
 import torch
 class EigenCAM(GradCAM):
-    def calculate(self):
-        self.get_feature_and_gradient()
+    def calculate(self,inputs=None,targets=None):
+        self.get_feature_and_gradient(inputs,targets)
         self.heatmaps = []
         with torch.no_grad():
             for feature_map in self.feature:

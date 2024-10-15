@@ -59,7 +59,11 @@ class GuidedGradCAM(GradCAM):
             self.label_index.append(int(cls[5].item()))
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
             
-    def get_feature_and_gradient(self):
+    def get_feature_and_gradient(self,inputs=None, targets = None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         guided_image = None
         first_hook_handel = self.first_hook_layers()
         self.feature = []
@@ -80,7 +84,8 @@ class GuidedGradCAM(GradCAM):
                     self.att, self.pred, _ = self.model(self.input)
                 else:
                     self.pred = self.model(self.input)
-                self.label_index = torch.argmax(self.pred).item()
+                if self.label_index == None:
+                    self.label_index = torch.argmax(self.pred).item()
                 score = self.pred[0][self.label_index]
                 self.guided_image = self.generate_gradients(score)
                 for handle in self.model_handle:
@@ -103,8 +108,8 @@ class GuidedGradCAM(GradCAM):
             # return self.feature, self.gradient
     
     
-    def calculate(self):
-        self.get_feature_and_gradient()
+    def calculate(self, inputs=None, targets=None):
+        self.get_feature_and_gradient(inputs, targets)
         self.heatmaps = [] 
         for feature, gradient in zip(self.feature, self.gradient):
             b, ch, h, w = gradient.shape

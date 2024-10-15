@@ -13,6 +13,7 @@ class CIFAR10(Datasets):
         super().__init__(framework, src_path)
         self.framework = framework
         self.src_path = src_path
+        self.dataset_name = "cifar10"
         self.classes = 10
         self.make_cache = {}
         

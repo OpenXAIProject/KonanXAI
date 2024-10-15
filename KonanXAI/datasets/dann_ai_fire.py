@@ -10,6 +10,7 @@ class DANN_AI_FIRE(Datasets):
         super().__init__(framework = framework, src_path= src_path)
         self.framework = framework
         self.src_path = src_path
+        self.dataset_name = 'aifire'
         self.classes = 5
     
     def get_custom(self, idx):

@@ -25,6 +25,7 @@ class GradCAM:
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
+        self.label_index = None
         if framework == "darknet":
             self.input = input
             self.input_size = self.input.shape
@@ -115,7 +116,11 @@ class GradCAM:
         l.bwd_in.insert(0, bx[0])
         l.bwd_out.insert(0, by[0])
     
-    def get_feature_and_gradient(self):
+    def get_feature_and_gradient(self, inputs, targets):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         self.feature = []
         self.gradient = []
         if self.framework == 'torch':
@@ -133,7 +138,8 @@ class GradCAM:
                     self.att, self.pred, _ = self.model(self.input)
                 else:
                     self.pred = self.model(self.input)
-                self.label_index = torch.argmax(self.pred).item()
+                if self.label_index == None:
+                    self.label_index = torch.argmax(self.pred).item()
                 self.pred[0][self.label_index].backward()
                 feature = self.layer.fwd_in[-1]
                 gradient = self.layer.bwd_in[-1]
@@ -153,8 +159,8 @@ class GradCAM:
             self.feature, self.gradient = self.calc_dtrain()
             return self.feature, self.gradient
             
-    def calculate(self):
-        self.get_feature_and_gradient()
+    def calculate(self, inputs=None, targets = None):
+        self.get_feature_and_gradient(inputs, targets)
         self.heatmaps = [] 
         for feature, gradient in zip(self.feature, self.gradient):
             b, ch, h, w = gradient.shape

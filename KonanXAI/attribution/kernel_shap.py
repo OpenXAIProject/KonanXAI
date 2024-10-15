@@ -1,6 +1,8 @@
 import torch
 import torchvision.transforms as transforms
 import numpy as np
+
+from KonanXAI.utils.data_convert import convert_tensor
 from ..utils.segment_wrapper import SegmentationAlgorithm
 import shap
 from tqdm import tqdm
@@ -19,6 +21,7 @@ class KernelShap:
         self.model = model.to(self.device)
         self.model_name = self.model.model_name
         self.config = config
+        self.label_index = None
         self.seg_param = config['segments']
         if framework == "darknet":
             self.input = input
@@ -26,28 +29,24 @@ class KernelShap:
         else:
             self.input = input[4]
             
-    def calculate(self):
+    def calculate(self,inputs=None,targets=None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         self.img = np.array(self.convert_resize(self.input))
+        self.input_size = self.img.shape[0:2]
         self.segment = SegmentationAlgorithm(**self.seg_param)(self.img)
         with torch.no_grad():
             explainer = shap.KernelExplainer(self.infer_mask, np.zeros((1,50)))
             shap_values = explainer.shap_values(np.ones((1,50)), nsamples = self.config['nsamples'], gc_collect = True)
-            preds = self.model(self.convert_tensor(self.img).unsqueeze(0).to(self.device)).detach().cpu().numpy()
-        top_preds = np.argsort(-preds)
-        result = self.fill_segmentation(shap_values[0, :, top_preds[0][0]], self.segment)
-        return result
-    
-    def convert_tensor(self, images):
-        torchvision_models = ['resnet50', 'resnet18', 'vgg16', 'vgg19', 'efficientnet_b0']
-        if self.model_name in torchvision_models:
-            normalize = transforms.Normalize(mean=[0.485,0.456,0.406],std = [0.229, 0.224,0.225])
+            preds = self.model(convert_tensor(self.img,self.data_type,self.input_size).unsqueeze(0).to(self.device)).detach().cpu().numpy()
+        if self.label_index == None:
+            top_preds = np.argsort(-preds)
+            result = self.fill_segmentation(shap_values[0, :, top_preds[0][0]], self.segment)
         else:
-            normalize = transforms.Normalize(mean=[0.,0.,0.],std = [1., 1., 1.])
-        tensor =  transforms.Compose([
-            transforms.ToTensor(),
-            normalize
-        ])
-        return tensor(images)
+            result = self.fill_segmentation(shap_values[0, :, self.label_index], self.segment)
+        return result
         
     def convert_resize(self, images):
         resize = transforms.Compose([transforms.Resize((224,224))])
@@ -68,7 +67,7 @@ class KernelShap:
         image = self.mask_image(z, self.segment, self.img, 1)
         if image.max()> 1:
             image = image / image.max()
-        image = torch.stack(tuple(self.convert_tensor(i) for i in image), dim=0)
+        image = torch.stack(tuple(convert_tensor(i,self.data_type,self.input_size) for i in image), dim=0)
         image = image.type(torch.float32).to(self.device) #torch.tensor(image, dtype=torch.float32, device="cuda")
         out = self.model(image)
         return out.detach().cpu().numpy()

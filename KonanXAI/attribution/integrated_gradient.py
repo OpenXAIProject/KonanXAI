@@ -22,6 +22,7 @@ class IG:
         self.random_baseline = config['random_baseline']
         self.random_iter = config['random_iter']
         self.gradient_steps = config['gradient_step']
+        self.label_index = None
         if framework == "darknet":
             self.input = input
             self.input_size = self.input.shape
@@ -44,8 +45,8 @@ class IG:
         obs = np.transpose(z_score, (0, 3, 1, 2))
         return torch.tensor(obs, dtype = torch.float32, requires_grad = True, device = self.device)    
     
-    def calculate(self):
-        target_label = self.get_gradient()
+    def calculate(self,inputs=None, targets= None):
+        target_label = self.get_gradient(inputs, targets)
         if isinstance(target_label,int) or len(target_label)>0:
             iteration = self.random_iter if self.random_iter else 1
             igs = []
@@ -71,7 +72,11 @@ class IG:
             return
         
                         
-    def get_gradient(self):
+    def get_gradient(self,inputs, targets):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         if isinstance(self.input, torch.Tensor):
             self.input = self.input.squeeze(0)
             self.input = self.input.detach().cpu().numpy()
@@ -89,7 +94,10 @@ class IG:
                 target_label.append([sel_layer, cls[5].item()])
         else:
             out = self.model(x)
-            target_label = torch.argmax(out.detach().cpu(), dim = 1).item()
+            if self.label_index == None:
+                target_label = torch.argmax(out.detach().cpu(), dim = 1).item()
+            else:
+                target_label = self.label_index.item()
         
         return target_label
     

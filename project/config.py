@@ -8,6 +8,7 @@ from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
 from KonanXAI.attribution import Gradient, GradientxInput, SmoothGrad
 from KonanXAI.attribution.lime_image import LimeImage
 from KonanXAI.evaluation.pixel_flipping import AbPC
+from KonanXAI.evaluation.sensitivity import Sensitivity
 from KonanXAI.model_improvement.dann import DANN
 from KonanXAI.model_improvement.dann_grad import DANN_GRAD
 from KonanXAI.model_improvement.fgsm import FGSM
@@ -212,6 +213,8 @@ class Configuration:
     def _evaluation_check_config(self):
         if self.config['metric'] == 'abpc':
             self.metric = AbPC
+        elif self.config['metric'] == 'sensitivity':
+            self.metric = Sensitivity
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']

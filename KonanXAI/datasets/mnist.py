@@ -8,6 +8,7 @@ class MNIST(Datasets):
         self.framework = framework
         self.src_path = src_path
         self.classes = 10
+        self.dataset_name = 'mnist'
         self.make_cache = {}
         
     def load_src_path(self):

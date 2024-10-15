@@ -7,6 +7,7 @@ class AI_FIRE(Datasets):
     def __init__(self, framework, src_path):
         super().__init__(framework = framework, src_path= src_path)
         self.classes = 5
+        self.dataset_name = 'aifire'
         self.framework = framework
         self.src_path = src_path
         self.mask_cache = {}
