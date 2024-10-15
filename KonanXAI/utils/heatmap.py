@@ -111,7 +111,13 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
             if bbox != None:
                 heatmap = cv2.rectangle(heatmap, bbox[i][0], bbox[i][1],color=(0,255,0),thickness=3)
+        elif 'deeplift' in algorithm_type:
+            heatmap = normalize_heatmap(heatmap)
+            heatmap = np.array(heatmap.squeeze(0).squeeze(0).cpu().detach()*255)
+            
+    
         else:
+            heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
         
         cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)

@@ -82,8 +82,7 @@ class DeepLIFT:
                 self.backward_hooks.append(layer.register_backward_hook(self.linear_hook))
             elif isinstance(layer, torch.nn.Conv2d):
                 self.backward_hooks.append(layer.register_backward_hook(self.linear_conv_hook))
-            else:
-                self.backward_hooks.append(layer.register_backward_hook(self.identity_hook))
+            
         self.model.apply(backward_hook)
 
     def rescale_hook(self, module, grad_in, grad_out):
@@ -92,68 +91,277 @@ class DeepLIFT:
         reference_x = module.baseline_in.pop()[0]
         x = module.input.pop()[0]
         delta_x = x - reference_x
-        delta_y = grad_out[0]
+        reference_y = module.baseline_out.pop()[0]
+        y = module.output.pop()[0]
+        delta_y = y - reference_y
 
         multiplier = (delta_y / (delta_x + threshold)).to(self.device)
         far_zero_x = (delta_x.abs() > threshold).float().to(self.device)
-        conbribution_score_far_zero = far_zero_x * multiplier
+        multiplier_far_zero = far_zero_x * multiplier
 
         near_zero_x = (delta_x.abs() <= threshold).to(self.device)
-        contribution_score_near_zero = near_zero_x * multiplier
+        multiplier_near_zero = near_zero_x * multiplier
 
-        contribution_score = contribution_score_near_zero + conbribution_score_far_zero
-        print(contribution_score.shape)
-        print(grad_in[0].shape)
+        multiplier = multiplier_near_zero + multiplier_far_zero
+        multiplier = multiplier * delta_x
+
+        
     
-        return (contribution_score,)
+        return (multiplier,)
     
-    def reveal_calcel_hook(self, module, grad_in, grad_out):
+    def reveal_cancel_hook(self, module, grad_in, grad_out):
+        reference_x = module.baseline_in.pop()[0]
+        x = module.input.pop()[0]
+
+        delta_x = x - reference_x
+        delta_x_pos = ((delta_x >=0)).float().to(self.device) * delta_x
+        delta_x_neg = ((delta_x < 0)).float().to(self.device) * delta_x
+
+
+
+        #print(grad_in.shape)
         return grad_in
     
     def linear_hook(self, module, grad_in, grad_out):
-        print(module)
-        reference_x = module.baseline_in.pop()[0].squeeze(0)
-        x = module.input.pop()[0].squeeze(0)
+        reference_x = module.baseline_in.pop()[0]
+        x = module.input.pop()[0]
         delta_x = x - reference_x
-        delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
-        delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
-        delta_x_zero = (delta_x == 0).float().to(self.device)
+        delta_x_pos = ((delta_x>0).float().to(self.device))
+        delta_x_neg = ((delta_x<0).float().to(self.device))
+        delta_x_zero = ((delta_x == 0).float().to(self.device))
 
-        weight = module.weight.detach().clone().to(self.device)
+        transposed_weight = module.weight.detach().clone().T.to(self.device)
+        size = transposed_weight.shape
+        transpose_pos = nn.Linear(size[1], size[0]).to(self.device)
+        transpose_pos.weight = nn.Parameter(((transposed_weight >0).float().to(self.device))*transposed_weight)
+        transpose_neg = nn.Linear(size[1],size[0]).to(self.device)
+        transpose_neg.weight = nn.Parameter(((transposed_weight <0).float().to(self.device))*transposed_weight)
 
-        pos_mask = (torch.matmul(weight, delta_x)>0).float().to(self.device)
-        neg_mask = (torch.matmul(weight, delta_x)<0).float().to(self.device)
+        transpose_full = nn.Linear(size[1], size[0]).to(self.device)
+        transpose_full.weight = nn.Parameter(transposed_weight)
 
-        contr_score_pos_pos = pos_mask * (weight * delta_x_pos)
-        contr_score_neg_pos = pos_mask * (weight * delta_x_neg)
-        contr_score_pos_neg = neg_mask * (weight * delta_x_pos)
-        contr_score_neg_neg = neg_mask * (weight * delta_x_neg)
+        reference_y = module.baseline_out.pop()[0]
+        y = module.output[0]
+        delta_y = y - reference_y
+        delta_y_pos = ((delta_y >0).float().to(self.device))*delta_y
+        delta_y_neg = ((delta_y <0).float().to(self.device))*delta_y
 
-        delta_y = grad_out[0]
-        delta_y_pos = (delta_y > 0).float().to(self.device) * delta_y
-        delta_y_neg = (delta_y < 0).float().to(self.device) * delta_y
+        pos_grad_out = delta_y_pos * grad_out[0]
+        neg_grad_out = delta_y_neg * grad_out[0]
+
+        pos_pos_result = transpose_pos.forward(pos_grad_out) *delta_x_pos
+        pos_neg_result = transpose_pos.forward(neg_grad_out) * delta_x_pos
+        neg_pos_result = transpose_neg.forward(neg_grad_out) *delta_x_neg
+        neg_neg_result = transpose_neg.forward(neg_grad_out) * delta_x_neg
+        null_result = transpose_full.forward(grad_out[0]) * delta_x_zero
+
+        multiplier = pos_pos_result + pos_neg_result + neg_pos_result + neg_neg_result + null_result
+
+
+
+        return (grad_in[0],) + (multiplier,) + grad_in[2:]
+    
+
+    
+    # def linear_hook(self, module, grad_in, grad_out):
+    #     print(module)
+    #     reference_x = module.baseline_in.pop()[0].squeeze(0)
+    #     x = module.input.pop()[0].squeeze(0)
+    #     delta_x = x - reference_x
+    #     delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
+    #     delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
+    #     delta_x_zero = (delta_x == 0).float().to(self.device)
+
+    #     weight = module.weight.detach().clone().to(self.device)
+
+    #     y = module.output.pop()[0].unsqueeze(0)
+    #     reference_y = module.baseline_out.pop()[0].unsqueeze(0)
+    #     delta_y = y - reference_y
+
+    #     delta_y_pos = (delta_y >0).float().to(self.device)
+    #     delta_y_neg = (delta_y <0).float().to(self.device)
+
+    #     multiplier_pos_pos = F.linear(delta_y_pos * grad_out[0], module.weight.T)
+    #     multiplier_neg_pos = F.linear(delta_y_pos * grad_out[0], module.weight.T)
+    #     multiplier_pos_neg = F.linear(delta_y_neg * grad_out[0], module.weight.T)
+    #     multiplier_neg_neg = F.linear(delta_y_neg * grad_out[0], module.weight.T)
+
+
+    #     # 첫번째 방법
+    #     # pos_mask = (torch.matmul(weight, delta_x)>0).float().to(self.device)
+    #     # neg_mask = (torch.matmul(weight, delta_x)<0).float().to(self.device)
+
+    #     # multiplier_pos_pos = pos_mask * torch.matmul(weight, delta_x_pos) 
+    #     # multiplier_pos_pos = multiplier_pos_pos.unsqueeze(0).T
+    #     # multiplier_pos_pos = torch.matmul(multiplier_pos_pos, (1/delta_x_pos).unsqueeze(0))
+    #     # multiplier_neg_pos = pos_mask * torch.matmul(weight, delta_x_neg)
+    #     # multiplier_neg_pos = multiplier_neg_pos.unsqueeze(0).T
+    #     # multiplier_neg_pos = torch.matmul(multiplier_neg_pos, (1/delta_x_neg).unsqueeze(0))
+    #     # multiplier_pos_neg = neg_mask * torch.matmul(weight, delta_x_pos)
+    #     # multiplier_pos_neg = multiplier_pos_neg.unsqueeze(0).T
+    #     # multiplier_pos_neg = torch.matmul(multiplier_pos_neg, (1/delta_x_pos).unsqueeze(0))
+    #     # multiplier_neg_neg = neg_mask * torch.matmul(weight, delta_x_neg)
+    #     # multiplier_neg_neg = multiplier_neg_neg.unsqueeze(0).T
+    #     # multiplier_neg_neg = torch.matmul(multiplier_neg_neg, (1/delta_x_neg).unsqueeze(0))
+
+
+    #     multiplier = multiplier_pos_pos + multiplier_neg_pos + multiplier_pos_neg + multiplier_neg_neg
+    #     # multiplier = torch.matmul(multiplier.T, grad_out[0].T).squeeze(0).T
+    
+
+    #     return (grad_in[0],) + (multiplier,) + (grad_in[2],)
+
+    def linear_conv_hook(self, module, grad_in, grad_out):
+        reference_x = module.baseline_in.pop()[0]
+        x = module.input.pop()[0]
+        delta_x = x - reference_x
+        delta_x_pos = ((delta_x>0).float().to(self.device))
+        delta_x_neg = ((delta_x<0).float().to(self.device))
+        delta_x_zero = ((delta_x == 0).float().to(self.device))
+
+        transpose_pos = nn.ConvTranspose2d(module.out_channels, module.in_channels, module.kernel_size,
+                                           module.stride, module.padding).to(self.device)
+        transpose_pos.weight = nn.Parameter(((module.weight>0).float().to(self.device)) * module.weight.detach().clone().to(self.device)).to(self.device)
+        transpose_neg = nn.ConvTranspose2d(module.out_channels, module.in_channels, module.kernel_size,
+                                           module.stride, module.padding).to(self.device)
+        transpose_neg.weight = nn.Parameter(((module.weight<0).float().to(self.device)) * module.weight.detach().clone().to(self.device)).to(self.device)
+        transpose_full = nn.ConvTranspose2d(module.out_channels, module.in_channels, module.kernel_size,
+                                           module.stride, module.padding).to(self.device)
+        transpose_full.weight = nn.Parameter((module.weight.detach().clone().to(self.device))).to(self.device)
+
+        reference_y = module.baseline_out.pop()[0]
+        y = module.output.pop()[0]
+        delta_y = (y-reference_y).to(self.device)
+        delta_y_pos = ((delta_y >0).float().to(self.device)) * delta_y
+        delta_y_neg = ((delta_y <0)).float().to(self.device) * delta_y
+
+        pos_grad_out = delta_y_pos * grad_out[0]
+        neg_grad_out = delta_y_neg * grad_out[0]
+
+        dim_check = transpose_pos.forward(pos_grad_out)
+
+        if dim_check.shape != delta_x.shape:
+            if dim_check.shape[3] > delta_x.shape[3]:
+                dim_diff = dim_check.shape[3] - delta_x.shape[3]
+                delta_x = torch.cat((delta_x, torch.ones(delta_x.shape[0], delta_x.shape[1], dim_diff, delta_x.shape[3]).to(self.device)), 2)
+                delta_x = torch.cat((delta_x, torch.ones(delta_x.shape[0], delta_x.shape[1], delta_x.shape[2], dim_diff).to(self.device)),3)
+            else:
+                new_shape = dim_check.shape
+                delta_x = delta_x[0:new_shape[0], 0:new_shape[1], 0:new_shape[2], 0:new_shape[3]]
+
+            delta_x_pos = ((delta_x>0).float().to(self.device))
+            delta_x_neg = ((delta_x <0).float().to(self.device))
+            delta_x_zero = ((delta_x == 0).float().to(self.device))
+
+        pos_pos_result = transpose_pos.forward(pos_grad_out) * delta_x_pos
+        pos_neg_result = transpose_pos.forward(neg_grad_out) * delta_x_pos
+        neg_pos_result = transpose_neg.forward(neg_grad_out) * delta_x_neg
+        neg_neg_result = transpose_neg.forward(pos_grad_out) * delta_x_neg
+        null_result = transpose_full.forward(grad_out[0]) * delta_x_zero
+
+        multiplier = pos_pos_result + pos_neg_result + neg_pos_result + neg_neg_result + null_result
+        
+        if x.shape != multiplier.shape:
+            if x.shape[3] > multiplier.shape[3]:
+                dim_diff = x.shape[3] - multiplier.shape[3]
+                multiplier = torch.cat((multiplier, torch.ones(multiplier.shape[0], multiplier.shape[1], dim_diff, multiplier.shape[3]).to(self.device)),2)
+                multiplier = torch.cat((multiplier, torch.ones(multiplier.shape[0], multiplier.shape[1], multiplier.shape[2], dim_diff).to(self.device)), 3)
+            else:
+                new_shape = x.shape
+                multiplier = delta_x[0:new_shape[0], 0:new_shape[1], 0:new_shape[2], 0:new_shape[3]]
+
+        if grad_in[0] == None:
+            self.input.grad = multiplier
+            print(self.input.grad)
+        else:
+            return (multiplier,) + grad_in[1:]
+
+    
+    # def linear_conv_hook(self, module, grad_in, grad_out):
+    #     print(module)
+
+    #     reference_x = module.baseline_in.pop()[0]
+    #     x = module.input.pop()[0]
+    #     delta_x = x - reference_x
+    #     delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
+    #     delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
+    #     delta_x_zero = (delta_x == 0).float().to(self.device)
 
         
 
+    #     pos_mask = (module(delta_x) > 0).float().to(self.device)
+    #     neg_mask = (module(delta_x) < 0).float().to(self.device)
 
+    #     # 두번째 방법
+    #     y = module.output.pop()[0].unsqueeze(0)
+    #     reference_y = module.baseline_out.pop()[0].unsqueeze(0)
+    #     delta_y = y - reference_y
 
+    #     delta_y_pos = (delta_y > 0).float().to(self.device) * delta_y
+    #     delta_y_neg = (delta_y < 0).float().to(self.device) * delta_y
 
-
-        return grad_in
+    #     _, _, H, W = grad_out[0].shape
+    #     Hnew = (H-1) * module.stride[0] - 2*module.padding[0] +\
+    #                 module.dilation[0]*(module.kernel_size[0]-1) +\
+    #                 module.output_padding[0] +1
+    #     Wnew = (W-1) * module.stride[1] - 2 * module.padding[1] +\
+    #                 module.dilation[1] * (module.kernel_size[1]-1) +\
+    #                 module.output_padding[1] + 1
+    #     _, _, Hin, Win = x.shape
+    #     multiplier_pos_pos = F.conv_transpose2d(delta_y_pos*grad_out[0], module.weight, bias = None, padding = module.padding,
+    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
+    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
+    #     multiplier_neg_pos = F.conv_transpose2d(delta_y_pos*grad_out[0], module.weight, bias = None, padding = module.padding,
+    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
+    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
+    #     multiplier_pos_neg = F.conv_transpose2d(delta_y_neg*grad_out[0], module.weight, bias = None, padding = module.padding,
+    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
+    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
+    #     multiplier_neg_neg = F.conv_transpose2d(delta_y_neg*grad_out[0], module.weight, bias = None, padding = module.padding,
+    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
+    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
     
-    def linear_conv_hook(self, module, grad_in, grad_out):
-        print(module)
-        return grad_in
-    
-    def identity_hook(self, module, grad_in, grad_out):
-        print(module)
-        return grad_in
+
+        
+
+    #     # 첫번재 방법
+    #     # multiplier_pos_pos = pos_mask * module(delta_x_pos)
+    #     # multiplier_pos_pos = multiplier_pos_pos.transpose(0,1)
+    #     # multiplier_pos_pos = torch.matmul(multiplier_pos_pos, 1/delta_x_pos)
+    #     # multiplier_neg_pos = pos_mask * module(delta_x_neg)
+    #     # multiplier_neg_pos = multiplier_neg_pos.transpose(0,1)
+    #     # multiplier_neg_pos = torch.matmul(multiplier_neg_pos, 1/delta_x_neg)
+    #     # multiplier_pos_neg = neg_mask * module(delta_x_pos)
+    #     # multiplier_pos_neg = multiplier_pos_neg.transpose(0,1)
+    #     # multiplier_pos_neg = torch.matmul(multiplier_pos_neg, 1/delta_x_pos)
+    #     # multiplier_neg_neg = neg_mask * module(delta_x_neg)
+    #     # multiplier_neg_neg = multiplier_neg_neg.transpose(0,1)
+    #     # multiplier_neg_neg = torch.matmul(multiplier_neg_neg, 1/delta_x_neg)
+
+    #     multiplier = multiplier_pos_pos + multiplier_neg_pos + multiplier_pos_neg + multiplier_neg_neg
+    #     if grad_in[0] == None:
+    #         self.input.grad = multiplier
+    #         print(self.input.grad)
+    #     else:
+    #         return (multiplier_pos_pos,) + grad_in[1:]
+
+    #     # new_multiplier = torch.zeros(grad_in[0].shape).to(self.device)
+    #     # for i in range(multiplier.shape[2]):
+    #     #     for j in range(multiplier.shape[3]):
+    #     #         m = multiplier[:, :, i, j].transpose(0,1).squeeze(-1).squeeze(-1)
+    #     #         g = grad_out[0][:,:,i,j].transpose(0,1).squeeze(-1).squeeze(-1)
+    #     #         m = torch.matmul(m,g)
+    #     #         new_multiplier[:, :, i, j] = m
+
+
+
+
     
     def calculate(self):
         self.set_baseline()
         self.set_baseline_forward_hook()
         
-        
+        delta_x = self.input - self.baseline
         
         self.model.eval()
         self.baseline = self.model(self.baseline)
@@ -173,7 +381,6 @@ class DeepLIFT:
             handle.remove()
 
         
-        
 
         self.model.zero_grad()
         delta = pred - self.baseline
@@ -181,12 +388,17 @@ class DeepLIFT:
         gradient = torch.zeros(pred.shape).to(self.device)
         gradient[0][index] = delta[0][index]
         pred.backward(gradient)
+
+        for handle in self.backward_hooks:
+            handle.remove()
         
+        contr_score = self.input.grad[0].unsqueeze(0)
+        contr_score = torch.sum(contr_score, dim=1)
 
 
 
 
-        return self.input.grad
+        return contr_score
     
     # Darknet
     def _yolo_get_bbox_darknet(self):
