@@ -176,55 +176,6 @@ class DeepLIFT:
         return (grad_in[0],) + (multiplier,) + grad_in[2:]
     
 
-    
-    # def linear_hook(self, module, grad_in, grad_out):
-    #     print(module)
-    #     reference_x = module.baseline_in.pop()[0].squeeze(0)
-    #     x = module.input.pop()[0].squeeze(0)
-    #     delta_x = x - reference_x
-    #     delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
-    #     delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
-    #     delta_x_zero = (delta_x == 0).float().to(self.device)
-
-    #     weight = module.weight.detach().clone().to(self.device)
-
-    #     y = module.output.pop()[0].unsqueeze(0)
-    #     reference_y = module.baseline_out.pop()[0].unsqueeze(0)
-    #     delta_y = y - reference_y
-
-    #     delta_y_pos = (delta_y >0).float().to(self.device)
-    #     delta_y_neg = (delta_y <0).float().to(self.device)
-
-    #     multiplier_pos_pos = F.linear(delta_y_pos * grad_out[0], module.weight.T)
-    #     multiplier_neg_pos = F.linear(delta_y_pos * grad_out[0], module.weight.T)
-    #     multiplier_pos_neg = F.linear(delta_y_neg * grad_out[0], module.weight.T)
-    #     multiplier_neg_neg = F.linear(delta_y_neg * grad_out[0], module.weight.T)
-
-
-    #     # 첫번째 방법
-    #     # pos_mask = (torch.matmul(weight, delta_x)>0).float().to(self.device)
-    #     # neg_mask = (torch.matmul(weight, delta_x)<0).float().to(self.device)
-
-    #     # multiplier_pos_pos = pos_mask * torch.matmul(weight, delta_x_pos) 
-    #     # multiplier_pos_pos = multiplier_pos_pos.unsqueeze(0).T
-    #     # multiplier_pos_pos = torch.matmul(multiplier_pos_pos, (1/delta_x_pos).unsqueeze(0))
-    #     # multiplier_neg_pos = pos_mask * torch.matmul(weight, delta_x_neg)
-    #     # multiplier_neg_pos = multiplier_neg_pos.unsqueeze(0).T
-    #     # multiplier_neg_pos = torch.matmul(multiplier_neg_pos, (1/delta_x_neg).unsqueeze(0))
-    #     # multiplier_pos_neg = neg_mask * torch.matmul(weight, delta_x_pos)
-    #     # multiplier_pos_neg = multiplier_pos_neg.unsqueeze(0).T
-    #     # multiplier_pos_neg = torch.matmul(multiplier_pos_neg, (1/delta_x_pos).unsqueeze(0))
-    #     # multiplier_neg_neg = neg_mask * torch.matmul(weight, delta_x_neg)
-    #     # multiplier_neg_neg = multiplier_neg_neg.unsqueeze(0).T
-    #     # multiplier_neg_neg = torch.matmul(multiplier_neg_neg, (1/delta_x_neg).unsqueeze(0))
-
-
-    #     multiplier = multiplier_pos_pos + multiplier_neg_pos + multiplier_pos_neg + multiplier_neg_neg
-    #     # multiplier = torch.matmul(multiplier.T, grad_out[0].T).squeeze(0).T
-    
-
-    #     return (grad_in[0],) + (multiplier,) + (grad_in[2],)
-
     def linear_conv_hook(self, module, grad_in, grad_out):
         reference_x = module.baseline_in.pop()[0]
         x = module.input.pop()[0]
@@ -290,188 +241,104 @@ class DeepLIFT:
         else:
             return (multiplier,) + grad_in[1:]
 
-    
-    # def linear_conv_hook(self, module, grad_in, grad_out):
-    #     print(module)
-
-    #     reference_x = module.baseline_in.pop()[0]
-    #     x = module.input.pop()[0]
-    #     delta_x = x - reference_x
-    #     delta_x_pos = (delta_x > 0).float().to(self.device) * delta_x
-    #     delta_x_neg = (delta_x < 0).float().to(self.device) * delta_x
-    #     delta_x_zero = (delta_x == 0).float().to(self.device)
-
-        
-
-    #     pos_mask = (module(delta_x) > 0).float().to(self.device)
-    #     neg_mask = (module(delta_x) < 0).float().to(self.device)
-
-    #     # 두번째 방법
-    #     y = module.output.pop()[0].unsqueeze(0)
-    #     reference_y = module.baseline_out.pop()[0].unsqueeze(0)
-    #     delta_y = y - reference_y
-
-    #     delta_y_pos = (delta_y > 0).float().to(self.device) * delta_y
-    #     delta_y_neg = (delta_y < 0).float().to(self.device) * delta_y
-
-    #     _, _, H, W = grad_out[0].shape
-    #     Hnew = (H-1) * module.stride[0] - 2*module.padding[0] +\
-    #                 module.dilation[0]*(module.kernel_size[0]-1) +\
-    #                 module.output_padding[0] +1
-    #     Wnew = (W-1) * module.stride[1] - 2 * module.padding[1] +\
-    #                 module.dilation[1] * (module.kernel_size[1]-1) +\
-    #                 module.output_padding[1] + 1
-    #     _, _, Hin, Win = x.shape
-    #     multiplier_pos_pos = F.conv_transpose2d(delta_y_pos*grad_out[0], module.weight, bias = None, padding = module.padding,
-    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
-    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
-    #     multiplier_neg_pos = F.conv_transpose2d(delta_y_pos*grad_out[0], module.weight, bias = None, padding = module.padding,
-    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
-    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
-    #     multiplier_pos_neg = F.conv_transpose2d(delta_y_neg*grad_out[0], module.weight, bias = None, padding = module.padding,
-    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
-    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
-    #     multiplier_neg_neg = F.conv_transpose2d(delta_y_neg*grad_out[0], module.weight, bias = None, padding = module.padding,
-    #                                        output_padding=(Hin-Hnew, Win - Wnew), stride = module.stride,
-    #                                        dilation= module.dilation, groups = module.groups,).to(self.device)
-    
-
-        
-
-    #     # 첫번재 방법
-    #     # multiplier_pos_pos = pos_mask * module(delta_x_pos)
-    #     # multiplier_pos_pos = multiplier_pos_pos.transpose(0,1)
-    #     # multiplier_pos_pos = torch.matmul(multiplier_pos_pos, 1/delta_x_pos)
-    #     # multiplier_neg_pos = pos_mask * module(delta_x_neg)
-    #     # multiplier_neg_pos = multiplier_neg_pos.transpose(0,1)
-    #     # multiplier_neg_pos = torch.matmul(multiplier_neg_pos, 1/delta_x_neg)
-    #     # multiplier_pos_neg = neg_mask * module(delta_x_pos)
-    #     # multiplier_pos_neg = multiplier_pos_neg.transpose(0,1)
-    #     # multiplier_pos_neg = torch.matmul(multiplier_pos_neg, 1/delta_x_pos)
-    #     # multiplier_neg_neg = neg_mask * module(delta_x_neg)
-    #     # multiplier_neg_neg = multiplier_neg_neg.transpose(0,1)
-    #     # multiplier_neg_neg = torch.matmul(multiplier_neg_neg, 1/delta_x_neg)
-
-    #     multiplier = multiplier_pos_pos + multiplier_neg_pos + multiplier_pos_neg + multiplier_neg_neg
-    #     if grad_in[0] == None:
-    #         self.input.grad = multiplier
-    #         print(self.input.grad)
-    #     else:
-    #         return (multiplier_pos_pos,) + grad_in[1:]
-
-    #     # new_multiplier = torch.zeros(grad_in[0].shape).to(self.device)
-    #     # for i in range(multiplier.shape[2]):
-    #     #     for j in range(multiplier.shape[3]):
-    #     #         m = multiplier[:, :, i, j].transpose(0,1).squeeze(-1).squeeze(-1)
-    #     #         g = grad_out[0][:,:,i,j].transpose(0,1).squeeze(-1).squeeze(-1)
-    #     #         m = torch.matmul(m,g)
-    #     #         new_multiplier[:, :, i, j] = m
-
-
-
+  
 
     
     def calculate(self):
-        self.set_baseline()
-        self.set_baseline_forward_hook()
-        
-        delta_x = self.input - self.baseline
-        
-        self.model.eval()
-        self.baseline = self.model(self.baseline)
+        if self.framework == 'torch':
+            
 
-        for handle in self.forward_baseline_hooks:
-            handle.remove()
-        
-
-        self.set_forward_hook()
-        self.set_backward_hook()
-        if self.model.model_algorithm == 'abn':
-            attr, pred, _ = self.model(self.input)
-        else:
-            pred = self.model(self.input)
-        
-        for handle in self.forward_hooks:
-            handle.remove()
-
-        
-
-        self.model.zero_grad()
-        delta = pred - self.baseline
-        index = pred.argmax().item()
-        gradient = torch.zeros(pred.shape).to(self.device)
-        gradient[0][index] = delta[0][index]
-        pred.backward(gradient)
-
-        for handle in self.backward_hooks:
-            handle.remove()
-        
-        contr_score = self.input.grad[0].unsqueeze(0)
-        contr_score = torch.sum(contr_score, dim=1)
-
-
-        return contr_score
-    
-    # Darknet
-    def _yolo_get_bbox_darknet(self):
-        self.bboxes = []
-        self.bbox_layer = {}
-        for i, layer in enumerate(self.model.layers):
-            if layer.type == 28:
-            # 아래 코드 에러
-            #if layer.type == darknet.LAYER_TYPE.YOLO:
-                # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
-
-                boxes = layer.get_bboxes(threshold=0.5)
-                for box in boxes:
-                    self.bbox_layer[box.entry] = i
-                    # print(f"where is box: {i}")
-                # Concat
+            if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                self.set_baseline()
+                self._yolo_get_bbox_pytorch()
+                self._yolo_backward_pytorch()
                 
-                self.bboxes += boxes
-        # TODO - NMS, 여기도 Threshold 정적
-        if len(self.bboxes) > 1:
-            self.bboxes = darknet.non_maximum_suppression_bboxes(self.bboxes, iou_threshold=0.5)
+                
+                for handle in self.forward_hooks:
+                    handle.remove()
 
-    def _yolo_backward_darknet(self):
-        for box in self.bboxes:
-            i = self.bbox_layer[box.entry]
-            # 여기서는 i-1을 쓰고 gradcampp 에서는 i를 쓰는 이유?
-            target_layer = self.model.layers[i -1]
-            out = target_layer.get_output()
-            self.model.zero_grad()
-            # feature index
-            stride = target_layer.out_w * target_layer.out_h
-            idx = box.entry + (5 + box.class_idx) * stride
-            # set delta
-            target_layer.delta[idx] = out[idx]
-            self.model.backward()
-            # Get Features
-            # for target in target_layer:
+                for handle in self.backward_hooks:
+                    handle.remove()
+                
+
+                return self.contr_scores, self.bboxes
+
+            
+            else:      
+                self.set_baseline()
+                self.set_baseline_forward_hook()
+
+                delta_x = self.input - self.baseline
+                self.model.eval()
+                self.baseline = self.model(self.baseline)
+
+                for handle in self.forward_baseline_hooks:
+                    handle.remove()
+                
+                self.set_forward_hook()
+                self.set_backward_hook()
+                if self.model.model_algorithm == 'abn':
+                    attr, pred, _ = self.model(self.input)
+                else:
+                    pred = self.model(self.input)
+                
+                for handle in self.forward_hooks:
+                    handle.remove()
+
+                
+
+                self.model.zero_grad()
+                delta = pred - self.baseline
+                index = pred.argmax().item()
+                gradient = torch.zeros(pred.shape).to(self.device)
+                gradient[0][index] = delta[0][index]
+                pred.backward(gradient)
+
+                for handle in self.backward_hooks:
+                    handle.remove()
+                
+                contr_score = self.input.grad[0].unsqueeze(0)
+                contr_score = torch.sum(contr_score, dim=1)
+
+
+                return contr_score
+        
+        elif self.framework == 'darknet':
+            pass
     
-            feature = torch.Tensor(target_layer.get_output())
-            gradient = torch.Tensor(target_layer.get_delta())
-            feature = feature.reshape((-1, target_layer.out_w, target_layer.out_h)).unsqueeze(0)
-            gradient = gradient.reshape((-1, target_layer.out_w, target_layer.out_h)).unsqueeze(0)
-            self.feature.append(feature)
-            self.gradient.append(gradient)
         
     def _yolo_get_bbox_pytorch(self):
+        self.set_baseline_forward_hook()
+        self.input.requires_grad=True
+        self.baseline_preds, baseline_raw_logit = self.model(self.input)
+        for handle in self.forward_baseline_hooks:
+            handle.remove()
+        self.set_forward_hook()
+        self.set_backward_hook()
+        for param in self.model.parameters():
+            param.requires_grad = True
         self.preds_origin, raw_logit = self.model(self.input)
+        
+
         self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+        self.baseline_logits_origin = torch.concat([data.view(-1,self.baseline_preds.shape[-1])[...,5:] for data in baseline_raw_logit],dim=0)
+
         with torch.no_grad():
             self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
     def _yolo_backward_pytorch(self):
         self.bboxes = []
+        self.contr_scores = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
-            self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
-            layer = self.layer[sel_layer_index]
+            delta = self.logits_origin - self.baseline_logits_origin
+            gradient = torch.zeros(self.logits_origin.shape).to(self.device)
+            gradient[sel_layer][int(cls[5].item())] = delta[sel_layer][int(cls[5].item())]
+            self.logits_origin.backward(gradient, retain_graph=True)
+            #self.logits_origin[sel_layer][int(cls[5].item())].backward(gradient)
             
-            # 여기서는 fwd_out, bwd_out을 썼네?
-            # feature, gradient, cls[...:4] 에서 .detach().cpu().numpy()를 써야할 이유가 있나?
-            
-        
- 
+            contr_score = self.input.grad[0].unsqueeze(0)
+            contr_score = torch.sum(contr_score, dim=1).unsqueeze(0)
+            self.contr_scores.append(contr_score)
+            self.bboxes.append(cls[...,:4].detach().cpu().numpy())
