@@ -38,6 +38,7 @@ class DeepLIFT:
             self.input_size = self.input.shape[2:4]
         self.baseline = config['baseline']
         self.target_class = config['target_class']
+        self.rule = config['rule']
         self.forward_baseline_hooks = []
         self.forward_hooks = []
         self.backward_hooks = []
@@ -77,7 +78,10 @@ class DeepLIFT:
     def set_backward_hook(self):
         def backward_hook(layer):
             if isinstance(layer, torch.nn.ReLU):
-                self.backward_hooks.append(layer.register_backward_hook(self.rescale_hook))
+                if self.rule == 'rescale':
+                    self.backward_hooks.append(layer.register_backward_hook(self.rescale_hook))
+                elif self.rule == 'reveal-cancel':
+                    self.backward_hooks.append(layer.register_backward_hook(self.reveal_cancel_hook))   
             elif isinstance(layer, torch.nn.Linear):
                 self.backward_hooks.append(layer.register_backward_hook(self.linear_hook))
             elif isinstance(layer, torch.nn.Conv2d):
@@ -117,10 +121,20 @@ class DeepLIFT:
         delta_x_pos = ((delta_x >=0)).float().to(self.device) * delta_x
         delta_x_neg = ((delta_x < 0)).float().to(self.device) * delta_x
 
+        delta_y_pos = 0.5 * (F.relu(reference_x + delta_x_pos) - F.relu(reference_x)) +\
+                        0.5 * (F.relu(reference_x + delta_x_pos + delta_x_neg) - F.relu(reference_x + delta_x_neg))
+        delta_y_neg = 0.5 * (F.relu(reference_x + delta_x_neg) - F.relu(reference_x)) +\
+                        0.5 * (F.relu(reference_x + delta_x_pos + delta_x_neg) - F.relu(reference_x + delta_x_pos))
 
+        multiplier_pos = delta_y_pos / (delta_x_pos + 1e-7)
+        multiplier_neg = delta_y_neg / (delta_x_neg + 1e-7)
 
-        #print(grad_in.shape)
-        return grad_in
+        grad_out_pos = ((grad_out[0] >= 0).float().to(self.device)) * grad_out[0]
+        grad_out_neg = ((grad_out[0] < 0).float().to(self.device)) * grad_out[0]
+
+        multiplier = grad_out_pos * multiplier_pos + grad_out_neg * multiplier_neg
+
+        return (multiplier,)
     
     def linear_hook(self, module, grad_in, grad_out):
         reference_x = module.baseline_in.pop()[0]
@@ -394,8 +408,6 @@ class DeepLIFT:
         
         contr_score = self.input.grad[0].unsqueeze(0)
         contr_score = torch.sum(contr_score, dim=1)
-
-
 
 
         return contr_score

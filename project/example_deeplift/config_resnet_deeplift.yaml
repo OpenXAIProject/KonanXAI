@@ -34,4 +34,5 @@ explain:
   algorithm: DeepLIFT
   model_algorithm: Default
   baseline: zero
+  rule: reveal-cancel
   target_class: ~

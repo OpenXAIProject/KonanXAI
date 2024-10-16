@@ -114,11 +114,13 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
         elif 'deeplift' in algorithm_type:
             heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).squeeze(0).cpu().detach()*255)
+            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
             
     
         else:
             heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
+            
         
         cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
         if bbox != None:

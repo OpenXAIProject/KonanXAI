@@ -25,13 +25,13 @@ head:
   model_name: yolov5s
   framework: torch
   source: local
-  repo_or_dir: C:\Users\jaehyeok\.cache\yolov5
+  repo_or_dir: C:\Users\topol\.cache\yolov5
   cache_or_local: ~
   data_type: CUSTOM
 
 explain:
-  algorithm: IG
+  algorithm: DeepLIFT
   model_algorithm: Default
-  random_baseline: True
-  random_iter: 10
-  gradient_step: 10
+  baseline: zero
+  rule: reveal-cancel
+  target_class: ~
