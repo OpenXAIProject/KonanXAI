@@ -124,7 +124,7 @@ class Gradient:
         with torch.no_grad():
             self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
-        
+
     def _yolo_backward_pytorch(self):
         self.bboxes = []
         self.heatmaps = []
