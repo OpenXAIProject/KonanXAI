@@ -39,7 +39,8 @@ class Gradient:
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
-                self.saliency = self.input.grad
+                return self.heatmaps, self.bboxes
+                
             else:
                 self.model.eval()
                 self.input.requires_grad = True
@@ -47,11 +48,14 @@ class Gradient:
 
                 logits = self.model(self.input)
                 target = torch.zeros_like(logits)
-                for i in range(target.shape[0]):
-                    target[i][self.target_class if self.target_class else torch.argmax(logits[i]).detach().cpu()] = 1
+                index = torch.argmax(logits[0])
+                target[0][index] = 1
+                # for i in range(target.shape[0]):
+                #     target[i][self.target_class if self.target_class else torch.argmax(logits[i]).detach().cpu()] = 1
                 self.model.zero_grad()
                 logits.backward(target)
-                self.saliency = self.input.grad
+                self.heatmaps = self.input.grad
+                #self.heatmaps = torch.sum(self.heatmaps, dim=1)
 
         elif self.framework == 'darknet':
             pass
@@ -60,7 +64,7 @@ class Gradient:
     
     def calculate(self):
         self.get_saliency()
-        return self.saliency
+        return self.heatmaps
     
     # Darknet
     def _yolo_get_bbox_darknet(self):
@@ -115,10 +119,15 @@ class Gradient:
         
     def _yolo_backward_pytorch(self):
         self.bboxes = []
+        self.heatmaps = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
             layer = self.layer[sel_layer_index]
+
+            heatmap = self.input.grad
+            self.heatmaps.append(heatmap)
+            self.bboxes.append(cls[...,:4].detach().cpu().numpy())
             
             # 여기서는 fwd_out, bwd_out을 썼네?
             # feature, gradient, cls[...:4] 에서 .detach().cpu().numpy()를 써야할 이유가 있나?
