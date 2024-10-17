@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from .dann import DANN
 from tqdm import tqdm
-
+__all__ = ["DANN_GRAD"]
 class DANN_GRAD(DANN):       
     def _get_target_layer(self):
         if isinstance(self.target_layer, list):

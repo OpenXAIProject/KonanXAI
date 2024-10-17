@@ -2,6 +2,7 @@ from KonanXAI.datasets import Datasets
 import os
 from glob import glob
 from pathlib import Path
+__all__= ["CUSTOM"]
 class CUSTOM(Datasets):
     def __init__(self, framework, src_path):
         super().__init__(framework, src_path)

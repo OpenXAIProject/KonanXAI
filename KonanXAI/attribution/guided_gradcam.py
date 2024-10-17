@@ -2,6 +2,7 @@ from KonanXAI.attribution.gradcam import GradCAM
 from torch.nn import ReLU, SiLU
 import torch
 import torch.nn.functional as F
+__all__ = ["GuidedGradCAM"]
 def relu_hook_function(m, in_grad, out_grad):
     if isinstance(m,ReLU) or isinstance(m,SiLU):
         return (torch.clamp(in_grad[0],min=0.0),)

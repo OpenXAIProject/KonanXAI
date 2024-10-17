@@ -9,9 +9,7 @@ import torch
 import numpy as np
 import cv2
 import torch.nn.functional as F
-
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["GradientxInput"]
 class GradientxInput(Gradient):
     def __init__(
             self, 

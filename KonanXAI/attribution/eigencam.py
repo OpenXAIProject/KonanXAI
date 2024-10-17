@@ -7,6 +7,7 @@ import darknet
 import numpy as np
 import cv2
 import torch
+__all__ = ["EigenCAM"]
 class EigenCAM(GradCAM):
     def calculate(self,inputs=None,targets=None):
         self.get_feature_and_gradient(inputs,targets)

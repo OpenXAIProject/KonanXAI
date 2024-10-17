@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
 from darknet.yolo import BBox
-
+__all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']
 def deprocess_image(img):
     img = img - np.mean(img)
     img = img / (np.std(img) + 1e-5)
@@ -19,9 +19,6 @@ def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
-
-def absolute_normalize(heatmap):
-    return torch.abs(heatmap)
 
 def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
     
@@ -42,9 +39,7 @@ def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
             heatmap = torch.Tensor(heatmap).permute(2,0,1).unsqueeze(0)
             return heatmap
-            
-
-
+    
 def get_box(bbox_li, framework):
     bbox = []
     if framework == "darknet":

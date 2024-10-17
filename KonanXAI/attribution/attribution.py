@@ -3,7 +3,7 @@ from abc import *
 #from ..kernel import ExplainData
 #from ...models import XAIModel
 from KonanXAI.datasets import Datasets
-
+__all__ = []
 class Attribution:
     def __init__(self, framework, model, dataset: Datasets):
         self.framework = framework

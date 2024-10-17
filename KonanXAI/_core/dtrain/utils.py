@@ -1,5 +1,6 @@
 import numpy as np
 import ctypes
+__all__ = ["convert_tensor_to_numpy"]
 def convert_tensor_to_numpy(dt_tensor, dtype='float32'):
     data_shape = dt_tensor.shape
     mat_size = []

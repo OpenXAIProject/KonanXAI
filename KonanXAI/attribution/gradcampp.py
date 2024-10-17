@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import torch.nn.functional as F
 import torch
+__all__ = ["GradCAMpp"]
 class GradCAMpp(GradCAM):
     def calculate(self):
         self.get_feature_and_gradient()

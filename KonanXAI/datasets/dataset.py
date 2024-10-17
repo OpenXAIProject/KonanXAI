@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-
+__all__= ["Datasets"]
 class Datasets:
     def __init__(self, framework, src_path, label_path=None):
         self.framework = framework
@@ -55,6 +55,7 @@ class Datasets:
             idx = yield
             if self.framework == 'darknet':
                 origin_img = cv2.imread(self.train_items[idx][0])
+                self.image_name.append(self.train_items[idx][0])
                 origin_img = cv2.resize(origin_img,self.fit)
                 data = darknet.open_image(self.train_items[idx][0], self.fit)
                 data.origin_img = origin_img

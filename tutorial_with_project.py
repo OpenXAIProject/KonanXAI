@@ -1,7 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from project.make_project import Project
-# config_path = './project/example_gradcam/config_dtrain.yaml'
+config_path = './project/example_gradcam/config_dtrain.yaml'
 # config_path = './project/example_evaluation/config_resnet_lime_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_kernel_shap_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_eigencam_sensitivity.yaml'
@@ -51,7 +51,7 @@ from project.make_project import Project
 # config_path = './project/example_train/config_abn_vgg_train.yaml'
 # config_path = './project/example_train/config_dg_resnet_train.yaml'
 # config_path = './project/example_train/config_dg_vgg_train.yaml'
-config_path = './project/example_train/config_default_resnet_train.yaml'
+# config_path = './project/example_train/config_default_resnet_train.yaml'
 # config_path = './project/example_train/config_default_vgg_train.yaml'
 # config_path = './project/example_train/config_dann_resnet_train.yaml'
 # config_path = './project/example_train/config_dann_grad_resnet_train.yaml'

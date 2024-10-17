@@ -1,0 +1,38 @@
+{
+  "job_id": 7000,
+  "job_infos": [
+    {
+      "job_type": "explain",
+      "model_type": "xai",
+      "inputs": [
+        {
+          "model_info": {
+            "framework": "dtrain",
+            "weight_path": "D:/xai_refactoring/vgg_CIFAR10_full.dts",
+            "cfg_path": null,
+            "num_classes": 10,
+            "repo_or_dir": null,
+            "model_algorithm": "default",
+            "model_name": "vgg19"
+          },
+          "data_info": {
+              "data_path": "D:/Datasets/cifar10",
+              "data_type": "CIFAR10",
+              "resize": [224,224]
+          },
+          "type_config": {
+              "algorithm_name": "gradcam",
+              "model_algorithm": "Default",
+              "target_layer": ["relu_15"]
+         }
+        }
+      ],
+      "outputs": [
+        {
+          "volume": "D:/",
+          "file_path": "save_test"
+        }
+      ]
+    }
+  ]
+}

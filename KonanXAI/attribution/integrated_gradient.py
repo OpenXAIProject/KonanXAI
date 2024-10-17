@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from copy import copy
+__all__ = ["IG"]
 class IG:
     def __init__(
             self, 

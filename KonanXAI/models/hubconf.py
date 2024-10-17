@@ -155,9 +155,10 @@ class TorchLocal(Torch):
                 model.float().fuse().eval()
             else:
                 model = torch.hub.load(repo_or_dir = self.repo_or_dir, source = 'local', model= self.model_name, num_classes = self.num_classes)
-                pt = torch.load(weight_path)
-                model.load_state_dict(pt)
-                model.float().eval()
+                if weight_path != None:
+                    pt = torch.load(weight_path)
+                    model.load_state_dict(pt)
+                    model.float().eval()
             model.model_name = self.model_name
             model.model_algorithm = self.model_algorithm
             model.output_size = self.num_classes

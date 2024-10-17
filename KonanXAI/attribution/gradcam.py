@@ -9,8 +9,7 @@ import numpy as np
 import cv2
 import torch.nn.functional as F
 from KonanXAI._core.dtrain.utils import convert_tensor_to_numpy
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["GradCAM"]
 class GradCAM:
     def __init__(
             self, 

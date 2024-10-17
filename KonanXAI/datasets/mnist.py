@@ -1,7 +1,7 @@
 from KonanXAI.datasets import Datasets
 import os
 from glob import glob
-
+__all__= ["MNIST"]
 class MNIST(Datasets):
     def __init__(self, framework, src_path):
         super().__init__(framework, src_path)

@@ -4,6 +4,7 @@ import os
 import numpy as np
 import cv2
 import torch
+__all__= ["DANN_AI_FIRE"]
 class DANN_AI_FIRE(Datasets):
     def __init__(self, framework, src_path):
         self.real_cache = {}

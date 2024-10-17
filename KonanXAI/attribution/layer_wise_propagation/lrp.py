@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import torch
 import sys
 import copy
+__all__ = ["LRP"]
 class LRP: 
     def __init__(self, 
             framework, 

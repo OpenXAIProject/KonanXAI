@@ -8,7 +8,7 @@ from torch.nn.modules import Module
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import numpy as np
-import matplotlib.pyplot as plt
+__all__ = ["Sensitivity"]
 class Sensitivity(Metric):
     """
     Computes the complexity of attributions.

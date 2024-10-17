@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from KonanXAI.utils.data_convert import convert_tensor
 from ..utils.segment_wrapper import SegmentationAlgorithm
+__all__ = ["LimeImage"]
 class LimeImage:
     def __init__(
             self, 
