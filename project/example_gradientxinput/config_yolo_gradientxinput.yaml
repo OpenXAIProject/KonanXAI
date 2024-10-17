@@ -18,20 +18,17 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./resnet50-0676ba61.pth"
-  cfg_path: ~
+  weight_path: "./yolov5s.pt"
+  cfg_path: "./yolov5s.yaml"
   data_path: "./data"
-  data_resize: [224,224]
-  model_name: resnet50
+  data_resize: [640,640]
+  model_name: yolov5s
   framework: torch
-  source: torchvision
-  repo_or_dir: ~
-  cache_or_local: cache
+  source: local
+  repo_or_dir: C:\Users\topol\.cache\yolov5
+  cache_or_local: ~
   data_type: CUSTOM
 
 explain:
-  algorithm: SmoothGrad
+  algorithm: GradientxInput
   model_algorithm: Default
-  std: 0.15
-  noise_level: 0.1
-  sample_size: 50

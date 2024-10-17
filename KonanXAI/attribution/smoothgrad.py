@@ -37,5 +37,14 @@ class SmoothGrad(Gradient):
     def calculate(self):
         self._gaussian_noise_sample()
         self.get_saliency()
-        self.saliency = (torch.sum(self.saliency, dim=0)/self.sample_size).unsqueeze(0)
-        return self.saliency
+        if self.framework == 'torch':
+            if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                for i, heatmap in enumerate(self.heatmaps):
+                    self.heatmaps[i] = torch.mean(heatmap, dim=0).unsqueeze(0)
+                return self.heatmaps, self.bboxes
+            else:
+                self.heatmaps = torch.mean(self.heatmaps, dim=0).unsqueeze(0)
+                return self.heatmaps
+        elif self.fraemwork == 'darknet':
+            pass
+        

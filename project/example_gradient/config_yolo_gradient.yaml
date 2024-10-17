@@ -32,4 +32,3 @@ head:
 explain:
   algorithm: Gradient
   model_algorithm: Default
-  target_class: ~

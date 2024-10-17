@@ -26,9 +26,18 @@ class GradientxInput(Gradient):
 
     def calculate(self):
         self.get_saliency()
-        self.saliency = self.saliency * self.input
-        return self.saliency
+        if self.framework == 'torch':
+            if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                for i, heatmap in enumerate(self.heatmaps):
+                    self.heatmaps[i] = heatmap * self.input
 
+                return self.heatmaps, self.bboxes
+            else:
+                self.heatmaps = self.heatmaps * self.input
+                return self.heatmaps
+        elif self.fraemwork == 'darknet':
+            pass
+    
 
                         
 

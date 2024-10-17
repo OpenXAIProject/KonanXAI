@@ -32,4 +32,4 @@ head:
 explain:
   algorithm: GradientxInput
   model_algorithm: Default
-  target_class: ~
+
