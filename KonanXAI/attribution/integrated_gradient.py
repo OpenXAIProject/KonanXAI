@@ -34,13 +34,13 @@ class IG:
         
     def _preprocess(self, x):
         x = np.array(x)
-        if 'yolo' in self.model_name:
-            mean = np.array([0., 0., 0.]).reshape([1, 1, 1, 3])
-            std = np.array([1, 1, 1]).reshape([1, 1, 1, 3])
-        else:      
-        #ImageNet
-            mean = np.array([0.485, 0.456, 0.406]).reshape([1, 1, 1, 3])
-            std = np.array([0.229, 0.224, 0.225]).reshape([1, 1, 1, 3])
+        # if 'yolo' in self.model_name:
+        mean = np.array([0., 0., 0.]).reshape([1, 1, 1, 3])
+        std = np.array([1, 1, 1]).reshape([1, 1, 1, 3])
+        # else:      
+        # #ImageNet
+        #     mean = np.array([0.485, 0.456, 0.406]).reshape([1, 1, 1, 3])
+        #     std = np.array([0.229, 0.224, 0.225]).reshape([1, 1, 1, 3])
         obs = x / 255.
         z_score = (obs - mean) / std
         obs = np.transpose(z_score, (0, 3, 1, 2))
@@ -78,12 +78,13 @@ class IG:
             self.input = inputs
         if targets != None:
             self.label_index = targets
+        self.model = self.model.eval()
+        x = self.input.requires_grad_().to(self.device)#self._preprocess([self.input])
         if isinstance(self.input, torch.Tensor):
             self.input = self.input.squeeze(0)
             self.input = self.input.detach().cpu().numpy()
+            self.input = (self.input-np.min(self.input))/(np.max(self.input)-np.min(self.input))
             self.input = np.transpose(np.uint8(self.input * 255), (1,2,0))
-        self.model = self.model.eval()
-        x = self._preprocess([self.input])
         if "yolo" in self.model_name:
             target_label = []
             self.pred_origin, raw_logit = self.model(x)
@@ -98,8 +99,7 @@ class IG:
             if self.label_index == None:
                 target_label = torch.argmax(out.detach().cpu(), dim = 1).item()
             else:
-                target_label = self.label_index.item()
-        
+                target_label = self.label_index
         return target_label
     
     def _set_baseline(self):

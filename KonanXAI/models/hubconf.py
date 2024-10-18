@@ -8,6 +8,7 @@ from pathlib import Path
 import importlib.util
 import KonanXAI._core.dtrain.models as dt_models
 import dtrain as dt
+from collections import OrderedDict
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 
 
@@ -157,7 +158,21 @@ class TorchLocal(Torch):
                 model = torch.hub.load(repo_or_dir = self.repo_or_dir, source = 'local', model= self.model_name, num_classes = self.num_classes)
                 if weight_path != None:
                     pt = torch.load(weight_path)
-                    model.load_state_dict(pt)
+                    # 2024-10-18 jjh
+                    if isinstance(pt, OrderedDict):
+                        model.load_state_dict(pt)
+                    else:
+                        model_key = next(iter(model.state_dict()))
+                        state_dict = {}
+                        if 'module.' in model_key:
+                            for k, v in pt['model_state_dict'].items():
+                                key = 'module.'+ k 
+                                state_dict[key] = v
+                        else:
+                            for k, v in pt['model_state_dict'].items():
+                                key = k[7:] if k.startswith('module.') else k
+                                state_dict[key] = v
+                        model.load_state_dict(state_dict)
                     model.float().eval()
             model.model_name = self.model_name
             model.model_algorithm = self.model_algorithm

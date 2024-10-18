@@ -1,5 +1,6 @@
 from KonanXAI._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
 #from ..attribution import Attribution
+from KonanXAI.attribution.gradient import Gradient
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
@@ -10,29 +11,7 @@ import cv2
 import torch.nn.functional as F
 from KonanXAI._core.dtrain.utils import convert_tensor_to_numpy
 __all__ = ["GradCAM"]
-class GradCAM:
-    def __init__(
-            self, 
-            framework, 
-            model, 
-            input, 
-            config):
-        '''
-        input: [batch, channel, height, width] torch.Tensor 
-        '''
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.framework = framework
-        self.model = model
-        self.model_name = self.model.model_name
-        self.label_index = None
-        if framework == "darknet":
-            self.input = input
-            self.input_size = self.input.shape
-        else:
-            self.input = input[0].to(self.device)
-            self.input_size = self.input.shape[2:4]
-                        
-        self.target_layer = config['target_layer']
+class GradCAM(Gradient):        
     def calc_dtrain(self):
         
         forward_args = {
@@ -173,52 +152,7 @@ class GradCAM:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps
-    
-    # Darknet
-    def _yolo_get_bbox_darknet(self):
-        self.bboxes = []
-        self.bbox_layer = {}
-        for i, layer in enumerate(self.model.layers):
-            if layer.type == darknet.LAYER_TYPE.YOLO:
-            # 아래 코드 에러
-            #if layer.type == darknet.LAYER_TYPE.YOLO:
-                # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
-
-                boxes = layer.get_bboxes(threshold=0.5)
-                for box in boxes:
-                    self.bbox_layer[box.entry] = i
-                    # print(f"where is box: {i}")
-                # Concat
-                
-                self.bboxes += boxes
-        # TODO - NMS, 여기도 Threshold 정적
-        if len(self.bboxes) > 1:
-            self.bboxes = darknet.non_maximum_suppression_bboxes(self.bboxes, iou_threshold=0.5)
-
-    def _yolo_backward_darknet(self):
-        for box in self.bboxes:
-            i = self.bbox_layer[box.entry]
-            # 여기서는 i-1을 쓰고 gradcampp 에서는 i를 쓰는 이유?
-            target_layer = self.model.layers[i -1]
-            out = target_layer.get_output()
-            self.model.zero_grad()
-            # feature index
-            stride = target_layer.out_w * target_layer.out_h
-            idx = box.entry + (5 + box.class_idx) * stride
-            # set delta
-            target_layer.delta[idx] = out[idx]
-            self.logits = torch.tensor(out[idx])
-            self.model.backward()
-            # Get Features
-            # for target in target_layer:
-    
-            feature = torch.Tensor(target_layer.get_output())
-            gradient = torch.Tensor(target_layer.get_delta())
-            feature = feature.reshape((-1, target_layer.out_w, target_layer.out_h)).unsqueeze(0)
-            gradient = gradient.reshape((-1, target_layer.out_w, target_layer.out_h)).unsqueeze(0)
-            self.feature.append(feature)
-            self.gradient.append(gradient)
-        
+            
     def _yolo_get_bbox_pytorch(self):
         self.pred_origin, raw_logit = self.model(self.input)
         self.logits_origin = torch.concat([data.view(-1,self.pred_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
@@ -233,8 +167,6 @@ class GradCAM:
             self.model.zero_grad()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
             layer = self.layer[sel_layer_index]
-            # 여기서는 fwd_out, bwd_out을 썼네?
-            # feature, gradient, cls[...:4] 에서 .detach().cpu().numpy()를 써야할 이유가 있나?
             feature = layer.fwd_out[-1].unsqueeze(0)
             gradient = layer.bwd_out[0]
             self.feature.append(feature)

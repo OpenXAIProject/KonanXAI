@@ -10,8 +10,8 @@ import torch.nn.functional as F
 import torch
 __all__ = ["GradCAMpp"]
 class GradCAMpp(GradCAM):
-    def calculate(self):
-        self.get_feature_and_gradient()
+    def calculate(self, inputs = None, targets = None):
+        self.get_feature_and_gradient(inputs, targets)
         self.heatmaps = []
         for index, (feature, gradient) in enumerate(zip(self.feature, self.gradient)):
             b, ch, h, w = gradient.shape

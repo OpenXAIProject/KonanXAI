@@ -1,3 +1,4 @@
+from KonanXAI.utils.data_convert import convert_tensor
 import darknet  
 import random
 import cv2
@@ -89,7 +90,9 @@ class Datasets:
                         #     # data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
                         # # data = np.transpose(data, (2, 0, 1))
                         # # x = torch.tensor(data, dtype=torch.float32) / 255.
-                        x = compose_resize(data)
+                        
+                        x = convert_tensor(data, self.dataset_name, self.fit)
+                        # x = compose_resize(data)
                         if isinstance(yp, list):
                             y = torch.tensor([yp], dtype=torch.float32)
                         else:

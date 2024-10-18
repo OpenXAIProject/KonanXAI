@@ -12,24 +12,28 @@ from KonanXAI.attribution.smoothgrad import *
 
 def load_attribution(config):
     yolov4_calc = ['gradcam', 'gradcampp', 'eigencam']
-    attribution = config['algorithm_name'].lower()
-    if config['framework'] == 'darknet' and attribution == 'all':
+    attributions = config['algorithm_name']
+    if isinstance(attributions, (tuple, list)):
+        attributions = [attribution.lower() for attribution in attributions]
+    else:
+        attributions = attributions.lower()
+    if config['framework'] == 'darknet' and attributions == 'all':
         return object_algorithm(yolov4_calc)
     elif config['framework'] == 'darknet':
-        return object_algorithm(attribution)
+        return object_algorithm(attributions)
     else:
-        return object_algorithm(attribution)
+        return object_algorithm(attributions)
     
 def object_algorithm(algorithm_name):
     algo = []
-    if isinstance(algorithm_name, list):
+    if isinstance(algorithm_name, (tuple,list)):
         for name in algorithm_name:
-            algo.append(parser_attribution(name))
+            algo.append(parser_attributions(name))
     else:
-        algo.append(parser_attribution(algorithm_name))
+        algo.append(parser_attributions(algorithm_name))
     return algo
 
-def parser_attribution(algorithm_name):
+def parser_attributions(algorithm_name):
     if algorithm_name == 'gradcam':
         algorithm = GradCAM
     elif algorithm_name == 'gradcampp':
@@ -48,6 +52,12 @@ def parser_attribution(algorithm_name):
         algorithm = LimeImage
     elif algorithm_name == "kernelshap":
         algorithm = KernelShap
+    elif algorithm_name == "gradient":
+        algorithm = Gradient
+    elif algorithm_name == "gradientxinput":
+        algorithm = GradientxInput
+    elif algorithm_name == "smoothgrad":
+        algorithm = SmoothGrad
     else:
         print("Not support algorithm")
     algorithm.type = algorithm_name

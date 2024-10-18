@@ -39,7 +39,17 @@ def preprocessing(rc, job_id, job_type, model_type):
         rc.set(job_id, Infomation.INPUT, _modify_input)
     # XAI evaluation
     elif job_type == 'evaluation' and model_type == "xai":
-        pass
+        save_dir = _output[0]['volume'] + "/" + _output[0]['file_path']
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        model_param = _input[0]['model_info']
+        datasets_param = _input[0]['data_info']
+        datasets_param['framework'] = model_param['framework']
+        datasets_param['mode'] = job_type
+        arg_param = _input[0]['type_config']
+        arg_param['framework'] = model_param['framework']
+        _modify_input = [{'model_param': model_param, 'datasets_param': datasets_param, "arg_param": arg_param}]
+        rc.set(job_id, Infomation.INPUT, _modify_input)
     # XAI explainer
     elif job_type == "explainer" and model_type == "xai":
         pass
@@ -74,28 +84,17 @@ class FirePower:
                 
                 response = self.rc.get_redis() # API Server를 통해 들어온 작업 정보
                 _status, _input, _output = response['status'], response['input'], response['output']
-                if job_type == 'explain':
-                    # 학습 돌아갈 때 코드
-                    model_param = _input[0]['model_param']
-                    datasets_param = _input[0]['datasets_param']
-                    arg_param = _input[0]['arg_param']
-                    output = _output[0]
-                    work_handle = run_xai(job_type, model_param, datasets_param, arg_param, output)
-                    for progress in work_handle:
-                        if self.rc.get(job_id, Infomation.STATUS) == Status.CANCEL:
-                            sys.exit() # CANCEL 명령 오면 프로그램 다운, docker로 restart
-                        self.rc.set(job_id, Infomation.AI_PROGRESS, progress)
-                elif job_type == 'train':
-                    model_param = _input[0]['model_param']
-                    datasets_param = _input[0]['datasets_param']
-                    arg_param = _input[0]['arg_param']
-                    output = _output[0]
-                    work_handle = run_xai(job_type, model_param, datasets_param, arg_param, output)
-                    for progress in work_handle:
-                        if self.rc.get(job_id, Infomation.STATUS) == Status.CANCEL:
-                            sys.exit() # CANCEL 명령 오면 프로그램 다운, docker로 restart
-                        self.rc.set(job_id, Infomation.AI_PROGRESS, progress)
-                
+
+                model_param = _input[0]['model_param']
+                datasets_param = _input[0]['datasets_param']
+                arg_param = _input[0]['arg_param']
+                output = _output[0]
+                work_handle = run_xai(job_type, model_param, datasets_param, arg_param, output)
+                for progress in work_handle:
+                    if self.rc.get(job_id, Infomation.STATUS) == Status.CANCEL:
+                        sys.exit() # CANCEL 명령 오면 프로그램 다운, docker로 restart
+                    self.rc.set(job_id, Infomation.AI_PROGRESS, progress)
+        
                 self.rc.complete_check() # Engine이 작업을 잘 끝냈다는 플래그
         except Exception:
             self.except_msg = format_exc() # 에러 메시지를 저장
