@@ -136,8 +136,4 @@ class Gradient:
             self.heatmaps.append(heatmap)
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
             
-            # 여기서는 fwd_out, bwd_out을 썼네?
-            # feature, gradient, cls[...:4] 에서 .detach().cpu().numpy()를 써야할 이유가 있나?
             
-        
- 
