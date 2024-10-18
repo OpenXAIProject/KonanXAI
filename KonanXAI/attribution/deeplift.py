@@ -54,9 +54,15 @@ class DeepLIFT:
 
 
     def baseline_forward_hook(self, module, input, output):
+        if hasattr(module, 'index') == False:
+            module.index = 0
+        else:
+            module.index = module.index + 1
+
         if 'baseline_in' not in dir(module):
             module.baseline_in = [input]
             module.baseline_out = [output]
+
         else:
             module.baseline_in.append(input)
             module.baseline_out.append(output)
@@ -92,11 +98,11 @@ class DeepLIFT:
     def rescale_hook(self, module, grad_in, grad_out):
         threshold = 1e-7
 
-        reference_x = module.baseline_in.pop()[0]
-        x = module.input.pop()[0]
+        reference_x = module.baseline_in[module.index][0]
+        x = module.input[module.index][0]
         delta_x = x - reference_x
-        reference_y = module.baseline_out.pop()[0]
-        y = module.output.pop()[0]
+        reference_y = module.baseline_out[module.index][0]
+        y = module.output[module.index][0]
         delta_y = y - reference_y
 
         multiplier = (delta_y / (delta_x + threshold)).to(self.device)
@@ -108,14 +114,13 @@ class DeepLIFT:
 
         multiplier = multiplier_near_zero + multiplier_far_zero
         multiplier = multiplier * delta_x
-
         
     
         return (multiplier,)
     
     def reveal_cancel_hook(self, module, grad_in, grad_out):
-        reference_x = module.baseline_in.pop()[0]
-        x = module.input.pop()[0]
+        reference_x = module.baseline_in[module.index][0]
+        x = module.input[module.index ][0]
 
         delta_x = x - reference_x
         delta_x_pos = ((delta_x >=0)).float().to(self.device) * delta_x
@@ -137,8 +142,8 @@ class DeepLIFT:
         return (multiplier,)
     
     def linear_hook(self, module, grad_in, grad_out):
-        reference_x = module.baseline_in.pop()[0]
-        x = module.input.pop()[0]
+        reference_x = module.baseline_in[module.index][0]
+        x = module.input[module.index][0]
         delta_x = x - reference_x
         delta_x_pos = ((delta_x>0).float().to(self.device))
         delta_x_neg = ((delta_x<0).float().to(self.device))
@@ -154,8 +159,8 @@ class DeepLIFT:
         transpose_full = nn.Linear(size[1], size[0]).to(self.device)
         transpose_full.weight = nn.Parameter(transposed_weight)
 
-        reference_y = module.baseline_out.pop()[0]
-        y = module.output[0]
+        reference_y = module.baseline_out[module.index][0]
+        y = module.output[module.index][0]
         delta_y = y - reference_y
         delta_y_pos = ((delta_y >0).float().to(self.device))*delta_y
         delta_y_neg = ((delta_y <0).float().to(self.device))*delta_y
@@ -177,8 +182,8 @@ class DeepLIFT:
     
 
     def linear_conv_hook(self, module, grad_in, grad_out):
-        reference_x = module.baseline_in.pop()[0]
-        x = module.input.pop()[0]
+        reference_x = module.baseline_in[module.index][0]
+        x = module.input[module.index][0]
         delta_x = x - reference_x
         delta_x_pos = ((delta_x>0).float().to(self.device))
         delta_x_neg = ((delta_x<0).float().to(self.device))
@@ -194,8 +199,8 @@ class DeepLIFT:
                                            module.stride, module.padding).to(self.device)
         transpose_full.weight = nn.Parameter((module.weight.detach().clone().to(self.device))).to(self.device)
 
-        reference_y = module.baseline_out.pop()[0]
-        y = module.output.pop()[0]
+        reference_y = module.baseline_out[module.index][0]
+        y = module.output[module.index][0]
         delta_y = (y-reference_y).to(self.device)
         delta_y_pos = ((delta_y >0).float().to(self.device)) * delta_y
         delta_y_neg = ((delta_y <0)).float().to(self.device) * delta_y
