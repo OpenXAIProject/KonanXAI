@@ -21,13 +21,13 @@
               "resize": [224,224]
           },
           "type_config": {
-              "algorithm_name": ["gradcam","lime","guidedgradcam","kernel_shap"],
+              "algorithm_name": ["gradcam","lime","guidedgradcam"],
               "model_algorithm": "Default",
               "target_layer": ["layer4","2","relu"],
               "random_baseline": true,
               "random_iter": 10,
               "gradient_step": 10,
-              "metric": ["ABPC"],
+              "metric": ["ABPC","sensitivity"],
               "segments": {"algo_type": "slic", "n_segments": 40, "compactnes": 2, "sigma": 3},
             "seed": 415,
             "nsamples": 100,

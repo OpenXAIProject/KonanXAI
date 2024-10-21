@@ -3,7 +3,7 @@ with open ('./requirements.txt') as f:
     required = f.read().splitlines()
 setup(
     name = "konan-xai",
-    version = "0.1.0",
+    version = "2.0",
     author= "konan Tecnology Inc.",
     author_email="konan@konantech.com",
     description="konan Technology XAI",

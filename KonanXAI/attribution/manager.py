@@ -46,7 +46,7 @@ def xai_eval(model, dataset, arg_param, output):
             evaluation_result[metric.type].append(metric_li)
         yield round(index / len(dataset), 2)
     with open(f"{save_path}/resutl.json", "w") as f:
-        json.dump(postprocessing_eval(evaluation_result, metrics),f)
+        json.dump(postprocessing_eval(evaluation_result, metrics),f, indent=4)
 
 def train(model, dataset, arg_param, output):
     save_step, save_path = train_init(arg_param, output)
