@@ -130,9 +130,11 @@ class Gradient:
         self.heatmaps = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
+            if self.input.grad != None:
+                self.input.grad.zero_()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
 
-            heatmap = self.input.grad
+            heatmap = self.input.grad.clone().detach()
             self.heatmaps.append(heatmap)
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
             
