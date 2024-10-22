@@ -54,10 +54,14 @@ class DeepLIFT:
 
 
     def baseline_forward_hook(self, module, input, output):
+        if hasattr(module, 'index_list') == False:
+            module.index_list = []
         if hasattr(module, 'index') == False:
             module.index = 0
+            module.index_list.append(module.index)
         else:
             module.index = module.index + 1
+            module.index_list.append(module.index)
 
         if 'baseline_in' not in dir(module):
             module.baseline_in = [input]
@@ -114,7 +118,9 @@ class DeepLIFT:
 
         multiplier = multiplier_near_zero + multiplier_far_zero
         multiplier = multiplier * delta_x
-        
+        module.index = module.index -1
+        # if module.index not in module.index_list:
+        #     module.index = module.index_list[-1]
     
         return (multiplier,)
     
@@ -138,7 +144,9 @@ class DeepLIFT:
         grad_out_neg = ((grad_out[0] < 0).float().to(self.device)) * grad_out[0]
 
         multiplier = grad_out_pos * multiplier_pos + grad_out_neg * multiplier_neg
-
+        module.index = module.index -1
+        # if module.index not in module.index_list:
+        #     module.index = module.index_list[-1]
         return (multiplier,)
     
     def linear_hook(self, module, grad_in, grad_out):
@@ -175,7 +183,9 @@ class DeepLIFT:
         null_result = transpose_full.forward(grad_out[0]) * delta_x_zero
 
         multiplier = pos_pos_result + pos_neg_result + neg_pos_result + neg_neg_result + null_result
-
+        module.index = module.index -1
+        # if module.index not in module.index_list:
+        #     module.index = module.index_list[-1]
 
 
         return (grad_in[0],) + (multiplier,) + grad_in[2:]
@@ -239,7 +249,9 @@ class DeepLIFT:
             else:
                 new_shape = x.shape
                 multiplier = delta_x[0:new_shape[0], 0:new_shape[1], 0:new_shape[2], 0:new_shape[3]]
-
+        module.index = module.index -1
+        # if module.index not in module.index_list:
+        #     module.index = module.index_list[-1]
         if grad_in[0] == None:
             self.input.grad = multiplier
             print(self.input.grad)
@@ -340,10 +352,12 @@ class DeepLIFT:
             delta = self.logits_origin - self.baseline_logits_origin
             gradient = torch.zeros(self.logits_origin.shape).to(self.device)
             gradient[sel_layer][int(cls[5].item())] = delta[sel_layer][int(cls[5].item())]
+            if self.input.grad != None:
+                self.input.grad.zero_()
             self.logits_origin.backward(gradient, retain_graph=True)
             #self.logits_origin[sel_layer][int(cls[5].item())].backward(gradient)
             
-            contr_score = self.input.grad[0].unsqueeze(0)
+            contr_score = self.input.grad[0].unsqueeze(0).clone().detach()
             contr_score = torch.sum(contr_score, dim=1).unsqueeze(0)
             self.contr_scores.append(contr_score)
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())

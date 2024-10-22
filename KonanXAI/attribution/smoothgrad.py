@@ -32,10 +32,52 @@ class SmoothGrad(Gradient):
         self.std = self.std * (torch.max(self.input) - torch.min(self.input))
         noise_sampling = gaussian_noise(self.input.shape, self.std, self.sample_size).to(self.device)
         samples = torch.repeat_interleave(self.input, self.sample_size, dim = 0)
-        self.input = samples + self.noise_level * noise_sampling
+        self.inputs = samples + self.noise_level * noise_sampling
         
     def calculate(self):
         self._gaussian_noise_sample()
-        self.get_saliency()
-        self.saliency = (torch.sum(self.saliency, dim=0)/self.sample_size).unsqueeze(0)
-        return self.saliency
+        total_heatmaps = []
+        total_bboxes = []
+        for i in range(self.sample_size):
+            self.input = self.inputs[i].unsqueeze(0)
+            self.get_saliency()
+            total_heatmaps.append(self.heatmaps)
+            total_bboxes.apopend(self.bboxes)
+
+       
+                
+        if self.framework == 'torch':
+            if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                for i, heatmap in enumerate(self.heatmaps):
+                    self.heatmaps[i] = torch.mean(heatmap, dim=0).unsqueeze(0)
+                return self.heatmaps, self.bboxes
+            else:
+                self.heatmaps = torch.mean(self.heatmaps, dim=0).unsqueeze(0)
+                return self.heatmaps
+        elif self.fraemwork == 'darknet':
+            pass
+
+    def _yolo_get_bbox_pytorch(self):
+        self.input.requires_grad=True
+        for param in self.model.parameters():
+            param.requires_grad = True
+
+        self.preds_origin, raw_logit = self.model(self.input)
+        self.logits_origin = torch.concat([data.view(-1,self.preds_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+        with torch.no_grad():
+            self.preds, logits, self.select_layers = non_max_suppression(self.preds_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
+        self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
+
+    def _yolo_backward_pytorch(self):
+        self.bboxes = []
+        self.heatmaps = []
+        for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
+            self.model.zero_grad()
+            if self.input.grad != None:
+                self.input.grad.zero_()
+            self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
+
+            heatmap = self.input.grad.clone().detach()
+            self.heatmaps.append(heatmap)
+            self.bboxes.append(cls[...,:4].detach().cpu().numpy())
+            
