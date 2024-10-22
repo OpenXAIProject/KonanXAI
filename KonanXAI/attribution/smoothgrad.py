@@ -11,6 +11,7 @@ import cv2
 import torch.nn.functional as F
 from KonanXAI.utils.sampling import gaussian_noise
 
+
 # Attribution 상속 지음
 # yolo target_layer = [model, '23', 'cv1','conv']
 class SmoothGrad(Gradient):
@@ -36,17 +37,36 @@ class SmoothGrad(Gradient):
         
     def calculate(self):
         self._gaussian_noise_sample()
+        total_heatmap = []
+        total_bboxes = []
         for i in range(self.sample_size):
             self.input = self.inputs[i].unsqueeze(0)
             self.get_saliency()
+            if self.framework == 'torch':
+                if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                    total_heatmap.append(self.heatmaps)
+                    total_bboxes.append(self.bboxes)
+                else:
+                    total_heatmap.append(self.heatmaps)
+
+
         if self.framework == 'torch':
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
-                for i, heatmap in enumerate(self.heatmaps):
-                    self.heatmaps[i] = torch.mean(heatmap, dim=0).unsqueeze(0)
-                return self.heatmaps, self.bboxes
+                heatmaps = []
+                bboxes = []
+                num_box = min(len(total_heatmap[i]) for i in range(self.sample_size))
+                for i in range(num_box):
+                    bbox = torch.cat([torch.tensor(total_bboxes[j][i]).unsqueeze(0) for j in range(self.sample_size)], dim=0)
+                    bbox = torch.mean(bbox, dim=0)
+                    bboxes.append(bbox)
+                    heatmap = torch.cat([total_heatmap[j][i] for j in range(self.sample_size)], dim=0)
+                    heatmap = torch.mean(heatmap, dim = 0).unsqueeze(0)
+                    heatmaps.append(heatmap)
+                    return heatmaps, bboxes
             else:
-                self.heatmaps = torch.mean(self.heatmaps, dim=0).unsqueeze(0)
-                return self.heatmaps
+                total_heatmap = torch.cat(total_heatmap, dim=0)
+                total_heatmap = torch.mean(total_heatmap, dim=0).unsqueeze(0)
+                return total_heatmap
         elif self.fraemwork == 'darknet':
             pass
 
