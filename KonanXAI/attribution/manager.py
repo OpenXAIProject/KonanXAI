@@ -102,8 +102,10 @@ def preprocessing(model, framework, data, data_type):
 def image_path(framework, save_path, dataset, index, algo):
     if framework == "dtrain":
         img_path = ['data/',dataset.image_name[index]]
+    if os.name() == "nt":
+            img_path = dataset.image_name[index].split('\\')
     else:
-        img_path = dataset.image_name[index].split('\\')
+        img_path = dataset.image_name[index].split('/')
     if len(img_path)>2:
         root = f"{save_path}{algo.type}_result/{img_path[-2]}"
     else:

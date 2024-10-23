@@ -18,10 +18,10 @@ class MNIST(Datasets):
         self.test_items = []
         for path in train_path:
             label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
-            label = int(label) - 1
+            label = int(label)
             self.train_items.append((path, label))
 
         for path in test_path:
             label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
-            label = int(label) - 1
+            label = int(label)
             self.test_items.append((path, label))
