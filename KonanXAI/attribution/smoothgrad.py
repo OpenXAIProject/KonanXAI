@@ -62,7 +62,8 @@ class SmoothGrad(Gradient):
                     heatmap = torch.cat([total_heatmap[j][i] for j in range(self.sample_size)], dim=0)
                     heatmap = torch.mean(heatmap, dim = 0).unsqueeze(0)
                     heatmaps.append(heatmap)
-                    return heatmaps, bboxes
+                    
+                return heatmaps, bboxes
             else:
                 total_heatmap = torch.cat(total_heatmap, dim=0)
                 total_heatmap = torch.mean(total_heatmap, dim=0).unsqueeze(0)
