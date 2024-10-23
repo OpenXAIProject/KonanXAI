@@ -42,6 +42,7 @@ class DeepLIFT:
         self.forward_baseline_hooks = []
         self.forward_hooks = []
         self.backward_hooks = []
+        self.remove_attr_hooks = []
                         
     def set_baseline(self):
         if self.baseline == 'zero':
@@ -99,6 +100,10 @@ class DeepLIFT:
             
         self.model.apply(backward_hook)
 
+
+   
+
+
     def rescale_hook(self, module, grad_in, grad_out):
         threshold = 1e-7
 
@@ -119,8 +124,8 @@ class DeepLIFT:
         multiplier = multiplier_near_zero + multiplier_far_zero
         multiplier = multiplier * delta_x
         module.index = module.index -1
-        # if module.index not in module.index_list:
-        #     module.index = module.index_list[-1]
+        if module.index not in module.index_list:
+            module.index = module.index_list[-1]
     
         return (multiplier,)
     
@@ -145,8 +150,8 @@ class DeepLIFT:
 
         multiplier = grad_out_pos * multiplier_pos + grad_out_neg * multiplier_neg
         module.index = module.index -1
-        # if module.index not in module.index_list:
-        #     module.index = module.index_list[-1]
+        if module.index not in module.index_list:
+            module.index = module.index_list[-1]
         return (multiplier,)
     
     def linear_hook(self, module, grad_in, grad_out):
@@ -184,8 +189,8 @@ class DeepLIFT:
 
         multiplier = pos_pos_result + pos_neg_result + neg_pos_result + neg_neg_result + null_result
         module.index = module.index -1
-        # if module.index not in module.index_list:
-        #     module.index = module.index_list[-1]
+        if module.index not in module.index_list:
+            module.index = module.index_list[-1]
 
 
         return (grad_in[0],) + (multiplier,) + grad_in[2:]
@@ -250,11 +255,11 @@ class DeepLIFT:
                 new_shape = x.shape
                 multiplier = delta_x[0:new_shape[0], 0:new_shape[1], 0:new_shape[2], 0:new_shape[3]]
         module.index = module.index -1
-        # if module.index not in module.index_list:
-        #     module.index = module.index_list[-1]
+        if module.index not in module.index_list:
+            module.index = module.index_list[-1]
         if grad_in[0] == None:
             self.input.grad = multiplier
-            print(self.input.grad)
+    
         else:
             return (multiplier,) + grad_in[1:]
 
@@ -276,6 +281,15 @@ class DeepLIFT:
 
                 for handle in self.backward_hooks:
                     handle.remove()
+
+                # for module in self.model.modules():
+                #     print(module)
+                #     del module.input
+                #     del module.output
+                #     del module.baseline_in
+                #     del module.baseline_out
+                #     del module.index
+                #     del module.index_list
                 
 
                 return self.contr_scores, self.bboxes
@@ -284,9 +298,11 @@ class DeepLIFT:
             else:      
                 self.set_baseline()
                 self.set_baseline_forward_hook()
-
+                if self.input.grad != None:
+                    self.input.grad.zero_()
                 delta_x = self.input - self.baseline
                 self.model.eval()
+                
                 self.baseline = self.model(self.baseline)
 
                 for handle in self.forward_baseline_hooks:
@@ -294,6 +310,7 @@ class DeepLIFT:
                 
                 self.set_forward_hook()
                 self.set_backward_hook()
+                
                 if self.model.model_algorithm == 'abn':
                     attr, pred, _ = self.model(self.input)
                 else:
@@ -309,14 +326,23 @@ class DeepLIFT:
                 index = pred.argmax().item()
                 gradient = torch.zeros(pred.shape).to(self.device)
                 gradient[0][index] = delta[0][index]
+                
                 pred.backward(gradient)
 
                 for handle in self.backward_hooks:
                     handle.remove()
                 
-                contr_score = self.input.grad[0].unsqueeze(0)
-                contr_score = torch.sum(contr_score, dim=1)
-
+                contr_score = self.input.grad[0].unsqueeze(0).clone().detach()
+                contr_score = torch.sum(contr_score, dim=1).unsqueeze(0)
+                
+                for module in self.model.modules():
+                    print(module)
+                    del module.input
+                    del module.output
+                    del module.baseline_in
+                    del module.baseline_out
+                    del module.index
+                    del module.index_list
 
                 return contr_score
         

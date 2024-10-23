@@ -49,8 +49,8 @@ config_path = './project/example_lime/config_resnet_lime.yaml'
 # config_path = './project/example_gradient/config_resnet_gradient.yaml'
 # config_path = './project/example_gradientxinput/config_resnet_gradientxinput.yaml'
 # config_path = './project/example_smoothgrad/config_resnet_smoothgrad.yaml'
-config_path = './project/example_deeplift/config_resnet_deeplift.yaml'
-# config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
+# config_path = './project/example_deeplift/config_resnet_deeplift.yaml'
+config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
 
 
