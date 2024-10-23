@@ -9,8 +9,6 @@ import numpy as np
 import cv2
 import torch.nn.functional as F
 __all__ = ["Gradient"]
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
 class Gradient:
     def __init__(
             self, 
@@ -21,6 +19,7 @@ class Gradient:
         '''
         input: [batch, channel, height, width] torch.Tensor 
         '''
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.framework = framework
         self.model = model
@@ -40,6 +39,7 @@ class Gradient:
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
+                
             else:
                 self.model.eval()
                 self.input.requires_grad = True
@@ -53,8 +53,8 @@ class Gradient:
                         target[i][self.label_index] = 1
                 self.model.zero_grad()
                 logits.backward(target)
-                self.heatmaps = self.input.grad
-                #self.heatmaps = torch.sum(self.heatmaps, dim=1)
+                self.heatmaps = self.input.grad.clone().detach()
+
         elif self.framework == 'darknet':
             pass
     
@@ -82,19 +82,26 @@ class Gradient:
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
                 self.bboxes += boxes
+        # TODO - NMS, 여기도 Threshold 정적
         if len(self.bboxes) > 1:
             self.bboxes = darknet.non_maximum_suppression_bboxes(self.bboxes, iou_threshold=0.5)
 
     def _yolo_backward_darknet(self):
         for box in self.bboxes:
             i = self.bbox_layer[box.entry]
+            # 여기서는 i-1을 쓰고 gradcampp 에서는 i를 쓰는 이유?
             target_layer = self.model.layers[i -1]
             out = target_layer.get_output()
             self.model.zero_grad()
+            # feature index
             stride = target_layer.out_w * target_layer.out_h
             idx = box.entry + (5 + box.class_idx) * stride
+            # set delta
             target_layer.delta[idx] = out[idx]
             self.model.backward()
+            # Get Features
+            # for target in target_layer:
+    
             feature = torch.Tensor(target_layer.get_output())
             gradient = torch.Tensor(target_layer.get_delta())
             feature = feature.reshape((-1, target_layer.out_w, target_layer.out_h)).unsqueeze(0)
@@ -116,10 +123,15 @@ class Gradient:
     def _yolo_backward_pytorch(self):
         self.bboxes = []
         self.heatmaps = []
+        self.heatmaps = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
+            if self.input.grad != None:
+                self.input.grad.zero_()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
 
-            heatmap = self.input.grad
+            heatmap = self.input.grad.clone().detach()
             self.heatmaps.append(heatmap)
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
+            
+            

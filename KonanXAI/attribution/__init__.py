@@ -1,3 +1,4 @@
+from KonanXAI.attribution.deeplift import *
 from KonanXAI.attribution.gradcam import *
 from KonanXAI.attribution.gradcampp import *
 from KonanXAI.attribution.eigencam import *
@@ -58,6 +59,8 @@ def parser_attributions(algorithm_name):
         algorithm = GradientxInput
     elif algorithm_name == "smoothgrad":
         algorithm = SmoothGrad
+    elif algorithm_name == "deeplift":
+        algorithm = DeepLIFT
     else:
         print("Not support algorithm")
     algorithm.type = algorithm_name

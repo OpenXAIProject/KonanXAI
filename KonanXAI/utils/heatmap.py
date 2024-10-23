@@ -119,6 +119,10 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
         elif algorithm_type in ["gradient", "gradientxinput", "smoothgrad"]:
             heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
+        elif algorithm_type == "deeplift":
+            heatmap = normalize_heatmap(heatmap)
+            heatmap = np.array(heatmap.squeeze(0).squeeze(0).cpu().detach()*255)
+            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         else:
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
         
