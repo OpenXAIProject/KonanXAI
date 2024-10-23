@@ -54,6 +54,8 @@ class Gradient:
                 logits.backward(target)
                 self.heatmaps = self.input.grad
                 #self.heatmaps = torch.sum(self.heatmaps, dim=1)
+                self.heatmaps = self.input.grad
+                #self.heatmaps = torch.sum(self.heatmaps, dim=1)
 
         elif self.framework == 'darknet':
             pass
@@ -127,6 +129,7 @@ class Gradient:
 
     def _yolo_backward_pytorch(self):
         self.bboxes = []
+        self.heatmaps = []
         self.heatmaps = []
         for cls, sel_layer, sel_layer_index in zip(self.preds[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()

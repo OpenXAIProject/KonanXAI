@@ -34,6 +34,7 @@ class SmoothGrad(Gradient):
         noise_sampling = gaussian_noise(self.input.shape, self.std, self.sample_size).to(self.device)
         samples = torch.repeat_interleave(self.input, self.sample_size, dim = 0)
         self.inputs = samples + self.noise_level * noise_sampling
+        self.inputs = samples + self.noise_level * noise_sampling
         
     def calculate(self):
         self._gaussian_noise_sample()
