@@ -31,5 +31,5 @@ head:
 
 explain:
   algorithm: GradientXInput
-  target_class: ~
+  target_layer: ~
   

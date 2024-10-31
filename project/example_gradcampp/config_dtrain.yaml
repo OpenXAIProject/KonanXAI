@@ -3,6 +3,7 @@
 #   save_path: 추론 결과 저장 위치(str)
 #   weight_path: 학습 파일 위치(str)
 #   cfg_path: yaml or cfg 경로(str)
+#   data_path: 사용할 데이터셋 경로(str) 
 #   data_resize: 모델 input에 맞는 크기(list or tuple)
 #   model_name: 모델 이름(str)
 #   framework: 프레임워크 타입(str)
@@ -13,31 +14,21 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
-
 head:
-  project_type: 'train'
-  save_path: "./checkpoint"
-  weight_path: ~
-  # weight_path: "./resnet50-0676ba61.pth"
+  project_type: 'explain'
+  save_path: "./heatmap/"
+  weight_path: "./vgg_CIFAR10_full.dts"
   cfg_path: ~
+  data_path: "D:/Datasets/cifar10"
   data_resize: [224,224]
-  data_path: "D:/Datasets/ai_fire/train_lite"
-  model_name: resnet50
-  framework: torch
-  source: torchvision
+  model_name: vgg19
+  framework: dtrain
+  source: local
   repo_or_dir: ~
-  cache_or_local: cache
-  data_type: AI_FIRE
+  cache_or_local: ~
+  data_type: CIFAR10
   
-train:
-  epoch: 50
-  learning_rate: 0.0001
-  batch_size: 128
-  optimizer: 'adam'
-  loss_function: 'CrossEntropyLoss'
-  save_step: 1
-  improvement_algorithm: { 
-    algorithm: Default,
-    transfer_weights: ~,
-    gpu_count: 1
-  }
+explain:
+  algorithm: gradcampp
+  model_algorithm: Default
+  target_layer: ['relu_15']
