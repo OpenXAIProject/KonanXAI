@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import torch
 import sys
 import copy
+__all__ = ["LRP"]
 class LRP: 
     def __init__(self, 
             framework, 
@@ -19,7 +20,7 @@ class LRP:
         self.model_name = self.model.model_name
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.input = input[0].to(device)
-        
+        self.label_index = None
         self.rule = config['rule']
         self.alpha = None
         self.yaml_path = None
@@ -28,7 +29,11 @@ class LRP:
         else:
             self.alpha = sys.float_info.epsilon
 
-    def calculate(self):
+    def calculate(self, inputs=None, targets=None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         model =  copy.deepcopy(self.model)
         model.eval()
         self.tracer =  Graph(model, self.yaml_path)
@@ -38,12 +43,13 @@ class LRP:
         else:
            pred = model(self.input).squeeze()
         # pred = model(self.input).squeeze()
-        
-        index = pred.argmax()
-        
+        if self.label_index == None:
+            self.label_index = pred.argmax()
+            max = pred.max()
+        else:
+            max = pred[self.label_index]
         relevance = torch.zeros([model.output_size], device = 'cuda:0')
-        max = pred.max()
-        relevance[index] = max
+        relevance[self.label_index] = max
         relevance = self.module_tree.backprop(relevance, self.rule, self.alpha)
         
         relevance = torch.sum(relevance, axis=1)

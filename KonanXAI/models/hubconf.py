@@ -6,6 +6,9 @@ import torch.nn as nn
 import darknet
 from pathlib import Path
 import importlib.util
+import KonanXAI._core.dtrain.models as dt_models
+import dtrain as dt
+from collections import OrderedDict
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 
 
@@ -153,9 +156,24 @@ class TorchLocal(Torch):
                 model.float().fuse().eval()
             else:
                 model = torch.hub.load(repo_or_dir = self.repo_or_dir, source = 'local', model= self.model_name, num_classes = self.num_classes)
-                pt = torch.load(weight_path)
-                model.load_state_dict(pt)
-                model.float().eval()
+                if weight_path != None:
+                    pt = torch.load(weight_path)
+                    # 2024-10-18 jjh
+                    if isinstance(pt, OrderedDict):
+                        model.load_state_dict(pt)
+                    else:
+                        model_key = next(iter(model.state_dict()))
+                        state_dict = {}
+                        if 'module.' in model_key:
+                            for k, v in pt['model_state_dict'].items():
+                                key = 'module.'+ k 
+                                state_dict[key] = v
+                        else:
+                            for k, v in pt['model_state_dict'].items():
+                                key = k[7:] if k.startswith('module.') else k
+                                state_dict[key] = v
+                        model.load_state_dict(state_dict)
+                    model.float().eval()
             model.model_name = self.model_name
             model.model_algorithm = self.model_algorithm
             model.output_size = self.num_classes
@@ -314,7 +332,40 @@ class DarknetLocal(Darknet):
 #         y = torch.cat(y,1)
 #         return y, None
 
+class Dtrain:
+    def __init__(self, model_name, weight_path ):
+        self.model_name = model_name
+        self.weight_path = weight_path
+        self.session = None
+    def dtrain_session(self):
+        if self.session is None:
+            self.session = dt.Session()
+            dt.set_target_session(self.session)
+            self.session.set_use_tensor_core(True)
 
+    def dtrain_compile(self):
+        loss_fn = dt.nn.CrossEntropyLoss("pred", "y")
+        optimizer = dt.nn.Optimizer("adam", self.model.parameters(), {})
+        compile_args = {
+            'yshape': (-1, ) + (self.model.get_yshape()[1:], ),
+            'ytype': 'float32'
+        }
+        self.model.compile(optimizer, loss_fn, compile_args)
+        self.model.fit(None, None, {'epochs': 0})
+        
+    def _load(self):
+        self.dtrain_session()
+        self.model = self._load_model()
+        self.model.model_name = self.model_name
+        self.model.session = self.session
+        self.dtrain_compile()
+        return self.model
+
+    def _load_model(self):
+        if self.model_name == 'vgg19':
+            return dt_models.vgg19(self.session, pretrained=True, weights_path = self.weight_path)
+        elif self.model_name == 'resnet50':
+            return dt_models.resnet50(self.session, pretrained=True, weights_path = self.weight_path)
 
 # 클래스 이름을 어떻게 할지 고민이네
 class Yolov5(TorchLocal):

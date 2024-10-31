@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
 from darknet.yolo import BBox
-
+__all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']
 def deprocess_image(img):
     img = img - np.mean(img)
     img = img / (np.std(img) + 1e-5)
@@ -19,9 +19,6 @@ def normalize_heatmap(heatmap):
     heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
-
-def absolute_normalize(heatmap):
-    return torch.abs(heatmap)
 
 def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
     
@@ -42,9 +39,7 @@ def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
             heatmap = torch.Tensor(heatmap).permute(2,0,1).unsqueeze(0)
             return heatmap
-            
-
-
+    
 def get_box(bbox_li, framework):
     bbox = []
     if framework == "darknet":
@@ -60,7 +55,7 @@ def get_box(bbox_li, framework):
             bbox.append(box)
     return bbox
 
-def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework):
+def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
     draw_box = False
     bbox = None
     if len(heatmaps)>2:
@@ -72,21 +67,26 @@ def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framew
         heatmaps, guided_imgs = heatmaps
     print(f"Image saving.... save path: {img_save_path}")
     for i, (heatmap, guided_img) in enumerate(tqdm(zip(heatmaps, guided_imgs))):
-        compose_save_path = img_save_path[:-4] + '_compose_{}.jpg'.format(i)
+        if metric == None:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+        else:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}_{metric}_{score}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
         heatmap = F.interpolate(heatmap, size = img_size, mode="bilinear", align_corners=False)
         heatmap = normalize_heatmap(heatmap)
         heatmap_mask = heatmap.squeeze(0).squeeze(0).cpu().numpy()
         heatmap_mask = cv2.merge([heatmap_mask, heatmap_mask, heatmap_mask])
         heatmap = cv2.applyColorMap(np.uint8(255*heatmap.squeeze().detach().cpu()),cv2.COLORMAP_JET)
         compose_guided_img = deprocess_image(heatmap_mask * guided_img).squeeze(0)
-        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
+        cv2.imwrite(save_path, heatmap)
         if bbox != None:
             result = cv2.rectangle(compose_guided_img, bbox[i][0], bbox[i][1], color=(0,255,0),thickness=3)
             cv2.imwrite(compose_save_path, result)
         else:
             cv2.imwrite(compose_save_path, compose_guided_img)
             
-def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
+def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework,metric,score):
     draw_box = False
     bbox = None
     if len(heatmaps)>1:
@@ -96,7 +96,12 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             draw_box = True
     print(f"Image saving.... save path: {img_save_path}")
     for i, heatmap in enumerate(tqdm(heatmaps)):
-        compose_save_path = img_save_path[:-4] + '_compose_{}.jpg'.format(i)
+        if metric == None:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+        else:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}_{metric}_{score}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
         if 'cam' in algorithm_type:
             heatmap = F.interpolate(heatmap, size = img_size, mode="bilinear", align_corners=False)
             heatmap = normalize_heatmap(heatmap)
@@ -111,22 +116,20 @@ def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, f
             heatmap = cv2.cvtColor(heatmap,cv2.COLOR_BGR2RGB)
             if bbox != None:
                 heatmap = cv2.rectangle(heatmap, bbox[i][0], bbox[i][1],color=(0,255,0),thickness=3)
-        elif 'deeplift' in algorithm_type:
-            heatmap = normalize_heatmap(heatmap)
-            heatmap = np.array(heatmap.squeeze(0).squeeze(0).cpu().detach()*255)
-            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-        
         elif algorithm_type in ["gradient", "gradientxinput", "smoothgrad"]:
             heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
-            
+        elif algorithm_type == "deeplift":
+            heatmap = normalize_heatmap(heatmap)
+            heatmap = np.array(heatmap.squeeze(0).squeeze(0).cpu().detach()*255)
+            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         else:
             heatmap = normalize_heatmap(heatmap)
             heatmap = np.array(heatmap.squeeze(0).cpu().detach()*255).transpose(1,2,0)
             
 
         
-        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", heatmap)
+        cv2.imwrite(save_path, heatmap)
         if bbox != None:
             compose_heatmap_image(heatmap, origin_img, bbox[i], save_path = compose_save_path, draw_box = draw_box, framework = framework)
         else:
@@ -142,12 +145,16 @@ def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_pat
         result = cv2.rectangle(result, bbox[0], bbox[1], color=(0,255,0),thickness=3)
     cv2.imwrite(save_path, result)
 
-def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
+def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
     is_empty = True
     draw_box = False
     bbox = None
-    save_path = f"{img_save_path[:-4]}_{algorithm_type}.jpg"
-    compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+    if metric == None:
+        save_path = f"{img_save_path[:-4]}_{algorithm_type}.jpg"
+        compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+    else:
+        save_path = f"{img_save_path[:-4]}_{algorithm_type}_{metric}_{score}.jpg"
+        compose_save_path = save_path.replace(".jpg", "_compose.jpg")
     if len(heatmaps)>1:
         heatmaps, bbox_li = heatmaps
         bbox = get_box(bbox_li, framework)
@@ -178,7 +185,7 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
     else: 
         print("Check out the data set. There are no inferred values.")
         
-def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework):
+def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
     if framework != "darknet":
         origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
     origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
@@ -186,22 +193,40 @@ def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type
         return
     if isinstance(heatmaps,list):
         for i, heatmap in enumerate(heatmaps):
-            compose_save_path = f"{img_save_path[:-4]}_compose_{i}.jpg"
+            if metric == None:
+                save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg"
+                compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+            else:
+                save_path = f"{img_save_path[:-4]}_{algorithm_type}_{i}_{metric}_{score}.jpg"
+                compose_save_path = save_path.replace(".jpg", "_compose.jpg")
             ig_image, mixed_image = convert_ig_image(heatmap, origin_img)
-            cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}_{i}.jpg", ig_image)
+            cv2.imwrite(save_path, ig_image)
             cv2.imwrite(compose_save_path, mixed_image)
     else:
-        compose_save_path = img_save_path[:-4] + '_compose.jpg'
+        if metric == None:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
+        else:
+            save_path = f"{img_save_path[:-4]}_{algorithm_type}_{metric}_{score}.jpg"
+            compose_save_path = save_path.replace(".jpg", "_compose.jpg")
         ig_image, mixed_image = convert_ig_image(heatmaps, origin_img)
-        cv2.imwrite(f"{img_save_path[:-4]}_{algorithm_type}.jpg", ig_image)
+        cv2.imwrite(save_path, ig_image)
         cv2.imwrite(compose_save_path, mixed_image)
     
-def get_lime_image(heatmap, img_save_path):
+def get_lime_image(heatmap, img_save_path, metric, score):
+    if metric == None:
+        save_path = f"{img_save_path[:-4]}_LIME.jpg"
+    else:
+        save_path = f"{img_save_path[:-4]}_LIME_{metric}_{score}.jpg"
     heatmap = np.array(heatmap*255, dtype=np.uint8)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-    cv2.imwrite(img_save_path,heatmap)
+    cv2.imwrite(save_path,heatmap)
  
-def get_kernelshap_image(origin_img, heatmap, img_savepath,framework):
+def get_kernelshap_image(origin_img, heatmap, img_savepath,framework,metric, score):
+    if metric == None:
+        save_path = f"{img_savepath[:-4]}_KernelSHAP.jpg"
+    else:
+        save_path = f"{img_savepath[:-4]}_KernelSHAP_{metric}_{score}.jpg"
     def rgba_to_rgb(rgba_image):
         background = np.ones((224, 224, 3), dtype=np.float32)
         alpha = rgba_image[:,:,3]
@@ -222,7 +247,7 @@ def get_kernelshap_image(origin_img, heatmap, img_savepath,framework):
     heatmap = heatmap * 255
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     compose = heatmap * 0.5 + origin_img * 0.5
-    cv2.imwrite(img_savepath, compose)
+    cv2.imwrite(save_path, compose)
     
 def convert_ig_image(heatmap, origin_img):
     positive = np.clip(heatmap, 0, 1)

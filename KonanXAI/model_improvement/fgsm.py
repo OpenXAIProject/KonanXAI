@@ -5,6 +5,7 @@ import numpy as np
 from .trainer import Trainer
 import torch.nn as nn
 from tqdm import tqdm
+__all__ = ["FGSM"]
 class FGSM(Trainer):
     def model_save(self, epoch, accuracy=None):
         model_class = self.model.__class__.__name__

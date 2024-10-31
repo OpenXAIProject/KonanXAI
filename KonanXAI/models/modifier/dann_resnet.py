@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torchvision.models.resnet import ResNet, Bottleneck
 import torch
+__all__ = ["DANN_ResNet", "make_dann_resnet50"]
 class ReverseLayerF(Function):
     @staticmethod
     def forward(ctx, x, alpha):

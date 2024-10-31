@@ -8,9 +8,7 @@ import torch
 import numpy as np
 import cv2
 import torch.nn.functional as F
-
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["Gradient"]
 class Gradient:
     def __init__(
             self, 
@@ -26,13 +24,15 @@ class Gradient:
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
+        self.label_index = None
         if framework.lower() == "darknet":
             self.input = input
             self.input_size = self.input.shape
         else:
             self.input = input[0].to(self.device)
             self.input_size = self.input.shape[2:4]
-
+            
+        self.target_layer = config['target_layer']
                         
     def get_saliency(self):
         if self.framework == 'torch':
@@ -40,29 +40,29 @@ class Gradient:
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
                 
-                
             else:
                 self.model.eval()
                 self.input.requires_grad = True
                 #self.input.retain_grad = True
-
                 logits = self.model(self.input)
                 target = torch.zeros_like(logits)
                 for i in range(target.shape[0]):
-                    target[i][torch.argmax(logits[i]).detach().cpu()] = 1
+                    if self.label_index == None:
+                        target[i][torch.argmax(logits[i]).detach().cpu()] = 1
+                    else:
+                        target[i][self.label_index] = 1
                 self.model.zero_grad()
                 logits.backward(target)
-                self.heatmaps = self.input.grad
-                #self.heatmaps = torch.sum(self.heatmaps, dim=1)
-                self.heatmaps = self.input.grad
-                #self.heatmaps = torch.sum(self.heatmaps, dim=1)
+                self.heatmaps = self.input.grad.clone().detach()
 
         elif self.framework == 'darknet':
             pass
-
     
-    
-    def calculate(self):
+    def calculate(self,inputs=None, targets=None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         self.get_saliency()
         if self.framework == 'torch':
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
@@ -77,17 +77,10 @@ class Gradient:
         self.bboxes = []
         self.bbox_layer = {}
         for i, layer in enumerate(self.model.layers):
-            if layer.type == 28:
-            # 아래 코드 에러
-            #if layer.type == darknet.LAYER_TYPE.YOLO:
-                # TODO - Threadhold 관련은 config 통합 후 진행, 현재는 정적
-
+            if layer.type == darknet.LAYER_TYPE.YOLO:
                 boxes = layer.get_bboxes(threshold=0.5)
                 for box in boxes:
                     self.bbox_layer[box.entry] = i
-                    # print(f"where is box: {i}")
-                # Concat
-                
                 self.bboxes += boxes
         # TODO - NMS, 여기도 Threshold 정적
         if len(self.bboxes) > 1:

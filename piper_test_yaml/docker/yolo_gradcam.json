@@ -1,0 +1,39 @@
+{
+    "job_id": 7000,
+    "job_infos": [
+      {
+        "job_type": "explain",
+        "model_type": "xai",
+        "inputs": [
+          {
+            "model_info": {
+              "framework": "torch",
+              "weight_path": "/mnt/hdd2/kskim/xai_docker_test/yolo/weights/yolov5s.pt",
+              "cfg_path": "/mnt/hdd2/kskim/xai_docker_test/yolo/weights/yolov5s.yaml",
+              "num_classes": 1000,
+              "repo_or_dir": "/root/.cache/torch/hub/ultralytics_yolov5_master/",
+              "model_algorithm": "default",
+              "model_name": "yolov5s"
+            },
+            "data_info": {
+                "data_path": "/mnt/hdd2/kskim/xai_docker_test/yolo/images/",
+                "data_type": "CUSTOM",
+                "resize": [640,640]
+            },
+            "type_config": {
+                "algorithm_name": "gradcam",
+                "model_algorithm": "Default",
+                "target_layer": {"0":["model","24","m","0"],"1":["model","24","m","1"],"2":["model","24","m","2"]}
+
+           }
+          }
+        ],
+        "outputs": [
+          {
+            "volume": "/mnt/hdd2/kskim/xai_docker_test/yolo/",
+            "file_path": "save_test"
+          }
+        ]
+      }
+    ]
+  }

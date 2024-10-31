@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from .trainer import Trainer
 from tqdm import tqdm
-
+__all__ = ["DANN"]
 class DANN(Trainer):           
     def model_save(self, epoch, accuracy=None):
         model_class = self.model.__class__.__name__

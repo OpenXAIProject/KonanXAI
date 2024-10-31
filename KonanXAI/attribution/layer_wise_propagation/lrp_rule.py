@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import sys
 import numpy as np
+__all__ = []
 def safe_divide(relevance_in, z, eps=1e-9):
     sign = torch.sign(z)
     sign[z==0] = 1

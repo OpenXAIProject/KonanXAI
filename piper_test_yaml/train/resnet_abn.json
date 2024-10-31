@@ -1,0 +1,49 @@
+{
+    "job_id": 7000,
+    "job_infos": [
+        {
+            "job_type": "train",
+            "model_type": "xai",
+            "inputs": [
+                {
+                    "model_info": {
+                        "framework": "torch",
+                        "weight_path": null,
+                        "cfg_path": null,
+                        "num_classes": 5,
+                        "repo_or_dir": "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0",
+                        "model_algorithm": "default",
+                        "model_name": "resnet50"
+                    },
+                    "data_info": {
+                        "data_path": "D:/Datasets/ai_fire/test_lite",
+                        "data_type": "AI_FIRE",
+                        "resize": [
+                            224,
+                            224
+                        ]
+                    },
+                    "type_config": {
+                        "epoch": 50,
+                        "lr": 0.0001,
+                        "batch": 16,
+                        "optimizer": "adam",
+                        "loss_function": "CrossEntropyLoss",
+                        "save_step": 1,
+                        "improvement_algorithm": {
+                            "algorithm": "abn",
+                            "transfer_weights": "D:/xai_refactoring/Default_DataParallel_AI_FIRE_99ep.pt",
+                            "gpu_count": 1
+                        }
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "volume": "D:/",
+                    "file_path": "save_test/checkpoint"
+                }
+            ]
+        }
+    ]
+}

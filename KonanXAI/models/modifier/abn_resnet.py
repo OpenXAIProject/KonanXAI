@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 # from models.resnet import BottleNeck, ResNet
 from torchvision.models.resnet import ResNet, Bottleneck
+__all__ = ["Attention_ResNet","make_attention_resnet50"]
 class Attention_ResNet(ResNet):
     def __init__(self, block, num_classes, layers):
         super(Attention_ResNet, self).__init__( block = block, layers = layers, num_classes = num_classes)

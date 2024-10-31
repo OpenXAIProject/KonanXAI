@@ -1,0 +1,37 @@
+{
+  "job_id": 7000,
+  "job_infos": [
+    {
+      "job_type": "explain",
+      "model_type": "xai",
+      "inputs": [
+        {
+          "model_info": {
+            "framework": "darknet",
+            "weight_path": "D:/xai_refactoring/dark_model/3852.weights",
+            "cfg_path": "D:/xai_refactoring/dark_model/3852.cfg",
+            "num_classes": 5,
+            "repo_or_dir": null,
+            "model_algorithm": "default",
+            "model_name": "yolov4"
+          },
+          "data_info": {
+              "data_path": "D:/Datasets/ai_fire/test_lite/",
+              "data_type": "AI_FIRE",
+              "resize": [640,640]
+          },
+          "type_config": {
+              "algorithm_name": "gradcam",
+              "target_layer": null
+         }
+        }
+      ],
+      "outputs": [
+        {
+          "volume": "D:/",
+          "file_path": "save_test"
+        }
+      ]
+    }
+  ]
+}

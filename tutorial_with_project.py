@@ -1,8 +1,19 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from project.make_project import Project
+config_path = './project/example_gradcam/config_dtrain.yaml'
+# config_path = './project/example_evaluation/config_resnet_lime_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_kernel_shap_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_eigencam_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_lrp_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_ig_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_gradcam_sensitivity.yaml'
+# config_path = './project/example_evaluation/config_resnet_guidedgradcam_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_lrp.yaml'
 # config_path = './project/example_evaluation/config_resnet_gradcam.yaml'
+# config_path = './project/example_evaluation/config_resnet_eigencam.yaml'
+# config_path = './project/example_evaluation/config_resnet_lime.yaml'
+# config_path = './project/example_evaluation/config_resnet_kernel_shap.yaml'
 # config_path = './project/example_evaluation/config_resnet_guidedgradcam.yaml'
 # config_path = './project/example_evaluation/config_resnet_ig.yaml'
 # config_path = './project/example_gradcam/config_darknet.yaml'
@@ -10,9 +21,8 @@ from project.make_project import Project
 # config_path = './project/example_eigencam/config_darknet_eigencam.yaml'
 # config_path = './project/example_lrp/config_efficientnet_lrp.yaml'
 # config_path = './project/example_gradcam/config_efficientnet_gradcam.yaml'
-# config_path = './project/example_lrp/config_resnet_lrp_epsilon.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alphabeta.yaml'
-# config_path = './project/example_lrp/config_resnet_lrp.yaml'
+# config_path = './project/example_lrp/config_resnet_lrp_epsilon.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alpha.yaml'
 # config_path = './project/example_lime/config_resnet_lime.yaml'
 # config_path = './project/example_kernelshap/config_resnet_kernelshap.yaml'
@@ -55,7 +65,6 @@ from project.make_project import Project
 config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/example_smoothgrad/config_yolo_smoothgrad.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
-
 
 project = Project(config_path)
 project.run()

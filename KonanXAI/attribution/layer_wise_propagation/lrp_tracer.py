@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.fx as fx
 from torch.fx._symbolic_trace import Tracer
 from torch.fx.graph_module import GraphModule
+__all__ = []
 def symbolic_trace(module):
     tracer = Tracer()
     tracer.traced_func_name = module.forward.__name__

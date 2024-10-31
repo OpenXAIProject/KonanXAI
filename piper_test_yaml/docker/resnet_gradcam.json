@@ -1,0 +1,39 @@
+{
+    "job_id": 7000,
+    "job_infos": [
+      {
+        "job_type": "explain",
+        "model_type": "xai",
+        "inputs": [
+          {
+            "model_info": {
+              "framework": "torch",
+              "weight_path": "/mnt/hdd2/kskim/xai_docker_test/torch/weights/resnet50-0676ba61.pth",
+              "cfg_path": null,
+              "num_classes": 1000,
+              "repo_or_dir": "/root/.cache/torch/hub/pytorch_vision_v0.11.0",
+              "model_algorithm": "default",
+              "model_name": "resnet50"
+            },
+            "data_info": {
+                "data_path": "/mnt/hdd2/kskim/xai_docker_test/torch/images/",
+                "data_type": "CUSTOM",
+                "resize": [224,224]
+            },
+            "type_config": {
+                "algorithm_name": "gradcam",
+                "model_algorithm": "Default",
+                "target_layer": ["layer4","2","relu"]
+           }
+          }
+        ],
+        "outputs": [
+          {
+            "volume": "/mnt/hdd2/kskim/xai_docker_test/torch/",
+            "file_path": "save_test"
+          }
+        ]
+      }
+    ]
+  }
+  

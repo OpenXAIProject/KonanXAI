@@ -10,7 +10,7 @@ from collections import OrderedDict
 import os
 
 # import 경로만 모아놔야 하는데..
-from KonanXAI.models.hubconf import TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
+from KonanXAI.models.hubconf import Dtrain, TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
 __all__ = ["model_import"]
 #from KonanXAI._core import darknet
@@ -167,10 +167,11 @@ def darknet_model_load(
         
 
 
-def dtrain_model_load():
-    pass
+def dtrain_model_load(model_name, weight_path):
+    model_object = Dtrain(model_name, weight_path)
+    model = model_object._load()
 
-
+    return model
 
 
 def model_import(
@@ -218,5 +219,7 @@ def model_import(
                                     model_name = model_name, cache_or_local = cache_or_local,
                                     weight_path = weight_path,
                                     cfg_path = cfg_path)
+    elif framework == 'dtrain':
+        model = dtrain_model_load(model_name = model_name, weight_path = weight_path)
 
     return model

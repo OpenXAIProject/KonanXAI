@@ -8,9 +8,10 @@ import numpy as np
 import cv2
 import torch.nn.functional as F
 import torch
+__all__ = ["GradCAMpp"]
 class GradCAMpp(GradCAM):
-    def calculate(self):
-        self.get_feature_and_gradient()
+    def calculate(self, inputs = None, targets = None):
+        self.get_feature_and_gradient(inputs, targets)
         self.heatmaps = []
         for index, (feature, gradient) in enumerate(zip(self.feature, self.gradient)):
             b, ch, h, w = gradient.shape
@@ -24,7 +25,10 @@ class GradCAMpp(GradCAM):
             elif 'yolo' in self.model.model_name and self.framework == "darknet":
                 self.positive_gradients = F.relu(self.logits.exp()*gradient)
             else:
-                self.positive_gradients = F.relu(self.pred[0][self.label_index].exp()*gradient) # ReLU(dY/dA) == ReLU(exp(S)*dS/dA))
+                if self.framework == 'dtrain':
+                    self.positive_gradients = F.relu(np.exp(self.preds)*gradient)
+                else:
+                    self.positive_gradients = F.relu(self.pred[0][self.label_index].exp()*gradient) # ReLU(dY/dA) == ReLU(exp(S)*dS/dA))
             weights = (alpha*self.positive_gradients).view(b, ch, h*w).sum(-1).view(b, ch, 1, 1)
             heatmap = (weights * feature).sum(1, keepdim=True)
             heatmap = F.relu(heatmap)

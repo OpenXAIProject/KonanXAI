@@ -11,9 +11,7 @@ import cv2
 import torch.nn.functional as F
 import copy
 import torch.nn as nn
-
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["DeepLIFT"]
 class DeepLIFT:
     def __init__(
             self, 
@@ -28,6 +26,7 @@ class DeepLIFT:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.framework = framework
         self.model = model
+        self.label_index = None
         self.model_name = self.model.model_name
         self.yaml_path = None
         if framework.lower() == "darknet":
@@ -36,8 +35,7 @@ class DeepLIFT:
         else:
             self.input = input[0].to(self.device)
             self.input_size = self.input.shape[2:4]
-        self.baseline = config['baseline']
-        self.target_class = config['target_class']
+        self.baselines = config['baseline']
         self.rule = config['rule']
         self.forward_baseline_hooks = []
         self.forward_hooks = []
@@ -45,7 +43,7 @@ class DeepLIFT:
         self.remove_attr_hooks = []
                         
     def set_baseline(self):
-        if self.baseline == 'zero':
+        if self.baselines == 'zero':
             self.baseline = torch.zeros(self.input.shape).to(self.device)
         
     def set_baseline_forward_hook(self):
@@ -99,10 +97,6 @@ class DeepLIFT:
                 self.backward_hooks.append(layer.register_backward_hook(self.linear_conv_hook))
             
         self.model.apply(backward_hook)
-
-
-   
-
 
     def rescale_hook(self, module, grad_in, grad_out):
         threshold = 1e-7
@@ -263,38 +257,21 @@ class DeepLIFT:
         else:
             return (multiplier,) + grad_in[1:]
 
-  
-
-    
-    def calculate(self):
+    def calculate(self, inputs=None,targets=None):
+        if inputs!=None:
+            self.input = inputs
+        if targets!=None:
+            self.label_index = targets
         if self.framework == 'torch':
-            
-
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
                 self.set_baseline()
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
-                
-                
                 for handle in self.forward_hooks:
                     handle.remove()
-
                 for handle in self.backward_hooks:
                     handle.remove()
-
-                # for module in self.model.modules():
-                #     print(module)
-                #     del module.input
-                #     del module.output
-                #     del module.baseline_in
-                #     del module.baseline_out
-                #     del module.index
-                #     del module.index_list
-                
-
-                return self.contr_scores, self.bboxes
-
-            
+                return self.contr_scores, self.bboxes            
             else:      
                 self.set_baseline()
                 self.set_baseline_forward_hook()
@@ -302,39 +279,30 @@ class DeepLIFT:
                     self.input.grad.zero_()
                 delta_x = self.input - self.baseline
                 self.model.eval()
-                
                 self.baseline = self.model(self.baseline)
-
                 for handle in self.forward_baseline_hooks:
                     handle.remove()
-                
                 self.set_forward_hook()
                 self.set_backward_hook()
-                
                 if self.model.model_algorithm == 'abn':
                     attr, pred, _ = self.model(self.input)
                 else:
                     pred = self.model(self.input)
-                
                 for handle in self.forward_hooks:
                     handle.remove()
-
-                
-
                 self.model.zero_grad()
                 delta = pred - self.baseline
-                index = pred.argmax().item()
+                if self.label_index == None:
+                    index = pred.argmax().item()
+                else:
+                    index = self.label_index
                 gradient = torch.zeros(pred.shape).to(self.device)
                 gradient[0][index] = delta[0][index]
-                
                 pred.backward(gradient)
-
                 for handle in self.backward_hooks:
                     handle.remove()
-                
                 contr_score = self.input.grad[0].unsqueeze(0).clone().detach()
                 contr_score = torch.sum(contr_score, dim=1).unsqueeze(0)
-                
                 for module in self.model.modules():
                     print(module)
                     del module.input
@@ -343,9 +311,7 @@ class DeepLIFT:
                     del module.baseline_out
                     del module.index
                     del module.index_list
-
                 return contr_score
-        
         elif self.framework == 'darknet':
             pass
     

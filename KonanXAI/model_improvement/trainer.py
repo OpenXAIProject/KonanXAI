@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
-
+__all__ =["Trainer"]
 class Trainer:
     def __init__(self, model, optimizer, criterion, datasets, lr, batch, epoch, save_path):
         self.model = model
@@ -78,7 +78,7 @@ class Trainer:
 
     def run(self, train=True, test=True, save=True):
         if train:
-            self.train()
+            self.train()            
         if test:
             self.test(save)
             
@@ -114,8 +114,6 @@ class Trainer:
             print(f"[TRAIN] STEP {epoch + 1} / {self.epoch}")
             for (x_batch, y_batch, custom, _, _) in tqdm(self.datasets):
                 x, y, c = self._set_device(x_batch, y_batch, custom)
-                # x = x_batch.to(self.device)
-                # y = y_batch.to(self.device)
                 # Forward
                 self._hook_pre_forward(x, y, epoch, i)
                 pred = self._forward(x, y, c)
@@ -130,10 +128,9 @@ class Trainer:
                 self._hook_next_update(x, y, pred, loss, epoch)
             avg /= len(self.datasets) * self.batch
             print(f"[TRAIN] {epoch + 1} EPOCH DONE. Avg.Loss : {avg}\n")
-
             if (epoch + 1) % 10 % self.step == 0:
                 self.model_save(epoch + 1)
-        
+
     def test(self, save):
         self.model.eval()
         self.datasets.set_test()
@@ -158,3 +155,32 @@ class Trainer:
         print(f"[TEST] Top5 Accuracy : {top5_error}%")
         if save:
             self.model_save(self.epoch, acc)
+            
+    def xai_train(self, test=True, save=True):
+        self._train_init()
+        for epoch in range(self.epoch):
+            self.datasets.shuffle()
+            avg = 0
+            i = 0
+            print(f"[TRAIN] STEP {epoch + 1} / {self.epoch}")
+            for (x_batch, y_batch, custom, _, _) in tqdm(self.datasets):
+                x, y, c = self._set_device(x_batch, y_batch, custom)
+                # Forward
+                self._hook_pre_forward(x, y, epoch, i)
+                pred = self._forward(x, y, c)
+                loss = self._loss(pred, y)
+                self._hook_pre_backward(x, y, pred, loss, epoch)
+                # Backward
+                self.optimizer.zero_grad()
+                self._backward(loss)
+                self._update()
+                i += 1
+                avg += loss.item()
+                self._hook_next_update(x, y, pred, loss, epoch)
+                yield round(((epoch*len(self.datasets.train_items))+(i*self.batch))/(len(self.datasets.train_items)*self.epoch), 2)
+            avg /= len(self.datasets) * self.batch
+            print(f"[TRAIN] {epoch + 1} EPOCH DONE. Avg.Loss : {avg}\n")
+            if (epoch + 1) % 10 % self.step == 0:
+                self.model_save(epoch + 1)
+        if test:
+            self.test(save)

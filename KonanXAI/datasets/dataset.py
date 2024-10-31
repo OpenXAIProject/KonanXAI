@@ -1,15 +1,12 @@
+from KonanXAI.utils.data_convert import convert_tensor
 import darknet  
-# from ..lib.core import dtrain
-# from ..lib.core import pytorch
 import random
 import cv2
 from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-
-
-
+__all__= ["Datasets"]
 class Datasets:
     def __init__(self, framework, src_path, label_path=None):
         self.framework = framework
@@ -19,6 +16,7 @@ class Datasets:
         self.src_path = src_path
         self.train_items = None
         self.test_items = None
+        self.image_name = []
         self.cache = {}
         self.batch = 1
         self.classes = 1
@@ -58,11 +56,12 @@ class Datasets:
             idx = yield
             if self.framework == 'darknet':
                 origin_img = cv2.imread(self.train_items[idx][0])
+                self.image_name.append(self.train_items[idx][0])
                 origin_img = cv2.resize(origin_img,self.fit)
                 data = darknet.open_image(self.train_items[idx][0], self.fit)
                 data.origin_img = origin_img
                 data.im_size = self.fit
-                yield data
+                yield data 
             else:
                 s = idx * self.batch
                 if self.mode == 0:
@@ -78,7 +77,8 @@ class Datasets:
                         xp = xp[0]
                     if xp not in self.cache: 
                         if isinstance(data,np.ndarray):
-                            data = data
+                            data = Image.fromarray(np.uint8(data))
+                            # data = data
                         else:
                             data = Image.open(xp)
                             # data = cv2.imread(xp,cv2.COLOR_BGR2RGB)
@@ -90,7 +90,9 @@ class Datasets:
                         #     # data = cv2.resize(data, self.fit, interpolation=cv2.INTER_CUBIC)
                         # # data = np.transpose(data, (2, 0, 1))
                         # # x = torch.tensor(data, dtype=torch.float32) / 255.
-                        x = compose_resize(data)
+                        
+                        x = convert_tensor(data, self.dataset_name, self.fit)
+                        # x = compose_resize(data)
                         if isinstance(yp, list):
                             y = torch.tensor([yp], dtype=torch.float32)
                         else:
@@ -102,6 +104,7 @@ class Datasets:
                     # Label
                     xbatch.append(x)
                     ybatch.append(y)
+                    self.image_name.append(xp)
                 xtensor = torch.stack(xbatch)
                 ytensor = torch.stack(ybatch).squeeze()
                 custom = self.get_custom(idx)

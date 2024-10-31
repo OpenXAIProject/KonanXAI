@@ -1,0 +1,40 @@
+{
+    "job_id": 7000,
+    "job_infos": [
+      {
+        "job_type": "explain",
+        "model_type": "xai",
+        "inputs": [
+          {
+            "model_info": {
+              "framework": "torch",
+              "weight_path": "D:/xai_refactoring/yolov5s.pt",
+              "cfg_path": "D:/xai_refactoring/yolov5s.yaml",
+              "num_classes": 1000,
+              "repo_or_dir": "C:/Users/jaehyeok/.cache/yolov5",
+              "model_algorithm": "default",
+              "model_name": "yolov5s"
+            },
+            "data_info": {
+                "data_path": "D:/xai_refactoring/data",
+                "data_type": "CUSTOM",
+                "resize": [640,640]
+            },
+            "type_config": {
+                "algorithm_name": "ig",
+                "model_algorithm": "Default",
+                "random_baseline": true,
+                "random_iter": 10,
+                "gradient_step": 10
+           }
+          }
+        ],
+        "outputs": [
+          {
+            "volume": "D:/",
+            "file_path": "save_test"
+          }
+        ]
+      }
+    ]
+  }

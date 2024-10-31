@@ -6,13 +6,14 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 import cv2
-
+__all__= ["CIFAR10"]
 
 class CIFAR10(Datasets):
     def __init__(self, framework, src_path):
         super().__init__(framework, src_path)
         self.framework = framework
         self.src_path = src_path
+        self.dataset_name = "cifar10"
         self.classes = 10
         self.make_cache = {}
         
@@ -60,6 +61,6 @@ class CIFAR10(Datasets):
                 loaded_label.append(binary[b'labels'])
             loaded_image = np.concatenate(loaded_image, axis=0)
             loaded_label = np.concatenate(loaded_label, axis=0)
-            for (numpy_image, label_idx) in tqdm(zip(loaded_image, loaded_label)):
+            for (image_name, numpy_image, label_idx) in tqdm(zip(loaded_image_name, loaded_image, loaded_label)):
                 label = label_idx#word_labels[label_idx]
-                self.test_items.append((numpy_image, label))
+                self.test_items.append(((image_name,numpy_image), label))

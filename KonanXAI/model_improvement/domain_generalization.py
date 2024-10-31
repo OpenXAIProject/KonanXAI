@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from .trainer import Trainer
 import torch.nn as nn
+__all__ = ["DomainGeneralization"]
 class DomainGeneralization(Trainer):
     def _fwd_hook(l, x, y):
         if isinstance(l.fwd_x, dict):

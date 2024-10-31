@@ -1,0 +1,42 @@
+{
+    "job_id": 7000,
+    "job_infos": [
+      {
+        "job_type": "explain",
+        "model_type": "xai",
+        "inputs": [
+          {
+            "model_info": {
+              "framework": "torch",
+              "weight_path": "D:/xai_refactoring/resnet50-0676ba61.pth",
+              "cfg_path": null,
+              "num_classes": 1000,
+              "repo_or_dir": "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0",
+              "model_algorithm": "default",
+              "model_name": "resnet50"
+            },
+            "data_info": {
+                "data_path": "D:/xai_refactoring/data",
+                "data_type": "CUSTOM",
+                "resize": [224,224]
+            },
+            "type_config": {
+                "algorithm_name": "SmoothGrad",
+                "model_algorithm": "Default",
+                "target_layer": null,
+                "std": 0.15,
+                "noise_level": 0.1,
+                "sample_size": 50
+
+           }
+          }
+        ],
+        "outputs": [
+          {
+            "volume": "D:/",
+            "file_path": "save_test"
+          }
+        ]
+      }
+    ]
+  }

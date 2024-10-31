@@ -6,9 +6,8 @@ from torch.nn.modules import Module
 
 from KonanXAI.utils.evaluation import Tensor, TensorOrTupleOfTensors,format_into_tuple, format_into_tuple_all
 from .base import Metric
-
-
 BaselineFunction = Union[Callable[[Tensor], Tensor], Tuple[Callable[[Tensor], Tensor]]]
+__all__ = ["MoRF","AbPC","LeRF","PixelFlipping"]
 class PixelFlipping(Metric):
     """
     A metric class for evaluating the correctness of explanations or attributions provided by an explainer 

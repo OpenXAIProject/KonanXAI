@@ -11,9 +11,7 @@ import cv2
 import torch.nn.functional as F
 from KonanXAI.utils.sampling import gaussian_noise
 
-
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["SmoothGrad"]
 class SmoothGrad(Gradient):
     def __init__(
             self, 
@@ -36,7 +34,11 @@ class SmoothGrad(Gradient):
         self.inputs = samples + self.noise_level * noise_sampling
         self.inputs = samples + self.noise_level * noise_sampling
         
-    def calculate(self):
+    def calculate(self,inputs=None,targets=None):
+        if inputs!=None:
+            self.input = inputs
+        if targets!=None:
+            self.label_index = targets
         self._gaussian_noise_sample()
         total_heatmap = []
         total_bboxes = []
@@ -49,7 +51,6 @@ class SmoothGrad(Gradient):
                     total_bboxes.append(self.bboxes)
                 else:
                     total_heatmap.append(self.heatmaps)
-
 
         if self.framework == 'torch':
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):

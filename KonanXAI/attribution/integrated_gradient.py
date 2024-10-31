@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from copy import copy
+__all__ = ["IG"]
 class IG:
     def __init__(
             self, 
@@ -22,6 +23,7 @@ class IG:
         self.random_baseline = config['random_baseline']
         self.random_iter = config['random_iter']
         self.gradient_steps = config['gradient_step']
+        self.label_index = None
         if framework == "darknet":
             self.input = input
             self.input_size = self.input.shape
@@ -32,20 +34,20 @@ class IG:
         
     def _preprocess(self, x):
         x = np.array(x)
-        if 'yolo' in self.model_name:
-            mean = np.array([0., 0., 0.]).reshape([1, 1, 1, 3])
-            std = np.array([1, 1, 1]).reshape([1, 1, 1, 3])
-        else:      
-        #ImageNet
-            mean = np.array([0.485, 0.456, 0.406]).reshape([1, 1, 1, 3])
-            std = np.array([0.229, 0.224, 0.225]).reshape([1, 1, 1, 3])
+        # if 'yolo' in self.model_name:
+        mean = np.array([0., 0., 0.]).reshape([1, 1, 1, 3])
+        std = np.array([1, 1, 1]).reshape([1, 1, 1, 3])
+        # else:      
+        # #ImageNet
+        #     mean = np.array([0.485, 0.456, 0.406]).reshape([1, 1, 1, 3])
+        #     std = np.array([0.229, 0.224, 0.225]).reshape([1, 1, 1, 3])
         obs = x / 255.
         z_score = (obs - mean) / std
         obs = np.transpose(z_score, (0, 3, 1, 2))
         return torch.tensor(obs, dtype = torch.float32, requires_grad = True, device = self.device)    
     
-    def calculate(self):
-        target_label = self.get_gradient()
+    def calculate(self,inputs=None, targets= None):
+        target_label = self.get_gradient(inputs, targets)
         if isinstance(target_label,int) or len(target_label)>0:
             iteration = self.random_iter if self.random_iter else 1
             igs = []
@@ -71,13 +73,18 @@ class IG:
             return
         
                         
-    def get_gradient(self):
+    def get_gradient(self,inputs, targets):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
+        self.model = self.model.eval()
+        x = self.input.requires_grad_().to(self.device)#self._preprocess([self.input])
         if isinstance(self.input, torch.Tensor):
             self.input = self.input.squeeze(0)
             self.input = self.input.detach().cpu().numpy()
+            self.input = (self.input-np.min(self.input))/(np.max(self.input)-np.min(self.input))
             self.input = np.transpose(np.uint8(self.input * 255), (1,2,0))
-        self.model = self.model.eval()
-        x = self._preprocess([self.input])
         if "yolo" in self.model_name:
             target_label = []
             self.pred_origin, raw_logit = self.model(x)
@@ -89,8 +96,10 @@ class IG:
                 target_label.append([sel_layer, cls[5].item()])
         else:
             out = self.model(x)
-            target_label = torch.argmax(out.detach().cpu(), dim = 1).item()
-        
+            if self.label_index == None:
+                target_label = torch.argmax(out.detach().cpu(), dim = 1).item()
+            else:
+                target_label = self.label_index
         return target_label
     
     def _set_baseline(self):

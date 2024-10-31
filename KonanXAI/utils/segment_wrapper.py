@@ -1,5 +1,6 @@
 import sys, types, inspect
 from skimage.segmentation import slic,quickshift, felzenszwalb
+__all__ = ["SegmentationAlgorithm"]
 def has_arg(fn, arg_name):
     """Checks if a callable accepts a given keyword argument.
 

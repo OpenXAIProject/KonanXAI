@@ -4,12 +4,14 @@ import os
 import numpy as np
 import cv2
 import torch
+__all__= ["DANN_AI_FIRE"]
 class DANN_AI_FIRE(Datasets):
     def __init__(self, framework, src_path):
         self.real_cache = {}
         super().__init__(framework = framework, src_path= src_path)
         self.framework = framework
         self.src_path = src_path
+        self.dataset_name = 'aifire'
         self.classes = 5
     
     def get_custom(self, idx):

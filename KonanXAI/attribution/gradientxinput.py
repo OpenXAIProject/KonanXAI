@@ -9,9 +9,7 @@ import torch
 import numpy as np
 import cv2
 import torch.nn.functional as F
-
-# Attribution 상속 지음
-# yolo target_layer = [model, '23', 'cv1','conv']
+__all__ = ["GradientxInput"]
 class GradientxInput(Gradient):
     def __init__(
             self, 
@@ -24,7 +22,12 @@ class GradientxInput(Gradient):
         '''
         Gradient.__init__(self, framework, model, input, config)
 
-    def calculate(self):
+    def calculate(self,inputs=None,targets=None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
+            
         self.get_saliency()
         if self.framework == 'torch':
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
@@ -37,7 +40,8 @@ class GradientxInput(Gradient):
                 return self.heatmaps
         elif self.fraemwork == 'darknet':
             pass
-    
+
+
 
                         
 

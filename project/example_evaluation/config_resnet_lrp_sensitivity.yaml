@@ -1,0 +1,37 @@
+# config 작성법
+#   project_type: explain, train(str)
+#   save_path: 추론 결과 저장 위치(str)
+#   weight_path: 학습 파일 위치(str)
+#   cfg_path: yaml or cfg 경로(str)
+#   data_path: 사용할 데이터셋 경로(str) 
+#   data_resize: 모델 input에 맞는 크기(list or tuple)
+#   model_name: 모델 이름(str)
+#   framework: 프레임워크 타입(str)
+#   source: github, local 선택
+#   repo_or_dir: 모델파일들이 저장되어있는 경로
+#   cache_or_local: cache, local 선택(cache일 경우 .cache파일에 저장)
+#   data_type: 데이터셋 타입(str)
+#   explain_algorithm: 설명방식 타입(str)
+#   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
+
+
+head:
+  project_type: 'evaluation'
+  save_path: "./heatmap/"
+  weight_path: "./resnet50-0676ba61.pth"
+  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
+  cfg_path: ~
+  data_path: "./data"
+  data_resize: [224,224]
+  model_name: resnet50
+  framework: torch
+  source: local
+  repo_or_dir: "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0"
+  cache_or_local: cache
+  data_type: CUSTOM
+
+evaluation:
+  algorithm: LRP
+  model_algorithm: Default
+  rule: Epsilon
+  metric: sensitivity

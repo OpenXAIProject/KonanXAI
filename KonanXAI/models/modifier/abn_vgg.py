@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 # from models.resnet import BottleNeck, ResNet
 from torchvision.models.vgg import VGG
+__all__ = ["Attention_VGG", "make_attention_vgg19", "make_attention_vgg16"]
 cfg = {
     'vgg16': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512],#, 'M'],
     'vgg19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512]#, 'M'],
