@@ -15,5 +15,6 @@ def convert_tensor(images, data_type, img_size):
         transforms.Resize(img_size, antialias=False),
     ])
         # normalize = transforms.Normalize(mean=[0.,0.,0.],std = [1., 1., 1.])
-    images = images.convert('RGB')
+    if isinstance(images, Image.Image):
+        images = images.convert('RGB')
     return tensor(images)

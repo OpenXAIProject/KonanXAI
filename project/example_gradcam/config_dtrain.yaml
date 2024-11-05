@@ -17,7 +17,7 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./vgg_cifar10.dts"
+  weight_path: "./mnist_vgg19_e1_new.dts"
   cfg_path: ~
   data_path: "D:/Datasets/cifar10"
   data_resize: [224,224]
