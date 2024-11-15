@@ -24,6 +24,7 @@ from KonanXAI.explainer.counterfactual import Counterfactual
 from PIL import Image
 import matplotlib.pyplot as plt
 
+__all__ = ["Wachter"]
 # ABCMeta 상속으로 해야하나?
 class Wachter(Counterfactual):
     ''' explain something...

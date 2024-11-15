@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-__all__= ["Datasets"]
+__all__ = ["Datasets"]
 class Datasets:
     def __init__(self, framework, src_path, label_path=None):
         self.framework = framework

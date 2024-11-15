@@ -1,0 +1,48 @@
+# config 작성법
+# ㄴsave_path: 추론 결과 저장 위치(str)
+#   weight_path: 학습 파일 위치(str)
+#   data_path: 사용할 데이터셋 경로(str) 
+#   data_resize: 모델 input에 맞는 크기(list)
+#   model_type: 모델 타입(str)
+#   platform_type: 프레임워크 타입(str)
+#   data_type: 데이터셋 타입(str)
+#   explain_type: 설명방식 타입(str)
+#   target_layer: 어느레이어에 지정할지(list or None or dict) -> CAM 알고리즘에 해당
+# model_type, platform_type, data_type, explain_type은 대소문자 상관 X
+
+head:
+  project_type: 'explainer'
+  save_path: "./counterfactual/"
+  weight_path: "./resnet50_mnist_epoch10.pt"
+  cfg_path: ~
+  data_resize: [224,224]
+  data_path: "../dataset/MNIST/"
+  model_name: resnet50
+  framework: torch
+  source: torchvision
+  repo_or_dir: ~
+  cache_or_local: cache
+  data_type: MNIST
+
+explainer: {
+  methods: CounterFactual,
+  model_algorithm: Default,
+  algorithm: cycleGAN,
+  input_label: 3, 
+  target_label: 6,
+  gen_AtoB_weight_path: "./CF_cycleGAN/gen_AtoB.pth",
+  gen_BtoA_weight_path: "./CF_cycleGAN/gen_BtoA.pth",
+  disc_A_weight_path: "./CF_cycleGAN/disc_A.pth",
+  disc_B_weight_path: "./CF_cycleGAN/disc_B.pth",
+  CF_gen_AtoB_weight_path: "./CF_cycleGAN/CF_gen_AtoB.pth",
+  CF_gen_BtoA_weight_path: "./CF_cycleGAN/CF_gen_BtoA.pth",
+  CF_disc_A_weight_path: "./CF_cycleGAN/CF_disc_A.pth",
+  CF_disc_B_weight_path: "./CF_cycleGAN/CF_disc_B.pth",
+  cycleGAN_learning_rate: 0.01,
+  cycleGAN_epochs: 10,
+  CF_learning_rate: 0.01,
+  CF_epochs: 7,
+  lambda: 5, 
+  mu: 10,
+  gamma: 0.1
+}

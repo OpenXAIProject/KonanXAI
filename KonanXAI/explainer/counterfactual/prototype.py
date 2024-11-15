@@ -23,8 +23,9 @@ from KonanXAI.explainer.counterfactual import Counterfactual
 from PIL import Image
 import matplotlib.pyplot as plt
 
+__all__ = ["Prototype_CF"]
 # ABCMeta 상속으로 해야하나?
-class Prototype(Counterfactual):
+class Prototype_CF(Counterfactual):
     ''' explain something...
     
     '''

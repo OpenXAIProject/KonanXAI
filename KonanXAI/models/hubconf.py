@@ -7,7 +7,7 @@ import darknet
 from pathlib import Path
 import importlib.util
 import KonanXAI._core.dtrain.models as dt_models
-import dtrain as dt
+#import dtrain as dt
 from collections import OrderedDict
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 

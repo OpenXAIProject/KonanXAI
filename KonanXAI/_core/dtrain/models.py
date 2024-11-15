@@ -1,5 +1,5 @@
-import dtrain as dt
-import dtrain.nn as nn
+#import dtrain as dt
+#import dtrain.nn as nn
 
 __all__ = ["vgg19", "resnet50"]
 pretrained_weights = {

@@ -22,20 +22,26 @@ from torchvision.utils import save_image
 from PIL import Image
 import matplotlib.pyplot as plt
 
+__all__ = ["Counterfactual"]
 # ABCMeta 상속으로 해야하나?
 class Counterfactual:
     ''' explain something...
     
     '''
     def __init__(self, framework, model, dataset, config):
-        self.algorithm = config['algorithm']
-        self.input_index = config['input_index']
-        self.input = dataset[self.input_index][0]
-        self.target_label = config['target_label']
-        self._lambda = config['lambda']
-        self.epoch = config['epoch']
-        self.learning_rate = config['learning_rate']
         
+        self.device = torch.device('cuda' is torch.cuda.is_available() else 'cpu')
+        self.framework = framework
+        self.model = model
+        self.model_name = self.model.model_name
+        self.input_label = config['input_label']
+        self.target_label = config['target_label']
+        if framework.lower() == 'darknet':
+            self.input = input
+            self.input_size = self.input.shape
+        else:
+            self.input = input[0].to(self.device)
+            self.input_size = self.input.shape[2:4]
 
     def _perturb_input(self):
         self.cf_image = self.input

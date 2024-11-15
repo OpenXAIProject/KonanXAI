@@ -29,7 +29,7 @@ import torch.nn as nn
 class Configuration:
     def __init__(self, config_path):
         self.config_path = config_path
-        with open(self.config_path, 'r', encoding='utf-8') as f:
+        with open(self.config_path, 'r', encoding ='utf-8') as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
         self._parser_config()        
 
@@ -43,6 +43,9 @@ class Configuration:
         elif self.project_type.lower() == 'train':
             self._train_parser()
             self._train_check_config()
+        elif self.project_type.lower() == 'explainer':
+            self._explainer_parser()
+            self._explainer_check_config()
         elif self.project_type == 'evaluation':
             self._eval_parser()
             self._explain_check_config()
@@ -101,6 +104,15 @@ class Configuration:
                 self.config[key] = value.lower()
             else:
                 self.config[key] = value
+
+    def _explainer_parser(self):
+        self.explains = self.config['explainer']
+        self.methods = self.config['methods'].lower()
+        self.model_algorithm = self.explains['model_algorithm'].lower()
+        self.algorithm_name = self.explains['algorithm'].lower()
+        self.config = {}
+        for key, value in self.explains.items():
+            self.config[key] = value.lower()
                 
     def _eval_parser(self):
         self.explains = self.config['evaluation']
@@ -210,13 +222,17 @@ class Configuration:
                 self.algorithm = SmoothGrad
             elif self.algorithm_name == 'deeplift':
                 self.algorithm = DeepLIFT
-            
+    
+    
+    def _explainer_check_config(self):
+        
         
     def _evaluation_check_config(self):
         if self.config['metric'] == 'abpc':
             self.metric = AbPC
         elif self.config['metric'] == 'sensitivity':
             self.metric = Sensitivity
+    
     def _train_check_config(self):
         improvement_algorithms = ['ABN', 'DomainGeneralization', 'DANN', 'DANN_GRAD', 'Default','FGSM']
         optimizers = ['Adam', 'SGD']

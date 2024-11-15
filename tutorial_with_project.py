@@ -1,7 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from project.make_project import Project
-config_path = './project/example_gradcam/config_dtrain.yaml'
+# config_path = './project/example_gradcam/config_dtrain.yaml'
 # config_path = './project/example_evaluation/config_resnet_lime_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_kernel_shap_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_eigencam_sensitivity.yaml'
@@ -62,9 +62,10 @@ config_path = './project/example_gradcam/config_dtrain.yaml'
 # config_path = './project/example_gradientxinput/config_yolo_gradientxinput.yaml'
 # config_path = './project/example_smoothgrad/config_resnet_smoothgrad.yaml'
 # config_path = './project/example_deeplift/config_resnet_deeplift.yaml'
-config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
+# config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/example_smoothgrad/config_yolo_smoothgrad.yaml'
-# config_path = './project/config_resnet_mnist_CF_prototype.yaml'
+# config_path = './project/example_CF/config_resnet_mnist_CF_prototype.yaml'
+config_path = './project/example_CF/config_resnet_mnist_CF_cycleGAN.yaml'
 
 project = Project(config_path)
 project.run()

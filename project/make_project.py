@@ -82,6 +82,14 @@ class Project(Configuration):
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
     
+    def explainer(self):
+        set_seed(777)
+        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+        
+
+
+
+
     def eval(self):
         set_seed(777)
         for i, data in enumerate(self.dataset):
@@ -127,5 +135,7 @@ class Project(Configuration):
             self.explain()
         elif self.project_type == "train":
             self.train()
+        elif self.project_type == "explainer":
+            self.explainer()
         elif self.project_type == 'evaluation':
             self.eval()
