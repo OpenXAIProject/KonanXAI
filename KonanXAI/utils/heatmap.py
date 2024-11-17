@@ -142,7 +142,7 @@ def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_pat
         result = cv2.rectangle(result, bbox[0], bbox[1], color=(0,255,0),thickness=3)
     cv2.imwrite(save_path, result)
 
-def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric=None, score=None):
+def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric=None, score=None, reverse=False):
     is_empty = True
     draw_box = False
     bbox = None
@@ -161,7 +161,10 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
     for index, sbox in enumerate(heatmaps):
         is_empty = False
         sbox = F.interpolate(sbox, size = img_size, mode="bilinear", align_corners=False)
-        sbox = normalize_heatmap(sbox)
+        if reverse:
+            sbox = 1 - normalize_heatmap(sbox)
+        else:
+            sbox = normalize_heatmap(sbox)
         if index == 0:
             heatmap = sbox
         else:

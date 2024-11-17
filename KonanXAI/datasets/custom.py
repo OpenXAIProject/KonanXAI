@@ -8,8 +8,8 @@ class CUSTOM(Datasets):
         super().__init__(framework, src_path)
         self.framework = framework
         self.src_path = src_path
-        self.dataset_name = 'imagenet'
-        self.classes = 1000
+        self.dataset_name = 'coco'
+        self.classes = 80
         self.make_cache = {}
         
     def load_src_path(self):

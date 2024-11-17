@@ -4,7 +4,11 @@ import torch
 from KonanXAI.utils.heatmap import *      
 def save_image(model_name, algorithm_type, origin_img, heatmap, img_save_path, img_size, framework, metric=None, score=None):
     if "eigencam" in algorithm_type:
-        get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, framework, metric, score)
+        if 'yolov8' in model_name:
+            get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, framework, metric, score, reverse=True)
+        else:
+            get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, framework, metric, score)
+        # get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, framework, metric, score)
     elif "guided" in algorithm_type:
         get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, framework, metric, score)
     elif "ig" == algorithm_type:

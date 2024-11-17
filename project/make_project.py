@@ -95,7 +95,10 @@ class Project(Configuration):
             heatmap = algorithm.calculate(targets=output)
                 
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
-                get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
+                if 'yolov8' in self.model_name:
+                    get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework, reverse=True)
+                else:
+                    get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "guided" in self.algorithm_name:
                 get_guided_heatmap(heatmap, img_save_path, img_size,algorithm_type, self.framework)
             elif "ig" == self.algorithm_name:
@@ -140,11 +143,14 @@ class Project(Configuration):
             origin_img = data[0]
             img_size = data[3]
         if data[1] == -1:
-            if self.dataset.dataset_name == "imagenet":
-                infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0)
+            if "yolo" not in self.model_name:
+                if self.dataset.dataset_name == "imagenet":
+                    infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0)
+                else:
+                    infer_data = data[0]
+                output = self.model(infer_data.to(self.device)).argmax(-1).item()
             else:
-                infer_data = data[0]
-            output = self.model(infer_data.to(self.device)).argmax(-1).item()
+                output = None
         else: 
             output = data[1]
         return origin_img, img_size, output
