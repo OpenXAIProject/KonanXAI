@@ -5,7 +5,7 @@ import torch.nn as nn
 from functools import partial
 from pathlib import Path
 import os,sys
-def non_max_suppression_v8(
+def anchor_free_non_max_suppression(
     prediction,
     logits,
     conf_thres=0.25,
@@ -151,7 +151,7 @@ def non_max_suppression_v8(
         ###
     return output,logits_output, box_index
 
-def yolo_choice_layer_v8(dbox, select_layers):
+def anchor_free_yolo_choice_layer(dbox, select_layers):
         index_len = []
         index_tmep =[]
         for i in dbox:

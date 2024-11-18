@@ -95,7 +95,7 @@ class Project(Configuration):
             heatmap = algorithm.calculate(targets=output)
                 
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
-                if 'yolov8' in self.model_name:
+                if 'af_yolo' in self.model_name:
                     get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework, reverse=True)
                 else:
                     get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
