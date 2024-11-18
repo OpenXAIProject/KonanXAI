@@ -1,0 +1,48 @@
+{
+  "job_id": 7000,
+  "job_infos": [
+    {
+      "job_type": "evaluation",
+      "model_type": "xai",
+      "inputs": [
+        {
+          "model_info": {
+            "framework": "torch",
+            "weight_path": "D:/xai_refactoring/resnet50-0676ba61.pth",
+            "cfg_path": null,
+            "num_classes": 1000,
+            "repo_or_dir": "C:/Users/jaehyeok/.cache/torch/hub/pytorch_vision_v0.11.0",
+            "model_algorithm": "default",
+            "model_name": "resnet50"
+          },
+          "data_info": {
+              "data_path": "D:/xai_refactoring/data",
+              "data_type": "CUSTOM",
+              "resize": [224,224]
+          },
+          "type_config": {
+              "algorithm_name": ["gradcam","lime","guidedgradcam"],
+              "metric": ["ABPC","sensitivity"],
+              "gradcam": {"model_algorithm": "Default",
+                          "target_layer": ["layer4","2","relu"]},
+              "lime": {"model_algorithm": "Default",
+                        "segments": {"algo_type": "slic", "n_segments": 40, "compactnes": 2, "sigma": 3},
+                        "seed": 415,
+                        "num_samples": 40,
+                        "num_features": 10,
+                        "positive_only": true,
+                        "hide_rest": true},
+              "guidedgradcam": {"model_algorithm": "Default",
+                                  "target_layer": ["layer4","2","relu"]}
+         }
+        }
+      ],
+      "outputs": [
+        {
+          "volume": "D:/",
+          "file_path": "save_test"
+        }
+      ]
+    }
+  ]
+}
