@@ -30,13 +30,17 @@ data_type = 'MNIST'
 model_name = 'resnet50'
 data_resize = [224,224]
 cache_or_local = None
-weight_path = None   # weight_path = None 이면 pretrained=True 자동으로 들어가게 일단 해놓을까?
+weight_path = "./resnet50_mnist_epoch10.pt"
 cfg_path = None
 
+
 device = torch.device('cuda:0')
-# model = model_import(framework, source, repo_or_dir,
-#                                   model_name, cache_or_local, 
-#                                   weight_path)
+
+model = model_import(framework, source, repo_or_dir,
+                                  model_name, cache_or_local, 
+                                  weight_path)
+
+
 dataset = load_dataset(framework, data_path = data_path,
                                     data_type = data_type, resize = data_resize)
 

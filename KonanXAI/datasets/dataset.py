@@ -1,5 +1,5 @@
 from KonanXAI.utils.data_convert import convert_tensor
-import darknet  
+#import darknet  
 import random
 import cv2
 from PIL import Image

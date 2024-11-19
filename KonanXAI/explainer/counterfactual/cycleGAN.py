@@ -4,6 +4,8 @@ import torch.nn as nn
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from torch.autograd import Variable
+import itertools
+
 
 from typing import Literal, List, Optional, Callable, Union
 
@@ -20,21 +22,23 @@ from torchvision.utils import save_image
 
 
 from KonanXAI.explainer.counterfactual import Counterfactual
+from KonanXAI.model_improvement import Trainer
 
 
 from PIL import Image
 import matplotlib.pyplot as plt
 
-__all__ = ["CycleGAN_CF"]
+__all__ = ["CycleganCF"]
 
 
 # ABCMeta 상속으로 해야하나?
-class CycleGAN_CF(Counterfactual):
+class CycleganCF(Counterfactual, Trainer):
     ''' explain something...
     
     '''
     def __init__(self, framework, model, dataset, config):
         Counterfactual.__init__(self, framework, model, dataset, config)
+        
         
         self.gen_AtoB_weight_path = config['gen_AtoB_weight_path']
         self.gen_BtoA_weight_path = config['gen_BtoA_weight_path']
@@ -59,19 +63,54 @@ class CycleGAN_CF(Counterfactual):
     def _perturb_input(self):
         self.cf_image = self.input
 
-    def _CycleGAN(self):
 
 
-    def _define_loss_function(self):
-        pass
-            
 
-    def _define_optimizer(self):
-        pass 
+    def _define_loss_and_optimizer(self):
+        self.criterion_GAN = torch.nn.MSELoss()
+        self.criterion_cycle = torch.nn.L1Loss()      
+        self.criterion_identity = torch.nn.L1Loss()      
+
+        self.optimizer_gen = torch.optim.Adam(itertools.chain(self.gen_AtoB.parameters(), 
+                                                              self.gen_BtoA.parameters()),
+                                                              lr = self.cycleGAN_lr, betas = (0.5, 0.999))
+        self.optimizer_disc_A = torch.optim.Adam(self.disc_A.parameters(), lr = self.cycleGAN_lr, betas = (0.5, 0.999))
+        self.optimizer_disc_B = torch.optim.Adam(self.disc_B.parameters(), lr = self.cycleGAN_lr, betas = (0.5, 0.999))
+
+        self.lr_scheduler_gen = torch.optim.lr_scheduler.LambdaLR(self.optimizer_gen, lr_lambda=self._step(n_epochs, epoch, decay_epoch))
+        self.lr_scheduler_disc_A = torch.optim.lr_scheduler.LambdaLR(self.optimizer_disc_A, lr_lambda=self._step(n_epochs, epoch, decay_epoch))
+        self.lr_scheduler_disc_B = torch.optim.lr_scheduler.LambdaLR(self.optimizer_disc_B, lr_lambda=self._step(n_epochs, epoch, decay_epoch))
+
+    
+    
+    def _step(self, n_epochs, epoch, decay_epoch):
+        # decay_start_epoch == 0.8 * n_epochs으로 
+        decay_start_epoch = int(0.8 * n_epochs)
+        return 1.0 - max(0, epoch + offset - decay)
+    
+    def _forward(self, x, y, c):
+        
+
+    def train(self):
+
+
 
     def apply(self):
-        self.cycleGAN = _CycleGAN
-        pass
+        if self.gen_AtoB_weight_path == None:
+            self.train()
+        
+
+
+class LambdaLR():
+    def __init__(self, n_epochs, offset, decay_start_epoch):
+        assert ((n_epochs - decay_start_epoch) > 0), "Decay must start before the training session ends!"
+        self.n_epochs = n_epochs
+        self.offset = offset
+        self.decay_start_epoch = decay_start_epoch
+
+    def step(self, epoch):
+        return 1.0 - max(0, epoch + off)
+
 
 
 class ResidualBlock(nn.Module):
