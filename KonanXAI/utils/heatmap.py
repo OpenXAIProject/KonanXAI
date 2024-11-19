@@ -222,7 +222,7 @@ def get_lime_image(heatmap, img_save_path, metric=None, score=None):
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     cv2.imwrite(save_path,heatmap)
  
-def get_kernelshap_image(origin_img, heatmap, img_savepath,framework,metric, score):
+def get_kernelshap_image(origin_img, heatmap, img_savepath,framework,metric=None, score=None):
     if metric == None:
         save_path = f"{img_savepath[:-4]}_KernelSHAP.jpg"
     else:

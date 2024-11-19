@@ -92,6 +92,7 @@ class Project(Configuration):
             img_save_path = f"{root}/{img_path[-1]}"
             print(self.algorithm)
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
+            algorithm.data_type = self.dataset.dataset_name
             heatmap = algorithm.calculate(targets=output)
                 
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
@@ -139,20 +140,21 @@ class Project(Configuration):
         if self.framework == 'darknet':
             origin_img = data.origin_img
             img_size = data.im_size
+            output = None
         else:
-            origin_img = data[0]
             img_size = data[3]
-        if data[1] == -1:
-            if "yolo" not in self.model_name:
-                if self.dataset.dataset_name == "imagenet":
-                    infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0)
+            origin_img = convert_tensor(data[4], "origin", img_size).unsqueeze(0)
+            if data[1] == -1:
+                if "yolo" not in self.model_name:
+                    if self.dataset.dataset_name == "imagenet":
+                        infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0).to(self.device)
+                    else:
+                        infer_data = data[0]
+                    output = self.model(infer_data).argmax(-1).item()
                 else:
-                    infer_data = data[0]
-                output = self.model(infer_data.to(self.device)).argmax(-1).item()
-            else:
-                output = None
-        else: 
-            output = data[1]
+                    output = None
+            else: 
+                output = data[1]
         return origin_img, img_size, output
             
     def run(self):

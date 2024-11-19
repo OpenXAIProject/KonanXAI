@@ -20,7 +20,7 @@ head:
   weight_path: ~
   cfg_path: ~
   data_resize: [224,224]
-  data_path: "D:/Datasets/ai_fire/train"
+  data_path: "D:/Datasets/ai_fire/train_lite"
   model_name: resnet50
   framework: torch
   source: torchvision
@@ -40,6 +40,6 @@ train:
     epsilon: 0.01,
     alpha: 0.5,
     # transfer_weights: "./checkpoint/Default_ResNet_AI_FIRE_20ep.pt",
-    transfer_weights: "./checkpoint/FGSM_DataParallel_AI_FIRE_28ep.pt",
+    transfer_weights: ~,
     gpu_count: 3
   }

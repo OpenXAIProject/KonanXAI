@@ -30,7 +30,7 @@ head:
   data_type: CUSTOM
 
 explain:
-  algorithm: eigencam
+  algorithm: gradcam
   model_algorithm: Default
   # target_layer: {'0':['model','15',"m","0","cv2","act"],'1':['model','18',"m","0","cv2","act"],'2':['model','21',"m","0","cv2","act"]}
   # target_layer: {'0':["model","22",'cv2','0','1'],'1':["model","22",'cv2','1','1'],'2':["model","22",'cv2','2','1'], 

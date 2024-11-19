@@ -30,7 +30,7 @@ head:
   data_type: AI_FIRE
   
 train:
-  epoch: 50
+  epoch: 10
   learning_rate: 0.0001
   batch_size: 128
   optimizer: 'adam'

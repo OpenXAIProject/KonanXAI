@@ -6,6 +6,7 @@ from KonanXAI.utils.data_convert import convert_tensor
 from ..utils.segment_wrapper import SegmentationAlgorithm
 import shap
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 __all__ = ["KernelShap"]
 class KernelShap:
     def __init__(

@@ -1,5 +1,6 @@
 import yaml
 import os, sys
+from KonanXAI.attribution.deeplift import DeepLIFT
 from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP
@@ -179,7 +180,7 @@ class Configuration:
             raise Exception(msg)
         
     def _explain_check_config(self):
-        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap', 'Gradient', 'GradientxInput', 'Smoothgrad']
+        attributions = ['GradCAM', 'GradCAMpp', 'EigenCAM',"GuidedGradCAM", 'LRP', 'LRPYolo', 'IG', 'Lime','Kernelshap', 'Gradient', 'GradientxInput', 'Smoothgrad', 'DeepLIFT']
         if self.algorithm_name not in [attribution.lower() for attribution in attributions]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {attributions}"
             raise Exception(msg)
@@ -208,6 +209,8 @@ class Configuration:
                 self.algorithm = GradientxInput
             elif self.algorithm_name == 'smoothgrad':
                 self.algorithm = SmoothGrad
+            elif self.algorithm_name == 'deeplift':
+                self.algorithm = DeepLIFT
             
         
     def _evaluation_check_config(self):

@@ -176,7 +176,7 @@ class GradCAM(Gradient):
         grid_cell, self.class_prob = x_cat.split((reg_max*4, self.model.nc), 1)
         self.logits_origin = self.class_prob.squeeze(0).transpose(-1,-2)
         with torch.no_grad():
-            self.pred, _, self.select_layers = anchor_free_non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0).transpose(-1,-2), conf_thres=0.25)
+            self.pred, self.logits , self.select_layers = anchor_free_non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0).transpose(-1,-2), conf_thres=0.25)
         self.index_tmep = anchor_free_yolo_choice_layer(raw_logit, self.select_layers)
         
     def _yolo_backward_pytorch(self):

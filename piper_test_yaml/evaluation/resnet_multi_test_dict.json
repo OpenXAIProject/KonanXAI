@@ -22,7 +22,7 @@
           },
           "type_config": {
               "algorithm_name": ["gradcam","lime","guidedgradcam"],
-              "metric": ["ABPC","sensitivity"],
+              "metric": ["ABPC"],
               "gradcam": {"model_algorithm": "Default",
                           "target_layer": ["layer4","2","relu"]},
               "lime": {"model_algorithm": "Default",

@@ -19,7 +19,7 @@ class LRPYolo:
         self.model_name = self.model.model_name
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.input = input[0].to(device)
-        
+        self.label_index = None
         self.rule = config['rule']
         self.alpha = None
         self.yaml_path = config['yaml_path']
@@ -38,7 +38,11 @@ class LRPYolo:
             tensor_2 = pred[t_shape[0][2]*t_shape[0][3]*t_shape[0][1]:].view(t_shape[1])
             return[tensor_1, tensor_2]
         
-    def calculate(self):
+    def calculate(self, inputs=None, targets=None):
+        if inputs != None:
+            self.input = inputs
+        if targets != None:
+            self.label_index = targets
         model =  copy.deepcopy(self.model.fuse())
         model.model.eval()
         self.tracer =  Graph(model.model, self.yaml_path)
