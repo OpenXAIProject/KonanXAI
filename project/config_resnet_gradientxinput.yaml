@@ -14,21 +14,22 @@
 #   explain_algorithm: 설명방식 타입(str)
 #   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
 
+
 head:
   project_type: 'explain'
-  save_path: "./heatmap/"
-  weight_path: "./vgg_cifar10.dts"
+  save_path: "./heatmap/GradientXInput"
+  weight_path: "./resnet50-0676ba61.pth"
   cfg_path: ~
-  data_path: "D:/Datasets/cifar10"
+  data_path: "../dataset/sample"
   data_resize: [224,224]
-  model_name: vgg19
-  framework: dtrain
-  source: local
+  model_name: resnet50
+  framework: torch
+  source: torchvision
   repo_or_dir: ~
-  cache_or_local: ~
-  data_type: CIFAR10
-  
+  cache_or_local: cache
+  data_type: CUSTOM
+
 explain:
-  algorithm: gradcam
-  model_algorithm: Default
-  target_layer: ['relu_15']
+  algorithm: GradientXInput
+  target_layer: ~
+  

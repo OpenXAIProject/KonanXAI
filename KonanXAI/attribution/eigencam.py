@@ -28,7 +28,7 @@ class EigenCAM(GradCAM):
                     projection = reshaped_activations @ VT[0,:]
                     projection = projection.reshape(activations.shape[1:])
                 self.heatmaps.append(projection.unsqueeze(0).unsqueeze(0))
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps

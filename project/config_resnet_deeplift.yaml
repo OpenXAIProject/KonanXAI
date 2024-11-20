@@ -1,0 +1,6 @@
+explain:
+  algorithm: DeepLIFT
+  model_algorithm: Default
+  baseline: zero
+  rule: reveal-cancel
+  target_layer: ~    # 삭제 예정

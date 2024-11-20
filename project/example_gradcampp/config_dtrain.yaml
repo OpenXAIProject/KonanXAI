@@ -29,6 +29,6 @@ head:
   data_type: CIFAR10
   
 explain:
-  algorithm: gradcam
+  algorithm: gradcampp
   model_algorithm: Default
   target_layer: ['relu_15']

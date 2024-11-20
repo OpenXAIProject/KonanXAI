@@ -64,8 +64,8 @@ from project.make_project import Project
 # config_path = './project/example_deeplift/config_resnet_deeplift.yaml'
 # config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/example_smoothgrad/config_yolo_smoothgrad.yaml'
-# config_path = './project/example_CF/config_resnet_mnist_CF_prototype.yaml'
-config_path = './project/example_CF/config_resnet_mnist_CF_cycleGAN.yaml'
-
+# config_path = './project/config_resnet_mnist_CF_prototype.yaml'
+# config_path = './project/example_gradcam/config_yolo.yaml'
+config_path = "./yolov8_test.yaml"
 project = Project(config_path)
 project.run()

@@ -3,9 +3,9 @@
 
 __all__ = ["vgg19", "resnet50"]
 pretrained_weights = {
-    'vgg16': "xai_mnist_vgg19_for_gradcam.dts",
-    'vgg19': "vgg_mnist_full_epoch10.dts",
-    'resnet50': "cifar10_resnet50_e1.dts",
+    # 'vgg16': "xai_mnist_vgg19_for_gradcam.dts",
+    # 'vgg19': "vgg_mnist_full_epoch10.dts",
+    # 'resnet50': "cifar10_resnet50_e1.dts",
 }
 
 """

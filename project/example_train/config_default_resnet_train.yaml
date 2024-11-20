@@ -21,7 +21,7 @@ head:
   # weight_path: "./resnet50-0676ba61.pth"
   cfg_path: ~
   data_resize: [224,224]
-  data_path: "D:/Datasets/ai_fire/train"
+  data_path: "D:/Datasets/ai_fire/train_lite"
   model_name: resnet50
   framework: torch
   source: torchvision
@@ -30,7 +30,7 @@ head:
   data_type: AI_FIRE
   
 train:
-  epoch: 50
+  epoch: 10
   learning_rate: 0.0001
   batch_size: 128
   optimizer: 'adam'
