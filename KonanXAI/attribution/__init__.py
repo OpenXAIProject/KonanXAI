@@ -20,8 +20,8 @@ def load_attribution(config):
         attributions = attributions.lower()
     if config['framework'] == 'darknet' and attributions == 'all':
         return object_algorithm(yolov4_calc)
-    elif config['framework'] == 'darknet':
-        return object_algorithm(attributions)
+    # elif config['framework'] == 'darknet':
+    #     return object_algorithm(attributions)
     else:
         return object_algorithm(attributions)
     

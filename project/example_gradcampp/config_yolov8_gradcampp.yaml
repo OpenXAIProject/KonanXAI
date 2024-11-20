@@ -1,0 +1,37 @@
+# config 작성법
+#   project_type: explain, train(str)
+#   save_path: 추론 결과 저장 위치(str)
+#   weight_path: 학습 파일 위치(str)
+#   cfg_path: yaml or cfg 경로(str)
+#   data_path: 사용할 데이터셋 경로(str) 
+#   data_resize: 모델 input에 맞는 크기(list or tuple)
+#   model_name: 모델 이름(str)
+#   framework: 프레임워크 타입(str)
+#   source: github, local 선택
+#   repo_or_dir: 모델파일들이 저장되어있는 경로
+#   cache_or_local: cache, local 선택(cache일 경우 .cache파일에 저장)
+#   data_type: 데이터셋 타입(str)
+#   explain_algorithm: 설명방식 타입(str)
+#   target_layer: 어느레이어에 지정할지(list or ~ or dict) -> CAM 알고리즘에 해당
+
+
+head:
+  project_type: 'explain'
+  save_path: "./heatmap/"
+  weight_path: "./yolov8s.pt"
+  cfg_path: ~
+  data_path: "./data"
+  data_resize: [640,640]
+  model_name: af_yolo
+  framework: torch
+  source: ultralytics
+  repo_or_dir: ~
+  cache_or_local: ~
+  data_type: CUSTOM
+
+explain:
+  algorithm: gradcampp
+  model_algorithm: Default
+  target_layer: {'0':["model","22",'cv3','0','1','act'],'1':["model","22",'cv3','1','1','act'],'2':["model","22",'cv3','2','1','act']}
+
+  # target_layer: {'0': ['model','17','m','0','cv2'],'1':['model','20','m','0','cv2'], '2' :['model','23','m','0','cv2']}

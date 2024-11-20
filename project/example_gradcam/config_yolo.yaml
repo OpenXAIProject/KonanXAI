@@ -30,6 +30,8 @@ head:
   data_type: CUSTOM
 
 explain:
-  algorithm: GradCAM
+  algorithm: gradcam
   model_algorithm: Default
   target_layer: {'0':['model','24','m','0'],'1':['model','24','m','1'],'2':['model','24','m','2']}
+
+  # target_layer: {'0': ['model','17','m','0','cv2'],'1':['model','20','m','0','cv2'], '2' :['model','23','m','0','cv2']}

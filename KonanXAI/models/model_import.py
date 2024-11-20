@@ -6,12 +6,12 @@ import urllib
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50 
 from collections import OrderedDict
-
 import os
 
 # import 경로만 모아놔야 하는데..
 from KonanXAI.models.hubconf import Dtrain, TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
+from ultralytics.nn.modules.block import C2f
 __all__ = ["model_import"]
 #from KonanXAI._core import darknet
 
@@ -128,7 +128,19 @@ def torch_model_load(
         local_path = repo_or_dir
         model = torch_local_model_load(local_path, model_name, weight_path, num_classes, model_algorithm)
         return model
-
+    
+    elif source == 'ultralytics':
+        from ultralytics import YOLO    
+        model = YOLO(weight_path, task='detect').model
+        for p in model.parameters():
+            p.requires_grad_(True)
+        model = model.to(device)
+        model.float().fuse().eval()
+        model.model_name = model_name
+        model.model_algorithm = model_algorithm
+        model.output_size = num_classes
+        return model
+    
 
 def darknet_local_model_load(local_path, model_name, weight_path, cfg_path):
     local = DarknetLocal(local_path, model_name)

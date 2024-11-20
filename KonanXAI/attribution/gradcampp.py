@@ -34,7 +34,7 @@ class GradCAMpp(GradCAM):
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
             
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps

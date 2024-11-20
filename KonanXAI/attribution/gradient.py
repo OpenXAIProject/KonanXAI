@@ -98,6 +98,7 @@ class Gradient:
             idx = box.entry + (5 + box.class_idx) * stride
             # set delta
             target_layer.delta[idx] = out[idx]
+            self.logits = torch.tensor(out[idx])
             self.model.backward()
             # Get Features
             # for target in target_layer:

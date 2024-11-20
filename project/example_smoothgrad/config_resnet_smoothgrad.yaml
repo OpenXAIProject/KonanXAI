@@ -32,6 +32,7 @@ head:
 explain:
   algorithm: SmoothGrad
   model_algorithm: Default
+  target_layer: ~
   std: 0.15
   noise_level: 0.1
   sample_size: 50

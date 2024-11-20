@@ -31,4 +31,5 @@ head:
 
 explain:
   algorithm: Gradient
-  target_class: ~
+  model_algorithm: Default
+  target_layer: ~
