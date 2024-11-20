@@ -1,6 +1,8 @@
-import dtrain as dt
-import dtrain.nn as nn
-
+try:
+    import dtrain as dt
+    import dtrain.nn as nn
+except ImportError as e:
+    print(f"Dtrain 모델을 사용할 수 없습니다.:{e}")
 __all__ = ["vgg19", "resnet50"]
 pretrained_weights = {
     # 'vgg16': "xai_mnist_vgg19_for_gradcam.dts",

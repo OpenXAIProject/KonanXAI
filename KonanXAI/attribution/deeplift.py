@@ -4,7 +4,6 @@ from KonanXAI.attribution.layer_wise_propagation.lrp_tracer import Graph
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet 
 import torch
 import numpy as np
 import cv2
