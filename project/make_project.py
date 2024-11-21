@@ -110,7 +110,13 @@ class Project(Configuration):
                 get_kernelshap_image(origin_img, heatmap, img_save_path, self.framework)
             else:
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
-    
+
+    def explainer(self):
+        algorithm = self.algorithm(self.framework, self.model, data, self.config)
+        algorithm.data_type = self.dataset.dataset_name
+        heatmap = algorithm.calculate(targets=output)
+
+
     def eval(self):
         set_seed(777)
         evaluation_result={}

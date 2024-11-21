@@ -226,6 +226,24 @@ class Configuration:
     
     
     def _explainer_check_config(self):
+        explainers = ['clustering','wachter', 'prototype', 'counterfactual']
+        if self.algorithm_name not in [explainer.lower() for explainer in explainers]:
+            msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {explainers}"
+            raise Exception(msg)
+        else:
+            if self.algorithm_name == 'gradcam':
+                self.algorithm = GradCAM
+            elif self.algorithm_name == 'gradcampp':
+                self.algorithm = GradCAMpp
+            elif self.algorithm_name == "guidedgradcam":
+                self.algorithm = GuidedGradCAM
+            elif self.algorithm_name == 'eigencam':
+                self.algorithm = EigenCAM
+            elif self.algorithm_name == 'lrp':
+                self.algorithm = LRP
+            elif self.algorithm_name == 'lrpyolo':
+                self.algorithm = LRPYolo
+            elif self.algorithm_name == 'ig':
         
         
     def _evaluation_check_config(self):
