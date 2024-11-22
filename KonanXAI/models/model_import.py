@@ -6,11 +6,13 @@ import urllib
 from KonanXAI.models.modifier.abn_vgg import make_attention_vgg19
 from KonanXAI.models.modifier.abn_resnet import make_attention_resnet50 
 from collections import OrderedDict
-import os
+import os, sys
 
 # import 경로만 모아놔야 하는데..
 from KonanXAI.models.hubconf import Dtrain, TorchGit, TorchLocal, Yolov5, Ultralytics, DarknetGit, DarknetLocal
 from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
+path = os.path.join(os.getcwd(), 'ultralytics')
+sys.path.append(path)
 from ultralytics.nn.modules.block import C2f
 __all__ = ["model_import"]
 #from KonanXAI._core import darknet
@@ -46,6 +48,43 @@ def load_weight():
 
 #     #return folder_tree
 #     pass
+
+def adjust_first_layer(model, pt):
+    first_pt_key = list(pt.keys())[0]
+    first_layer_key = list(model._modules)[0]
+    batch, channel, height, width = pt[first_pt_key].shape
+    in_channels = model._modules[first_layer_key].in_channels
+    if in_channels == channel:
+        return model
+    else:
+        in_channels = channel
+        out_channels = model._modules[first_layer_key].out_channels
+        kernel_size = model._modules[first_layer_key].kernel_size
+        stride = model._modules[first_layer_key].stride
+        padding = model._modules[first_layer_key].padding
+        bias = model._modules[first_layer_key].bias
+        model._modules[first_layer_key] = nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = padding, bias = bias)
+        return model
+    
+def adjust_last_layer(model, pt, num_classes):
+    last_pt_key = list(pt.keys())[-2]
+    last_layer_key = list(model._modules)[-1]
+    features, chnnels = pt[last_pt_key].shape
+    out_features = model._modules[last_layer_key].out_features
+    if out_features == features:
+        return model
+    else:
+        out_features = features
+        out_channels = model._modules[_layer_key].out_channels
+        kernel_size = model._modules[first_layer_key].kernel_size
+        stride = model._modules[first_layer_key].stride
+        padding = model._modules[first_layer_key].padding
+        bias = model._modules[first_layer_key].bias
+        model._modules[first_layer_key] = nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = padding, bias = bias)
+        return model
+
+
+
 
 def torch_local_model_load(local_path, model_name, weight_path, num_classes, model_algorithm):
     local = TorchLocal(local_path, model_name, num_classes, model_algorithm)
@@ -106,6 +145,9 @@ def torch_model_load(
                     for k, v in pt['model_state_dict'].items():
                         key = k[7:] if k.startswith('module.') else k
                         state_dict[key] = v
+            
+            adjust_first_layer(model, state_dict)
+
             model.load_state_dict(state_dict)
             model.model_name = model_name
             model.model_algorithm = model_algorithm

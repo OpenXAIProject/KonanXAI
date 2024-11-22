@@ -108,12 +108,12 @@ class Configuration:
 
     def _explainer_parser(self):
         self.explains = self.config['explainer']
-        self.methods = self.config['methods'].lower()
+        self.methods = self.explains['methods'].lower()
         self.model_algorithm = self.explains['model_algorithm'].lower()
         self.algorithm_name = self.explains['algorithm'].lower()
         self.config = {}
         for key, value in self.explains.items():
-            self.config[key] = value.lower()
+            self.config[key] = value
                 
     def _eval_parser(self):
         self.explains = self.config['evaluation']
@@ -181,7 +181,7 @@ class Configuration:
     
     def _public_check_config(self):
         frameworks = ['torch', 'darknet','dtrain']
-        projects = ['train','explain','evaluation']
+        projects = ['train','explain', 'explainer', 'evaluation']
         if self.project_type not in [project.lower() for project in projects]:
             msg = f"The type you entered is:'{self.project_type}' Supported types are: {projects}"
             raise Exception(msg)
@@ -226,8 +226,9 @@ class Configuration:
     
     
     def _explainer_check_config(self):
-        explainers = ['clustering','wachter', 'prototype', 'counterfactual']
-        if self.algorithm_name not in [explainer.lower() for explainer in explainers]:
+        explainers = {'clustering': ['spectral'],
+                      'counterfactual' : ['wachter', 'prototype', 'cyclegan']}
+        if self.algorithm_name not in [explainer.lower() for explainer in explainers[self.methods]]:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {explainers}"
             raise Exception(msg)
         else:
@@ -244,6 +245,20 @@ class Configuration:
             elif self.algorithm_name == 'lrpyolo':
                 self.algorithm = LRPYolo
             elif self.algorithm_name == 'ig':
+                self.algorithm = IG
+            elif self.algorithm_name == "lime":
+                self.algorithm = LimeImage
+            elif self.algorithm_name == "kernelshap":
+                self.algorithm = KernelShap
+            elif self.algorithm_name == 'gradient':
+                self.algorithm = Gradient
+            elif self.algorithm_name == 'gradientxinput':
+                self.algorithm = GradientxInput
+            elif self.algorithm_name == 'smoothgrad':
+                self.algorithm = SmoothGrad
+            elif self.algorithm_name == 'deeplift':
+                self.algorithm = DeepLIFT
+
         
         
     def _evaluation_check_config(self):

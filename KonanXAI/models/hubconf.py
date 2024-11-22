@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import torch
 import torch.nn as nn
-import darknet
+#import darknet
 from pathlib import Path
 import importlib.util
 import KonanXAI._core.dtrain.models as dt_models

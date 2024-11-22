@@ -5,7 +5,7 @@ from KonanXAI.attribution.gradient import Gradient
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet 
+#import darknet 
 import torch
 import numpy as np
 import cv2

@@ -3,7 +3,7 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet
+#import darknet
 import numpy as np
 import cv2
 import torch

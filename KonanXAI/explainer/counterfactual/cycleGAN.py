@@ -96,6 +96,7 @@ class CycleganCF(Counterfactual, Trainer):
 
 
     def apply(self):
+        print(4)
         if self.gen_AtoB_weight_path == None:
             self.train()
         
