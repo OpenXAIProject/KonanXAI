@@ -8,6 +8,7 @@ from KonanXAI.attribution.layer_wise_propagation.lrp_yolo import LRPYolo
 from KonanXAI.attribution import GradCAM, GradCAMpp, EigenCAM, GuidedGradCAM
 from KonanXAI.attribution import Gradient, GradientxInput, SmoothGrad, DeepLIFT
 from KonanXAI.attribution.lime_image import LimeImage
+from KonanXAI.explainer.counterfactual import Wachter, PrototypeCF, CycleganCF
 from KonanXAI.evaluation.pixel_flipping import AbPC
 from KonanXAI.evaluation.sensitivity import Sensitivity
 from KonanXAI.model_improvement.dann import DANN
@@ -232,33 +233,13 @@ class Configuration:
             msg = f"The type you entered is:'{self.algorithm_name}' Supported types are: {explainers}"
             raise Exception(msg)
         else:
-            if self.algorithm_name == 'gradcam':
-                self.algorithm = GradCAM
-            elif self.algorithm_name == 'gradcampp':
-                self.algorithm = GradCAMpp
-            elif self.algorithm_name == "guidedgradcam":
-                self.algorithm = GuidedGradCAM
-            elif self.algorithm_name == 'eigencam':
-                self.algorithm = EigenCAM
-            elif self.algorithm_name == 'lrp':
-                self.algorithm = LRP
-            elif self.algorithm_name == 'lrpyolo':
-                self.algorithm = LRPYolo
-            elif self.algorithm_name == 'ig':
-                self.algorithm = IG
-            elif self.algorithm_name == "lime":
-                self.algorithm = LimeImage
-            elif self.algorithm_name == "kernelshap":
-                self.algorithm = KernelShap
-            elif self.algorithm_name == 'gradient':
-                self.algorithm = Gradient
-            elif self.algorithm_name == 'gradientxinput':
-                self.algorithm = GradientxInput
-            elif self.algorithm_name == 'smoothgrad':
-                self.algorithm = SmoothGrad
-            elif self.algorithm_name == 'deeplift':
-                self.algorithm = DeepLIFT
-
+            if self.algorithm_name == 'wachter':
+                self.algorithm = Wachter
+            elif self.algorithm_name == 'prototype':
+                self.algorithm = PrototypeCF
+            elif self.algorithm_name == "cyclegan":
+                self.algorithm = CycleganCF
+           
         
         
     def _evaluation_check_config(self):

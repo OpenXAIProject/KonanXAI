@@ -30,18 +30,14 @@ class Counterfactual:
     '''
     def __init__(self, framework, model, dataset, config):
         
-        self.device = torch.device('cuda' is torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.framework = framework
         self.model = model
         self.model_name = self.model.model_name
         self.input_label = config['input_label']
         self.target_label = config['target_label']
-        if framework.lower() == 'darknet':
-            self.input = input
-            self.input_size = self.input.shape
-        else:
-            self.input = input[0].to(self.device)
-            self.input_size = self.input.shape[2:4]
+        self.dataset = dataset
+        
 
     def _perturb_input(self):
         self.cf_image = self.input

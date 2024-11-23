@@ -57,6 +57,7 @@ class CycleganCF(Counterfactual, Trainer):
         self.gamma = config['gamma']
         
     def _make_cycleGAN_dataset(self):
+        pass
 
         
 
@@ -89,9 +90,11 @@ class CycleganCF(Counterfactual, Trainer):
         return 1.0 - max(0, epoch + offset - decay)
     
     def _forward(self, x, y, c):
+        pass
         
 
     def train(self):
+        pass
 
 
 

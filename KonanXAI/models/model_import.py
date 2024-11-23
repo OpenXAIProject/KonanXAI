@@ -66,22 +66,7 @@ def adjust_first_layer(model, pt):
         model._modules[first_layer_key] = nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = padding, bias = bias)
         return model
     
-def adjust_last_layer(model, pt, num_classes):
-    last_pt_key = list(pt.keys())[-2]
-    last_layer_key = list(model._modules)[-1]
-    features, chnnels = pt[last_pt_key].shape
-    out_features = model._modules[last_layer_key].out_features
-    if out_features == features:
-        return model
-    else:
-        out_features = features
-        out_channels = model._modules[_layer_key].out_channels
-        kernel_size = model._modules[first_layer_key].kernel_size
-        stride = model._modules[first_layer_key].stride
-        padding = model._modules[first_layer_key].padding
-        bias = model._modules[first_layer_key].bias
-        model._modules[first_layer_key] = nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = padding, bias = bias)
-        return model
+
 
 
 
