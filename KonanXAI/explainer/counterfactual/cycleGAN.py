@@ -57,7 +57,8 @@ class CycleganCF(Counterfactual, Trainer):
         self.gamma = config['gamma']
         
     def _make_cycleGAN_dataset(self):
-        pass
+        def dataset_wrapper(dataset, input_label, target_label):
+
 
         
 
