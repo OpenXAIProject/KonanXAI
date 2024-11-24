@@ -23,6 +23,7 @@ from torchvision.utils import save_image
 
 from KonanXAI.explainer.counterfactual import Counterfactual
 from KonanXAI.model_improvement import Trainer
+from KonanXAI.datasets import MNIST
 
 
 from PIL import Image
@@ -104,6 +105,27 @@ class CycleganCF(Counterfactual, Trainer):
         if self.gen_AtoB_weight_path == None:
             self.train()
         
+
+class cycleganDataset(MNIST):
+    def load_src_path(self, train = True):
+        if train == True:
+            train_path = glob(self.src_path+"/training/*/*.*")
+            
+            for path in train_path:
+            label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
+            label = int(label)
+            self.train_items.append((path, label))
+        else:
+            test_path = glob(self.src_path+"/testing/*/*.*")# 수정 필요
+        items = []
+        
+
+        for path in test_path:
+            label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
+            label = int(label)
+            self.test_items.append((path, label))
+
+
 
 
 class LambdaLR():

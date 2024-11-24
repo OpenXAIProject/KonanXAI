@@ -112,6 +112,8 @@ class Project(Configuration):
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
 
     def explainer(self):
+        self.dataset = load_dataset(self.framework, data_path = self.data_path,
+                                    data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
         algorithm = self.algorithm(self.framework, self.model, self.dataset, self.config)
         algorithm.data_type = self.dataset.dataset_name
         # counterfacual도 evaluation이 있을텐데?
@@ -170,7 +172,7 @@ class Project(Configuration):
         self.model = model_import(self.framework, self.source, self.repo_or_dir,
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
-        print(self.model)
+        
         
         if self.project_type == "explain":
             self.explain()
