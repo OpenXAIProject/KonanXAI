@@ -112,6 +112,12 @@ class Project(Configuration):
                 get_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
 
     def explainer(self):
+        input_label = self.config['input_label']
+        target_label = self.config['target_label']
+        self.real_dataset = self.dataset
+        self.fake_dataset = self.dataset
+        self.real_dataset.label = input_label
+        self.fake_dataset.label = target_label
         self.dataset = load_dataset(self.framework, data_path = self.data_path,
                                     data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
         algorithm = self.algorithm(self.framework, self.model, self.dataset, self.config)
@@ -173,7 +179,8 @@ class Project(Configuration):
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
         
-        
+        for data in self.dataset:
+            pred = self.model(data)
         if self.project_type == "explain":
             self.explain()
         elif self.project_type == "train":

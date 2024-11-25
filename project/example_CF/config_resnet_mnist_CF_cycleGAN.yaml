@@ -15,14 +15,14 @@ head:
   save_path: "./heatmap/counterfactual"
   weight_path: "./resnet50_mnist_epoch10.pt"
   cfg_path: ~
-  data_resize: [512,512]
-  data_path: "../data/MNIST/"
+  data_resize: [28,28]
+  data_path: "../dataset/MNIST"
   model_name: resnet50
   framework: torch
   source: torchvision
   repo_or_dir: ~
   cache_or_local: cache
-  data_type: counterfactual
+  data_type: MNIST
 
 explainer: {
   methods: CounterFactual,
