@@ -3,10 +3,10 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-try:
-    import darknet 
-except ImportError as e:
-    pass
+# try:
+import darknet 
+# except ImportError as e:
+    # pass
 import numpy as np
 import cv2
 import torch
