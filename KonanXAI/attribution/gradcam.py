@@ -5,7 +5,10 @@ from KonanXAI.attribution.gradient import Gradient
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-#import darknet 
+# try:
+import darknet 
+# except ImportError as e:
+    # pass
 import torch
 import numpy as np
 import cv2
@@ -178,13 +181,14 @@ class GradCAM(Gradient):
         with torch.no_grad():
             self.pred, self.logits , self.select_layers = anchor_free_non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0).transpose(-1,-2), conf_thres=0.25)
         self.index_tmep = anchor_free_yolo_choice_layer(raw_logit, self.select_layers)
-        
+        self.pred_origin = self.pred_origin.squeeze(0).transpose(-1,-2)
     def _yolo_backward_pytorch(self):
         self.bboxes = []
         self.label_index = []
         for cls, sel_layer, sel_layer_index in zip(self.pred[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
+            # self.pred_origin[sel_layer][int(cls[5].item()+4)].backward(retain_graph=True)
             layer = self.layer[sel_layer_index]
             feature = layer.fwd_out[-1].unsqueeze(0)
             gradient = layer.bwd_out[0]

@@ -23,7 +23,7 @@ from torchvision.utils import save_image
 
 from KonanXAI.explainer.counterfactual import Counterfactual
 from KonanXAI.model_improvement import Trainer
-from KonanXAI.datasets import MNIST
+from KonanXAI.datasets import MNIST, counterfactual, load_dataset
 
 
 from PIL import Image
@@ -58,7 +58,9 @@ class CycleganCF(Counterfactual, Trainer):
         self.gamma = config['gamma']
         
     def _make_cycleGAN_dataset(self):
-        def dataset_wrapper(dataset, input_label, target_label):
+        self.input_dataset = load_dataset(self.framework, data_path = self.data_path,
+                                    data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
+        self.input_dataset.label = self.input_label
 
 
         
@@ -102,28 +104,29 @@ class CycleganCF(Counterfactual, Trainer):
 
     def apply(self):
         print(4)
+        self._make_cycleGAN_dataset()
         if self.gen_AtoB_weight_path == None:
             self.train()
         
 
-class cycleganDataset(MNIST):
-    def load_src_path(self, train = True):
-        if train == True:
-            train_path = glob(self.src_path+"/training/*/*.*")
+# class cycleganDataset(MNIST):
+#     def load_src_path(self, train = True):
+#         if train == True:
+#             train_path = glob(self.src_path+"/training/*/*.*")
             
-            for path in train_path:
-            label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
-            label = int(label)
-            self.train_items.append((path, label))
-        else:
-            test_path = glob(self.src_path+"/testing/*/*.*")# 수정 필요
-        items = []
+#             for path in train_path:
+#             label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
+#             label = int(label)
+#             self.train_items.append((path, label))
+#         else:
+#             test_path = glob(self.src_path+"/testing/*/*.*")# 수정 필요
+#         items = []
         
 
-        for path in test_path:
-            label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
-            label = int(label)
-            self.test_items.append((path, label))
+#         for path in test_path:
+#             label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
+#             label = int(label)
+#             self.test_items.append((path, label))
 
 
 

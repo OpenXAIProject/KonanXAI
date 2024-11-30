@@ -193,7 +193,10 @@ class ConvNd(LRPModule):
             _, _, H, W = R[str(key)].size()
         else:
             rel = R
-            _, _, H, W = R.size()
+            if len(R.shape) == 3:
+                _, H, W = R.size()
+            elif len(R.shape) == 4:
+                _, _, H, W = R.size()
 
         Hnew = (H - 1) * self.module.stride[0] - 2*self.module.padding[0] +\
                         self.module.dilation[0]*(self.module.kernel_size[0]-1) +\

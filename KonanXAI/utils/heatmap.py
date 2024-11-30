@@ -5,7 +5,10 @@ import torch.nn.functional as F
 import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
-#from darknet.yolo import BBox
+# try:
+from darknet.yolo import BBox
+# except ImportError as e:
+    # pass
 __all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']
 def deprocess_image(img):
     img = img - np.mean(img)

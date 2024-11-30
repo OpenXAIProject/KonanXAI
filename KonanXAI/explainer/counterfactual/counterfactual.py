@@ -38,6 +38,7 @@ class Counterfactual:
         self.target_label = config['target_label']
         self.dataset = dataset
         
+    
 
     def _perturb_input(self):
         self.cf_image = self.input

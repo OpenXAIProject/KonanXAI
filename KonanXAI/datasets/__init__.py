@@ -18,4 +18,8 @@ def load_dataset(framework, data_path = None, data_type = 'CUSTOM',
         dataset.set_test()
     elif mode == 'evaluation':
         dataset.set_test()
+    elif mode == 'explainer':
+        dataset.set_train()
+    elif mode == 'counterfactual':
+        dataset.set_train()
     return dataset

@@ -14,6 +14,7 @@ from KonanXAI.models.modifier.dann_resnet import make_dann_resnet50
 path = os.path.join(os.getcwd(), 'ultralytics')
 sys.path.append(path)
 from ultralytics.nn.modules.block import C2f
+from ultralytics.nn.modules.block import C2f
 __all__ = ["model_import"]
 #from KonanXAI._core import darknet
 
