@@ -3,7 +3,8 @@ import glob
 import os
 import numpy as np
 import cv2
-__all__= ["counterfactual"]
+__all__= ["Counterfactual"]
+
 
 class Counterfactual(Datasets):
     def __init__(self, framework, src_path):
@@ -12,7 +13,6 @@ class Counterfactual(Datasets):
         self.dataset_name = 'counterfactual'
         self.framework = framework
         self.src_path = src_path
-        self.label = None
         
         
         

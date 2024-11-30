@@ -171,7 +171,8 @@ class Project(Configuration):
                                   self.model_name, self.cache_or_local, 
                                   self.weight_path, self.cfg_path, self.dataset.classes, self.model_algorithm)
         
-        
+        for data in self.dataset:
+            pred = self.model(data)
         if self.project_type == "explain":
             self.explain()
         elif self.project_type == "train":
