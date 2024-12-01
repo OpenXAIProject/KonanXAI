@@ -113,7 +113,7 @@ class Project(Configuration):
 
     def explainer(self):
         algorithm = self.algorithm(self.framework, self.model, self.dataset, self.config)
-        algorithm.data_type = self.dataset.dataset_name
+        #algorithm.data_type = self.dataset.dataset_name
         # counterfacual도 evaluation이 있을텐데?
         algorithm.apply()
 

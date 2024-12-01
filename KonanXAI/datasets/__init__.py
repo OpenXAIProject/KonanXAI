@@ -10,7 +10,7 @@ from .counterfactual import Counterfactual
 
 
 def load_dataset(framework, data_path = None, data_type = 'CUSTOM', 
-                 maxlen=-1, resize = None, mode = None):
+                 maxlen=-1, resize = None, mode = None, label = None):
     dataset = globals().get(data_type)(framework = framework, src_path = data_path)
     dataset.set_fit_size(resize)
     if mode == 'train':
@@ -23,4 +23,5 @@ def load_dataset(framework, data_path = None, data_type = 'CUSTOM',
         dataset.set_train()
     elif mode == 'counterfactual':
         dataset.set_train()
+        dataset.set_label(label)
     return dataset

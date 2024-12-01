@@ -56,11 +56,16 @@ class CycleganCF(Counterfactual, Trainer):
         self._lambda = config['lambda'] 
         self.mu = config['mu']
         self.gamma = config['gamma']
+
+        self.data_type = config['data_type']
+        self.data_path = config['data_path']
+        self.data_resize = config['data_resize']
         
     def _make_cycleGAN_dataset(self):
         self.input_dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize, mode = self.project_type)
-        self.input_dataset.label = self.input_label
+                                    data_type = self.data_type, resize = self.data_resize, mode = 'counterfactual', label = self.input_label)
+        self.target_dataset = load_dataset(self.framework, data_path = self.data_path,
+                                    data_type = self.data_type, resize = self.data_resize, mode = 'counterfactual')
 
 
         

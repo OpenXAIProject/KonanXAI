@@ -15,6 +15,9 @@ class Counterfactual(Datasets):
         self.src_path = src_path
         
         
+    def set_label(self, label):
+        self.label = label
+        
         
         
     def load_src_path(self):
