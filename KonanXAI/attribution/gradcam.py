@@ -6,7 +6,7 @@ from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
 # try:
-import darknet 
+#import darknet 
 # except ImportError as e:
     # pass
 import torch

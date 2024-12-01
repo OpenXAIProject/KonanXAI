@@ -131,8 +131,10 @@ def torch_model_load(
                     for k, v in pt['model_state_dict'].items():
                         key = k[7:] if k.startswith('module.') else k
                         state_dict[key] = v
-            
-            adjust_first_layer(model, state_dict)
+            if 'resnet' in model_name:
+                adjust_first_layer(model, state_dict)
+            else:
+                pass
 
             model.load_state_dict(state_dict)
             model.model_name = model_name

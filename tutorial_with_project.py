@@ -19,7 +19,7 @@ from project.make_project import Project
 # config_path = './project/example_gradcam/config_darknet.yaml'
 # config_path = './project/example_gradcampp/config_darknet_gradcampp.yaml'
 # config_path = './project/example_eigencam/config_darknet_eigencam.yaml'
-# config_path = './project/example_lrp/config_efficientnet_lrp_alphabeta.yaml'
+config_path = './project/example_lrp/config_efficientnet_lrp_alphabeta.yaml'
 # config_path = './project/example_gradcam/config_efficientnet_gradcam.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alphabeta.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_epsilon.yaml'
@@ -67,7 +67,7 @@ from project.make_project import Project
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
 # config_path = './project/example_gradcam/config_yolo.yaml'
 # config_path = "./yolov8_test.yaml"
-config_path = "./project/example_CF/config_resnet_mnist_CF_cycleGAN.yaml"
+# config_path = "./project/example_CF/config_resnet_mnist_CF_cycleGAN.yaml"
 # config_path = "./project/example_CF/config_resnet_mnist_CF_prototype.yaml"
 # config_path = "./project/example_CF/config_resnet_mnist_CF_wachter.yaml"# config_path = './project/example_gradcam/config_yolo.yaml'
 # config_path = "./yolov8_test.yaml"

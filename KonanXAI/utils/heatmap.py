@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
 # try:
-from darknet.yolo import BBox
+#from darknet.yolo import BBox
 # except ImportError as e:
     # pass
 __all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']

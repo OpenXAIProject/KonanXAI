@@ -589,77 +589,97 @@ class Mul(LRPModule):
         return mR
     
     def signed_forward(self, x):
-        return self.forward(*x)
+        return self.mul(*x)
     
     def alphabeta(self, R, rule, alpha):
         beta = 1 - alpha
         for i, m in enumerate(self.modules):
-            if i == 0 and m[-1].module._get_name().lower() == 'silu':
-                layer_index = m[-1].idx
-                self.X[0] = m[-1].module.Y[layer_index]
             if self.X[i] is None:
                 if isinstance(m[-1], Input):
-                    handle_x1 = None
                     for index, handle_idx in enumerate(reversed(self.modules[-1].modules[0].handle)):
-                        if self.X[0].shape == m[-1].X[handle_idx.id].squeeze(0).shape or self.X[0].shape == m[-1].X[handle_idx.id].shape:
-                            jump_idx = self.modules[-1].modules[0].act_idx
-                            handle_x1 = self.modules[-1].modules[0].handle[jump_idx].id
-                            self.modules[-1].modules[0].act_idx -= 1
+                        if self.X[0].shape[0] == m[-1].X[handle_idx.id].squeeze(0).shape[0] or self.X[0].shape[1] == m[-1].X[handle_idx.id].shape[1]:
+                            index +=1
+                            handle = self.modules[-1].modules[0].handle.pop(-index).id
                             break
-                    if handle_x1 == None:
-                        handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
-                        self.modules[-1].modules[0].act_idx -= 1
-                    self.X[i] = m[-1].X[handle_x1].detach()
+                    self.X[i] = m[-1].X[handle].detach()
                     break
             elif self.X[-1] is not None:
                 if len(self.modules[-1].modules[0].handle) == 0:
                     break
                 else:
-                    handle_x1 = self.modules[-1].modules[0].handle[self.modules[-1].modules[0].act_idx].id
-                    self.modules[-1].modules[0].act_idx -= 1
+                    self.modules[-1].modules[0].handle.pop()
                     break
+
         for x in self.X:
             x.requires_grad_(True)
 
+
         R = R.squeeze()
-
-        x_pos = self.module.X.clamp(min=0)
-        x_neg = self.module.X.clamp(max=0)
-        w_pos = self.module.weight.clamp(min=0)
-        w_neg = self.module.weight.clamp(max=0)
-
-        def forward(x_pos, x_neg, w_pos, w_neg):
-            z1 = self.signed_forward(x_pos, w_pos)
-            z2 = self.signed_forward(x_neg, w_neg)
-
-            s1 = safe_divide(R, z1)
-            s2 = safe_divide(R, z2)
-
-            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
-            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
-            return c1 + c2
-
-        outputs = []
-        if torch.is_tensor(self.module.X) == False:
-            for i in range(len(self.module.X)):
-                activator = forward(x_pos[i], x_neg[i], w_pos[i], w_neg[i])
-                inhibitor = forward(x_pos[i], x_neg[i], w_neg[i], w_pos[i])
-                relevance_out = alpha * activator + beta * inhibitor
-                outputs.append(relevance_out)
+        Z = self.forward(self.X)
+        S = safe_divide(R, Z)
+        C = self.gradprop(Z, self.X, S)[0]
+        if torch.is_tensor(self.X) == False:
+            outputs = []
+            outputs.append(self.X[0] * C)
+            outputs.append(self.X[1] * C)
         else:
-            activator = forward(x_pos, x_neg, w_pos, w_neg)
-            inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
-
-            relevance_out = alpha * activator + beta * inhibitor
-            outputs = relevance_out
-
+            outputs = self.X * (C)
+        R = outputs
 
         mR = ()
-
         for i, m in enumerate(self.modules):
             mR = mR + (m.backprop(R[i], rule, alpha), )
 
         return mR
+        # if torch.is_tensor(self.X) == False:
+        #     x0_pos = self.X[0].clamp(min=0)
+        #     x0_neg = self.X[0].clamp(max=0)
+        #     x1_pos = self.X[1].clamp(min=0)
+        #     x1_neg = self.X[1].clamp(max=0)
+        #     w0_pos = self.modules.weight[0].clamp(min=0)
+        #     w0_neg = self.modules.weight[0].clamp(max=0)
+        #     w1_pos = self.modules.weight[1].clamp(min=0)
+        #     w1_neg = self.modules.weight[1].clamp(max=0)
+        # else:
+        #     x_pos = self.X.clamp(min=0)
+        #     x_neg = self.X.clamp(max=0)
+        #     w_pos = self.modules.weight.clamp(min=0)
+        #     w_neg = self.modules.weight.clamp(max=0)
+
+      
+
+        # def forward(x_pos, x_neg, w_pos, w_neg):
+        #     z1 = self.signed_forward(x_pos, w_pos)
+        #     z2 = self.signed_forward(x_neg, w_neg)
+
+        #     s1 = safe_divide(R, z1)
+        #     s2 = safe_divide(R, z2)
+
+        #     c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
+        #     c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
+        #     return c1 + c2
+
+        # outputs = []
+        # if torch.is_tensor(self.X) == False:
+        #     for i in range(len(self.X)):
+        #         activator = forward(x_pos[i], x_neg[i], w_pos[i], w_neg[i])
+        #         inhibitor = forward(x_pos[i], x_neg[i], w_neg[i], w_pos[i])
+        #         relevance_out = alpha * activator + beta * inhibitor
+        #         outputs.append(relevance_out)
+        # else:
+        #     activator = forward(x_pos, x_neg, w_pos, w_neg)
+        #     inhibitor = forward(x_pos, x_neg, w_neg, w_pos)
+
+        #     relevance_out = alpha * activator + beta * inhibitor
+        #     outputs = relevance_out
+
+
+        # mR = ()
+
+        # for i, m in enumerate(self.modules):
+        #     mR = mR + (m.backprop(R[i], rule, alpha), )
+
+        # return mR
     
     def __repr__(self):
         return 'Mul : ' + str(self.modules)

@@ -1,6 +1,6 @@
 # try:
-import dtrain as dt
-import dtrain.nn as nn
+#import dtrain as dt
+#import dtrain.nn as nn
 # except ImportError as e:
 #     print(f"Dtrain 모델을 사용할 수 없습니다.:{e}")
 __all__ = ["vgg19", "resnet50"]

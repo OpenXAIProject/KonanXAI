@@ -1,6 +1,6 @@
 from KonanXAI.utils.data_convert import convert_tensor
 # try:
-import darknet  
+#import darknet  
 # except ImportError as e:
     # print(f"Darknet 관련 Dataset 사용 불가.{e}")
 import random
