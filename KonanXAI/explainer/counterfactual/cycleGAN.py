@@ -23,7 +23,7 @@ from torchvision.utils import save_image
 
 from KonanXAI.explainer.counterfactual import Counterfactual
 from KonanXAI.model_improvement import Trainer
-from KonanXAI.datasets import MNIST, counterfactual, load_dataset
+from KonanXAI.datasets import load_dataset
 
 
 from PIL import Image
@@ -63,9 +63,9 @@ class CycleganCF(Counterfactual, Trainer):
         
     def _make_cycleGAN_dataset(self):
         self.input_dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize, mode = 'counterfactual', label = self.input_label)
+                                    data_type = self.data_type, resize = self.data_resize, mode = 'explainer', label = self.input_label)
         self.target_dataset = load_dataset(self.framework, data_path = self.data_path,
-                                    data_type = self.data_type, resize = self.data_resize, mode = 'counterfactual')
+                                    data_type = self.data_type, resize = self.data_resize, mode = 'explainer')
 
 
         

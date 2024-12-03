@@ -25,6 +25,8 @@ class Datasets:
         self.classes = 1
         self.fit = None
         self.mode = 0
+        self.label = 0
+        self.set_label(label = None)
         self.generator = self.gen()
         next(self.generator)
         self.load_src_path()
@@ -125,6 +127,9 @@ class Datasets:
     def set_test(self):
         self.mode = 1
     # toPytorch
+    def set_label(self, label = None):
+        self.label = label
+
     def toTensor(self):
         self.data_type = 0
 

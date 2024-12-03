@@ -3,20 +3,21 @@ import glob
 import os
 import numpy as np
 import cv2
-__all__= ["Counterfactual"]
+__all__= ["CFdatasets"]
 
 
-class Counterfactual(Datasets):
+class CFDatasets(Datasets):
     def __init__(self, framework, src_path):
-        super().__init__(framework = framework, src_path= src_path)
+        super().__init__(framework, src_path)
         self.classes = 1
         self.dataset_name = 'counterfactual'
         self.framework = framework
         self.src_path = src_path
+        self.labels = 0
         
         
     def set_label(self, label):
-        self.label = label
+        self.labels = label
         
         
         

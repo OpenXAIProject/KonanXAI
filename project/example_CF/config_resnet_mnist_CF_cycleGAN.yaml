@@ -28,7 +28,7 @@ explainer: {
   methods: CounterFactual,
   model_algorithm: Default,
   algorithm: cycleGAN,
-  data_type: Counterfactual,
+  data_type: CFDatasets,
   data_path: "../data/MNIST",
   data_resize: [256,256],
   input_label: 3, 
