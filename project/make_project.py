@@ -133,7 +133,7 @@ class Project(Configuration):
                 self.record_evaluation(evaluation_result,self.dataset.image_name[i], self.config['metric'], metric_li, algorithm.type, score)
             evaluation_result[self.config['metric']].append(metric_li)
             print(f"data_path:{self.dataset.image_name[i]}\nscore: {score}")
-        with open(f"{self.save_path}/{self.config['metric']}_resutl.json", "w") as f:
+        with open(f"{self.save_path}/{self.config['metric']}_result.json", "w") as f:
             json.dump(self.postprocessing_eval(evaluation_result, self.metric, self.config['metric']),f, indent=4)
             
     def preprocessing(self, data):
