@@ -112,8 +112,8 @@
             - ex) 3일 경우 0,1,2 gpu 사용
 
 # Example YAML[single explain] and JSON[multi explain]
-- yaml 파일의 경우 tutorial_with project.py 실행
-- json의 경우 tutorial_multi.py 실행
+- yaml 파일의 경우 main.py 실행
+- json의 경우 main_multi.py 실행
 - ## Explain GradCAM for ResNet50 [YAML]
     ```
     head:
