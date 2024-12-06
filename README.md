@@ -19,8 +19,8 @@
 
 ## 사용법
 - project 파일에 사용할 yaml파일 작성
-- tutorial_with_project.py에 생성한 yaml 파일 경로 지정
-- 최상단 루트에서 tutorial_with_project.py 실행
+- main.py에 생성한 yaml 파일 경로 지정
+- 최상단 루트에서 main.py 실행
  
 # Yaml 파일 작성 요령
 - ## yaml파일은 크게 2가지로 구성 됩니다.
