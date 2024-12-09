@@ -3,14 +3,14 @@ import os
 from pathlib import Path
 import torch
 import torch.nn as nn
-# import darknet
+# # import darknet
 from pathlib import Path
 import importlib.util
 import KonanXAI._core.dtrain.models as dt_models
-# try:
-#import dtrain as dt 
-# except ImportError as e:
-    # print(f"Dtrain 모델을 사용할 수 없습니다..{e}")
+try:
+    import dtrain as dt 
+except ImportError as e:
+    print(f"Dtrain 모델을 사용할 수 없습니다..{e}")
 
 from collections import OrderedDict
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..

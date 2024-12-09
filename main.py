@@ -1,7 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from project.make_project import Project
-# # config_path = './project/example_gradcam/config_dtrain.yaml'
+# config_path = './project/example_gradcam/config_dtrain.yaml'
 # config_path = './project/example_evaluation/config_resnet_lime_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_kernel_shap_sensitivity.yaml'
 # config_path = './project/example_evaluation/config_resnet_eigencam_sensitivity.yaml'
@@ -37,7 +37,7 @@ from project.make_project import Project
 # config_path = './project/example_guided_gradcam/config_vgg_guidedgradcam.yaml'
 # config_path = './project/example_eigencam/config_vgg_eigencam.yaml'
 # config_path = './project/example_lrp/config_yolo_lrp.yaml'
-# config_path = './project/example_lrp/config_yolo_lrp_alphabeta.yaml'
+config_path = './project/example_lrp/config_yolo_lrp_alphabeta.yaml'
 # config_path = './project/example_gradcam/config_yolo.yaml'
 # config_path = './project/example_gradcampp/config_yolo_gradcampp.yaml'
 # config_path = './project/example_guided_gradcam/config_yolo_guidedgradcam.yaml'
@@ -62,14 +62,10 @@ from project.make_project import Project
 # config_path = './project/example_gradientxinput/config_yolo_gradientxinput.yaml'
 # config_path = './project/example_smoothgrad/config_resnet_smoothgrad.yaml'
 # config_path = './project/example_deeplift/config_resnet_deeplift.yaml'
-# config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
+config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/example_smoothgrad/config_yolo_smoothgrad.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
 # config_path = './project/example_gradcam/config_yolo.yaml'
-# config_path = "./yolov8_test.yaml"
-config_path = "./project/example_CF/config_resnet_mnist_CF_cycleGAN.yaml"
-# config_path = "./project/example_CF/config_resnet_mnist_CF_prototype.yaml"
-# config_path = "./project/example_CF/config_resnet_mnist_CF_wachter.yaml"# config_path = './project/example_gradcam/config_yolo.yaml'
 # config_path = "./yolov8_test.yaml"
 project = Project(config_path)
 project.run()
