@@ -1,3 +1,4 @@
+from KonanXAI._core.pytorch.anchorFreeYolo.utils import anchor_free_non_max_suppression, anchor_free_yolo_choice_layer
 from KonanXAI._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
 import torch
 import numpy as np
@@ -88,10 +89,20 @@ class IG:
         if "yolo" in self.model_name:
             target_label = []
             self.pred_origin, raw_logit = self.model(x)
-            self.logits_origin = torch.concat([data.view(-1,self.pred_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
-            with torch.no_grad():
-                self.pred, self.logits, self.select_layers = non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
-            self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
+            if "af_yolo" in self.model_name:
+                shape = raw_logit[0].shape
+                reg_max = self.model.model[-1].reg_max
+                x_cat = torch.cat([xi.view(shape[0], shape[1], -1) for xi in raw_logit], 2)
+                grid_cell, self.class_prob = x_cat.split((reg_max*4, self.model.nc), 1)
+                self.logits_origin = self.class_prob.squeeze(0).transpose(-1,-2)
+                with torch.no_grad():
+                    self.pred, self.logits , self.select_layers = anchor_free_non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0).transpose(-1,-2), conf_thres=0.25)
+                self.index_tmep = anchor_free_yolo_choice_layer(raw_logit, self.select_layers)
+            else:
+                self.logits_origin = torch.concat([data.view(-1,self.pred_origin.shape[-1])[...,5:] for data in raw_logit],dim=0)
+                with torch.no_grad():
+                    self.pred, self.logits, self.select_layers = non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
+                self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
             for cls, sel_layer in zip(self.pred[0], self.select_layers):
                 target_label.append([sel_layer, cls[5].item()])
         else:
@@ -144,10 +155,15 @@ class IG:
             grads = []
             result = []
             out, logit = self.model(x)
+            if "af_yolo" in self.model_name:
+                out = out.transpose(-1,-2)
+                cls_index = 4
+            else:
+                cls_index = 5
             for pred in out:
                 score_li = []
                 for anchor_index, cls in target_label:
-                    score_li.append(pred[anchor_index][int(cls)+5])
+                    score_li.append(pred[anchor_index][int(cls)+cls_index])
                 grads.append(torch.stack(score_li))
             grad_list = torch.stack(grads,dim=1)
             for grad in grad_list:

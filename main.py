@@ -19,7 +19,7 @@ from project.make_project import Project
 # config_path = './project/example_gradcam/config_darknet.yaml'
 # config_path = './project/example_gradcampp/config_darknet_gradcampp.yaml'
 # config_path = './project/example_eigencam/config_darknet_eigencam.yaml'
-# config_path = './project/example_lrp/config_efficientnet_lrp.yaml'
+# config_path = './project/example_lrp/config_efficientnet_lrp_alphabeta.yaml'
 # config_path = './project/example_gradcam/config_efficientnet_gradcam.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_alphabeta.yaml'
 # config_path = './project/example_lrp/config_resnet_lrp_epsilon.yaml'
@@ -37,7 +37,7 @@ from project.make_project import Project
 # config_path = './project/example_guided_gradcam/config_vgg_guidedgradcam.yaml'
 # config_path = './project/example_eigencam/config_vgg_eigencam.yaml'
 # config_path = './project/example_lrp/config_yolo_lrp.yaml'
-# config_path = './project/example_lrp/config_yolo_lrp_alphabeta.yaml'
+config_path = './project/example_lrp/config_yolo_lrp_alphabeta.yaml'
 # config_path = './project/example_gradcam/config_yolo.yaml'
 # config_path = './project/example_gradcampp/config_yolo_gradcampp.yaml'
 # config_path = './project/example_guided_gradcam/config_yolo_guidedgradcam.yaml'
@@ -66,6 +66,6 @@ config_path = './project/example_deeplift/config_yolo_deeplift.yaml'
 # config_path = './project/example_smoothgrad/config_yolo_smoothgrad.yaml'
 # config_path = './project/config_resnet_mnist_CF_prototype.yaml'
 # config_path = './project/example_gradcam/config_yolo.yaml'
-config_path = "./yolov8_test.yaml"
+# config_path = "./yolov8_test.yaml"
 project = Project(config_path)
 project.run()

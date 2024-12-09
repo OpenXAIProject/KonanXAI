@@ -12,6 +12,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import json
+import json
 """
 2024-07-02 jjh
  
@@ -30,6 +31,28 @@ class Project(Configuration):
     def __init__(self, config_path:str):
         Configuration.__init__(self, config_path)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    def record_evaluation(self, dict_origin, image_path, metric_type, metric_li, attr_tpye, score):
+        metric_li["image_path"] = image_path
+        metric_li[attr_tpye] = score
+        return metric_li
+    
+    def postprocessing_eval(self, result_json, metrics, metric_name):
+        metric = metric_name
+        score_li = []
+        for value_dict in result_json[metric]:
+            score_li.append(list(value_dict.values())[1:])
+            keys = list(value_dict.keys())[1:]
+        score_average = [list(map(lambda x: sum(x) / len(score_li), zip(*score_li)))]
+        metric_dict = {}
+        metric_name = f"result_{metric}"
+        result_json[metric_name] = []
+        for key, value in zip(keys, score_average[0]):
+            metric_dict[key] = round(value,4)
+        metric_dict = dict(sorted(metric_dict.items(), key=lambda item: item[1], reverse=True))
+        result_json[metric_name].append(metric_dict)
+        return result_json
+
     
     def record_evaluation(self, dict_origin, image_path, metric_type, metric_li, attr_tpye, score):
         metric_li["image_path"] = image_path
@@ -91,11 +114,17 @@ class Project(Configuration):
                 os.makedirs(root)
             img_save_path = f"{root}/{img_path[-1]}"
             print(self.algorithm)
+            print(self.algorithm)
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
+            algorithm.data_type = self.dataset.dataset_name
             algorithm.data_type = self.dataset.dataset_name
             heatmap = algorithm.calculate(targets=output)
                 
             if "eigencam" in self.algorithm_name and 'yolo' in self.model.model_name:
+                if 'af_yolo' in self.model_name:
+                    get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework, reverse=True)
+                else:
+                    get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework)
                 if 'af_yolo' in self.model_name:
                     get_scale_heatmap(origin_img, heatmap, img_save_path, img_size,algorithm_type, self.framework, reverse=True)
                 else:
@@ -115,7 +144,10 @@ class Project(Configuration):
         set_seed(777)
         evaluation_result={}
         evaluation_result[self.config['metric']] = []
+        evaluation_result={}
+        evaluation_result[self.config['metric']] = []
         for i, data in enumerate(self.dataset):
+            metric_li = {}
             metric_li = {}
             print(f"Evaluation: {i+1}/{len(self.dataset)}")
             origin_img, img_size, output = self.preprocessing(data)
@@ -125,7 +157,10 @@ class Project(Configuration):
             heatmap = algorithm.calculate()
             heatmap = heatmap_postprocessing(self.algorithm_name, img_size, heatmap)
             print(f"evaluation Metric: {self.metric}")
+            print(f"evaluation Metric: {self.metric}")
             if self.config['metric'] == 'abpc':                 
+                score = round(self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output, attributions=heatmap).item(),4)#.squeeze(0))
+                self.record_evaluation(evaluation_result,self.dataset.image_name[i], self.config['metric'], metric_li, algorithm.type, score)
                 score = round(self.metric(model=self.model, baseline_fn=ZeroBaselineFunction()).evaluate(inputs=(data[0].to('cuda')),targets=output, attributions=heatmap).item(),4)#.squeeze(0))
                 self.record_evaluation(evaluation_result,self.dataset.image_name[i], self.config['metric'], metric_li, algorithm.type, score)
             elif self.config['metric'] == 'sensitivity':
@@ -141,8 +176,21 @@ class Project(Configuration):
             origin_img = data.origin_img
             img_size = data.im_size
             output = None
+            output = None
         else:
             img_size = data[3]
+            origin_img = convert_tensor(data[4], "origin", img_size).unsqueeze(0)
+            if data[1] == -1:
+                if "yolo" not in self.model_name:
+                    if self.dataset.dataset_name == "imagenet":
+                        infer_data = convert_tensor(data[4], self.dataset.dataset_name, img_size).unsqueeze(0).to(self.device)
+                    else:
+                        infer_data = data[0]
+                    output = self.model(infer_data).argmax(-1).item()
+                else:
+                    output = None
+            else: 
+                output = data[1]
             origin_img = convert_tensor(data[4], "origin", img_size).unsqueeze(0)
             if data[1] == -1:
                 if "yolo" not in self.model_name:

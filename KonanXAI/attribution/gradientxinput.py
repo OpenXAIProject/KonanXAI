@@ -3,8 +3,7 @@ from KonanXAI._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choic
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-from KonanXAI.attribution import Gradient
-import darknet 
+from KonanXAI.attribution import Gradient 
 import torch
 import numpy as np
 import cv2

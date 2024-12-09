@@ -45,7 +45,7 @@ def xai_eval(model, dataset, arg_param, output):
                     save_image(model_name = model.model_name, algorithm_type = algo.type, origin_img = origin_img, heatmap = calc_algo, img_save_path = img_save_path, img_size = img_size, framework= framework, metric=metric.type, score=score)
             evaluation_result[metric.type].append(metric_li)
         yield round(index / len(dataset), 2)
-    with open(f"{save_path}/resutl.json", "w") as f:
+    with open(f"{save_path}/result.json", "w") as f:
         json.dump(postprocessing_eval(evaluation_result, metrics),f, indent=4)
 
 def train(model, dataset, arg_param, output):

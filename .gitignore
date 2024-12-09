@@ -31,3 +31,5 @@ x86
 /build
 /konan_xai.egg-info
 *.dts
+piper.py
+piper_example.py

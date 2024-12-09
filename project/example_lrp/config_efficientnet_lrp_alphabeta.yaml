@@ -18,22 +18,19 @@
 head:
   project_type: 'explain'
   save_path: "./heatmap/"
-  weight_path: "./yolov8s.pt"
+  weight_path: "./efficientnet_b0_rwightman-3dd342df.pth"
   cfg_path: ~
-  data_path: "./coco"
-  data_resize: [640,640]
-  model_name: af_yolo
+  data_path: "./data"
+  data_resize: [224,224]
+  model_name: efficientnet_b0
   framework: torch
-  source: ultralytics
+  source: torchvision
   repo_or_dir: ~
-  cache_or_local: ~
+  cache_or_local: cache
   data_type: CUSTOM
 
 explain:
-  algorithm: gradcam
+  algorithm: LRP
   model_algorithm: Default
-  target_layer: {'0':["model","22",'cv3','0','1','act'],'1':["model","22",'cv3','1','1','act'],'2':["model","22",'cv3','2','1','act']} #yolov8s
-  # target_layer: {'0':["model","23",'cv3','0','1','1','act'],'1':["model","23",'cv3','1','1','1','act'],'2':["model","23",'cv3','2','1','1','act']} #yolov11s
-  # random_baseline: True
-  # random_iter: 10
-  # gradient_step: 10
+  rule: Alphabeta
+  alpha: 2
