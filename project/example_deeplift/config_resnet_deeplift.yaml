@@ -19,7 +19,6 @@ head:
   project_type: 'explain'
   save_path: "./heatmap/"
   weight_path: "./resnet50-0676ba61.pth"
-  # weight_path: "./checkpoint/DG_DataParallel_AI_FIRE_50ep.pt"
   cfg_path: ~
   data_path: "./data"
   data_resize: [224,224]
@@ -34,5 +33,5 @@ explain:
   algorithm: DeepLIFT
   model_algorithm: Default
   baseline: zero
-  rule: rescale
-  target_class: ~
+  rule: reveal-cancel
+  target_layer: ~    # 삭제 예정

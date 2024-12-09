@@ -5,7 +5,10 @@ import torch.nn.functional as F
 import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
-from darknet.yolo import BBox
+try:
+    from darknet.yolo import BBox
+except ImportError as e:
+    pass
 __all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']
 def deprocess_image(img):
     img = img - np.mean(img)
@@ -55,7 +58,7 @@ def get_box(bbox_li, framework):
             bbox.append(box)
     return bbox
 
-def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
+def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framework, metric=None, score=None):
     draw_box = False
     bbox = None
     if len(heatmaps)>2:
@@ -86,7 +89,7 @@ def get_guided_heatmap(heatmaps, img_save_path, img_size, algorithm_type, framew
         else:
             cv2.imwrite(compose_save_path, compose_guided_img)
             
-def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework,metric,score):
+def get_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework,metric=None,score=None):
     draw_box = False
     bbox = None
     if len(heatmaps)>1:
@@ -145,7 +148,7 @@ def compose_heatmap_image(saliency, origin_image, bbox=None, ratio=0.5, save_pat
         result = cv2.rectangle(result, bbox[0], bbox[1], color=(0,255,0),thickness=3)
     cv2.imwrite(save_path, result)
 
-def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
+def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric=None, score=None, reverse=False):
     is_empty = True
     draw_box = False
     bbox = None
@@ -164,7 +167,10 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
     for index, sbox in enumerate(heatmaps):
         is_empty = False
         sbox = F.interpolate(sbox, size = img_size, mode="bilinear", align_corners=False)
-        sbox = normalize_heatmap(sbox)
+        if reverse:
+            sbox = 1 - normalize_heatmap(sbox)
+        else:
+            sbox = normalize_heatmap(sbox)
         if index == 0:
             heatmap = sbox
         else:
@@ -185,7 +191,7 @@ def get_scale_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_t
     else: 
         print("Check out the data set. There are no inferred values.")
         
-def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric, score):
+def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type, framework, metric=None, score=None):
     if framework != "darknet":
         origin_img = np.array(origin_img.squeeze(0).detach()*255).transpose(1,2,0)
     origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
@@ -213,7 +219,7 @@ def get_ig_heatmap(origin_img, heatmaps, img_save_path, img_size, algorithm_type
         cv2.imwrite(save_path, ig_image)
         cv2.imwrite(compose_save_path, mixed_image)
     
-def get_lime_image(heatmap, img_save_path, metric, score):
+def get_lime_image(heatmap, img_save_path, metric=None, score=None):
     if metric == None:
         save_path = f"{img_save_path[:-4]}_LIME.jpg"
     else:
@@ -222,7 +228,7 @@ def get_lime_image(heatmap, img_save_path, metric, score):
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     cv2.imwrite(save_path,heatmap)
  
-def get_kernelshap_image(origin_img, heatmap, img_savepath,framework,metric, score):
+def get_kernelshap_image(origin_img, heatmap, img_savepath,framework,metric=None, score=None):
     if metric == None:
         save_path = f"{img_savepath[:-4]}_KernelSHAP.jpg"
     else:

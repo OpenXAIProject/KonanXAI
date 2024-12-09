@@ -1,15 +1,20 @@
 from KonanXAI._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choice_layer
 #from ..attribution import Attribution
+from KonanXAI._core.pytorch.anchorFreeYolo.utils import anchor_free_non_max_suppression, anchor_free_yolo_choice_layer
 from KonanXAI.attribution.gradient import Gradient
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet 
+try:
+    import darknet 
+except ImportError as e:
+    pass
 import torch
 import numpy as np
 import cv2
 import torch.nn.functional as F
 from KonanXAI._core.dtrain.utils import convert_tensor_to_numpy
+
 __all__ = ["GradCAM"]
 class GradCAM(Gradient):        
     def calc_dtrain(self):
@@ -62,12 +67,13 @@ class GradCAM(Gradient):
             for key, layers in self.target_layer.items():
                 base_layer = self.model._modules[layers[0]]
                 for layer in layers[1:]:
+                    if "act" in layer:
+                        base_layer.act = torch.nn.SiLU(inplace=False)
                     base_layer = base_layer._modules[layer]
                 self.layer.append(base_layer)
 
-    
     def set_model_hook(self):    
-        if 'yolo' in self.model_name[0:4]:
+        if 'yolo' in self.model_name:
             fwd_handle, bwd_handle = [],[]
             for layer in self.layer:
                 layer.fwd_in = []
@@ -102,16 +108,21 @@ class GradCAM(Gradient):
         self.feature = []
         self.gradient = []
         if self.framework == 'torch':
-            self.model.eval()
             self.input.requires_grad = True
             self._get_target_layer()
             fwd_handle, bwd_handle = self.set_model_hook()
             
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
+                self.model.eval()
                 self._yolo_get_bbox_pytorch()
+                self._yolo_backward_pytorch()
+                
+            elif "af_yolo" in self.model_name:
+                self._anchor_free_yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
 
             else:
+                self.model.eval()
                 if self.model.model_algorithm == 'abn':
                     self.att, self.pred, _ = self.model(self.input)
                 else:
@@ -148,7 +159,7 @@ class GradCAM(Gradient):
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
             
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps
@@ -160,12 +171,24 @@ class GradCAM(Gradient):
             self.pred, self.logits, self.select_layers = non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0), conf_thres=0.25, model_name = self.model_name)
         self.index_tmep = yolo_choice_layer(raw_logit, self.select_layers)
         
+    def _anchor_free_yolo_get_bbox_pytorch(self):
+        self.pred_origin, raw_logit = self.model(self.input)
+        shape = raw_logit[0].shape
+        reg_max = self.model.model[-1].reg_max
+        x_cat = torch.cat([xi.view(shape[0], shape[1], -1) for xi in raw_logit], 2)
+        grid_cell, self.class_prob = x_cat.split((reg_max*4, self.model.nc), 1)
+        self.logits_origin = self.class_prob.squeeze(0).transpose(-1,-2)
+        with torch.no_grad():
+            self.pred, self.logits , self.select_layers = anchor_free_non_max_suppression(self.pred_origin, self.logits_origin.unsqueeze(0).transpose(-1,-2), conf_thres=0.25)
+        self.index_tmep = anchor_free_yolo_choice_layer(raw_logit, self.select_layers)
+        self.pred_origin = self.pred_origin.squeeze(0).transpose(-1,-2)
     def _yolo_backward_pytorch(self):
         self.bboxes = []
         self.label_index = []
         for cls, sel_layer, sel_layer_index in zip(self.pred[0], self.select_layers, self.index_tmep):
             self.model.zero_grad()
             self.logits_origin[sel_layer][int(cls[5].item())].backward(retain_graph=True)
+            # self.pred_origin[sel_layer][int(cls[5].item()+4)].backward(retain_graph=True)
             layer = self.layer[sel_layer_index]
             feature = layer.fwd_out[-1].unsqueeze(0)
             gradient = layer.bwd_out[0]
@@ -173,5 +196,24 @@ class GradCAM(Gradient):
             self.gradient.append(gradient)
             self.label_index.append(int(cls[5].item()))
             self.bboxes.append(cls[...,:4].detach().cpu().numpy())
-        
- 
+    
+    # def _yolo8_backward_pytorch(self):
+    #     self.bboxes = []
+    #     self.label_index = []
+    #     for cls, sel_layer, sel_layer_index in zip(self.pred[0], self.select_layers, self.index_tmep):
+    #         self.model.zero_grad()
+    #         score = self.clas_prob[sel_layer][int(cls[5].item())]
+    #         score.backward(retain_graph=True)
+    #         if len(self.layer)>3:
+    #             layer_cv2 = self.layer[sel_layer_index]
+    #             layer_cv3 = self.layer[sel_layer_index+3]
+    #             feature = torch.cat([layer_cv2.fwd_out[-1].unsqueeze(0),layer_cv3.fwd_out[-1].unsqueeze(0)],dim=1)
+    #             gradient = torch.cat([layer_cv2.bwd_out[0],layer_cv3.bwd_out[0]],dim=1)
+    #         else:
+    #             layer = self.layer[sel_layer_index]
+    #             feature = layer.fwd_out[-1].unsqueeze(0)
+    #             gradient = layer.bwd_out[0]
+    #         self.feature.append(feature)
+    #         self.gradient.append(gradient)
+    #         self.label_index.append(int(cls[5].item()))
+    #         self.bboxes.append(cls[...,:4].detach().cpu().numpy())

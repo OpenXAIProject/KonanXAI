@@ -3,7 +3,10 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet
+try:
+    import darknet 
+except ImportError as e:
+    pass
 import numpy as np
 import cv2
 import torch
@@ -28,7 +31,7 @@ class EigenCAM(GradCAM):
                     projection = reshaped_activations @ VT[0,:]
                     projection = projection.reshape(activations.shape[1:])
                 self.heatmaps.append(projection.unsqueeze(0).unsqueeze(0))
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps

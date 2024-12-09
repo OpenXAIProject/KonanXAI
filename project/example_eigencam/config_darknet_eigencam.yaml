@@ -26,7 +26,7 @@ head:
   source: local
   repo_or_dir: ~
   cache_or_local: ~
-  data_type: CUSTOM
+  data_type: AI_FIRE
   
 explain:
   algorithm: eigencam

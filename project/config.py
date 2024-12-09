@@ -1,5 +1,6 @@
 import yaml
 import os, sys
+from KonanXAI.attribution.deeplift import DeepLIFT
 from KonanXAI.attribution.integrated_gradient import IG
 from KonanXAI.attribution.kernel_shap import KernelShap
 from KonanXAI.attribution.layer_wise_propagation.lrp import LRP

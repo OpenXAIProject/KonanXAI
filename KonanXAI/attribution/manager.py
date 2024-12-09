@@ -17,7 +17,7 @@ def explain(model, dataset, arg_param, output):
         origin_img, img_size, output = preprocessing(model, framework, data, algorithm[0].data_type)
         for algo in algorithm:
             img_save_path = image_path(framework, save_path, dataset, index, algo)
-            calc_algo = algo(framework = framework, model = model, input = data, config = arg_param).calculate(targets=output)
+            calc_algo = algo(framework = framework, model = model, input = data, config = arg_param[algo.type]).calculate(targets=output)
             save_image(model_name = model.model_name, algorithm_type = algo.type, origin_img = origin_img, heatmap = calc_algo, img_save_path = img_save_path, img_size = img_size, framework= framework)
         yield round(index / len(dataset), 2)
         
@@ -30,7 +30,7 @@ def xai_eval(model, dataset, arg_param, output):
             metric_li = {}
             for algo in algorithms:
                 img_save_path = image_path(framework, save_path, dataset, index, algo)
-                algorithm = algo(framework = framework, model = model, input = data, config = arg_param)
+                algorithm = algo(framework = framework, model = model, input = data, config = arg_param[algo.type])
                 calc_algo = algorithm.calculate(targets = output) 
                 post_heatmap = heatmap_postprocessing(algo.type, img_size, calc_algo)
                 if metric.type == 'abpc':
@@ -45,7 +45,7 @@ def xai_eval(model, dataset, arg_param, output):
                     save_image(model_name = model.model_name, algorithm_type = algo.type, origin_img = origin_img, heatmap = calc_algo, img_save_path = img_save_path, img_size = img_size, framework= framework, metric=metric.type, score=score)
             evaluation_result[metric.type].append(metric_li)
         yield round(index / len(dataset), 2)
-    with open(f"{save_path}/resutl.json", "w") as f:
+    with open(f"{save_path}/result.json", "w") as f:
         json.dump(postprocessing_eval(evaluation_result, metrics),f, indent=4)
 
 def train(model, dataset, arg_param, output):

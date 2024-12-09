@@ -4,7 +4,6 @@ from KonanXAI.attribution.layer_wise_propagation.lrp_tracer import Graph
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet 
 import torch
 import numpy as np
 import cv2
@@ -304,7 +303,7 @@ class DeepLIFT:
                 contr_score = self.input.grad[0].unsqueeze(0).clone().detach()
                 contr_score = torch.sum(contr_score, dim=1).unsqueeze(0)
                 for module in self.model.modules():
-                    print(module)
+                    # print(module)
                     del module.input
                     del module.output
                     del module.baseline_in

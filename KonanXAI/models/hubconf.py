@@ -3,11 +3,15 @@ import os
 from pathlib import Path
 import torch
 import torch.nn as nn
-import darknet
+# import darknet
 from pathlib import Path
 import importlib.util
 import KonanXAI._core.dtrain.models as dt_models
-import dtrain as dt
+try:
+    import dtrain as dt 
+except ImportError as e:
+    print(f"Dtrain 모델을 사용할 수 없습니다..{e}")
+
 from collections import OrderedDict
 # 모델별로 경로를 만들까..? 리포지토리별로 경로를 만들까?..
 
@@ -347,8 +351,9 @@ class Dtrain:
         loss_fn = dt.nn.CrossEntropyLoss("pred", "y")
         optimizer = dt.nn.Optimizer("adam", self.model.parameters(), {})
         compile_args = {
-            'yshape': (-1, ) + (self.model.get_yshape()[1:], ),
-            'ytype': 'float32'
+            'yshape': [1,10],#(-1, ) + (self.model.get_yshape()[1:], ),
+            'ytype': 'float32',
+            'multinode': self.model.multinode_info(1,1)
         }
         self.model.compile(optimizer, loss_fn, compile_args)
         self.model.fit(None, None, {'epochs': 0})

@@ -3,7 +3,10 @@ from KonanXAI.attribution import GradCAM
 #from ....utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet
+# try:
+import darknet 
+# except ImportError as e:
+    # pass
 import numpy as np
 import cv2
 import torch.nn.functional as F
@@ -34,7 +37,7 @@ class GradCAMpp(GradCAM):
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
             
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:
             return self.heatmaps

@@ -9,3 +9,4 @@ redis==5.0.8
 pyyaml==6.0.1
 lime==0.2.0.1
 shap==0.46.0
+ultralytics==8.3.31

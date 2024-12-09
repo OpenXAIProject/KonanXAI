@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 import matplotlib
 from tqdm import tqdm
-from darknet.yolo import BBox
 from torchvision.utils import save_image
 
 def gaussian_noise(sample_shape, std, num_samples):

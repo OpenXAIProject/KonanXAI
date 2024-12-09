@@ -79,7 +79,11 @@ class GuidedGradCAM(GradCAM):
             if self.model_name in ('yolov4', 'yolov4-tiny', 'yolov5s'):
                 self._yolo_get_bbox_pytorch()
                 self._yolo_backward_pytorch()
-
+                
+            elif "af_yolo" in self.model_name:
+                self._anchor_free_yolo_get_bbox_pytorch()
+                self._yolo_backward_pytorch()  
+                
             else:
                 if self.model.model_algorithm == 'abn':
                     self.att, self.pred, _ = self.model(self.input)
@@ -120,7 +124,7 @@ class GuidedGradCAM(GradCAM):
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
             
-        if self.model_name[0:4] == 'yolo':
+        if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes, self.guided_image
         else:
             return self.heatmaps, [self.guided_image]

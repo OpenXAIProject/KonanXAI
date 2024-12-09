@@ -3,7 +3,10 @@ from KonanXAI._core.pytorch.yolov5s.utils import non_max_suppression, yolo_choic
 from KonanXAI.utils import *
 #from ....models import XAIModel
 from KonanXAI.datasets import Datasets
-import darknet 
+try:
+    import darknet 
+except ImportError as e:
+    pass
 import torch
 import numpy as np
 import cv2
@@ -98,6 +101,7 @@ class Gradient:
             idx = box.entry + (5 + box.class_idx) * stride
             # set delta
             target_layer.delta[idx] = out[idx]
+            self.logits = torch.tensor(out[idx])
             self.model.backward()
             # Get Features
             # for target in target_layer:
