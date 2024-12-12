@@ -12,7 +12,7 @@ from .counterfactual import CFDatasets
 
 def load_dataset(framework, data_path = None, data_type = 'CUSTOM', 
                  maxlen=-1, resize = None, mode = None, label = None):
-    dataset = globals().get(data_type)(framework = framework, src_path = data_path)
+    dataset = globals().get(data_type)(framework = framework, src_path = data_path, label = label)
     dataset.set_fit_size(resize)
     if mode == 'train':
         dataset.set_train()
@@ -22,6 +22,4 @@ def load_dataset(framework, data_path = None, data_type = 'CUSTOM',
         dataset.set_test()
     elif mode == 'explainer':
         dataset.set_train()
-        if label != None:
-            dataset.set_label(label)
     return dataset

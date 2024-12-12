@@ -11,7 +11,7 @@ import torch
 from torchvision import transforms
 __all__ = ["Datasets"]
 class Datasets:
-    def __init__(self, framework, src_path, label_path=None):
+    def __init__(self, framework, src_path, label_path=None, label = None):
         self.framework = framework
         if label_path is None:
             self.label_path = src_path
@@ -25,8 +25,7 @@ class Datasets:
         self.classes = 1
         self.fit = None
         self.mode = 0
-        self.label = 0
-        self.set_label(label = None)
+        self.label = label
         self.generator = self.gen()
         next(self.generator)
         self.load_src_path()

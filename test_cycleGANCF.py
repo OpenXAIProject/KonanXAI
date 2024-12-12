@@ -36,15 +36,25 @@ cfg_path = None
 
 device = torch.device('cuda:0')
 
-model = model_import(framework, source, repo_or_dir,
-                                  model_name, cache_or_local, 
-                                  weight_path)
+# model = model_import(framework, source, repo_or_dir,
+#                                   model_name, cache_or_local, 
+#                                   weight_path)
 
 
 dataset = load_dataset(framework, data_path = data_path,
                                     data_type = data_type, resize = data_resize)
 
-for i in enumerate(dataset):
-    dataset.train_items[i][1]
+print(dataset.train_items[0])
+# for i, data in enumerate(dataset):
+#     print(dataset.train_items[i])
+framework = 'torch'
+data_path = "../dataset/MNIST"
+data_type = 'CFDatasets'
+resize = [256, 256]
 
-print(dataset[0])
+input_dataset = load_dataset(framework, data_path=data_path, 
+                             data_type=data_type, 
+                             resize = resize, mode = 'explainer', label = 3)
+
+for i, data in enumerate(input_dataset):
+    print(input_dataset.train_items[i])

@@ -79,7 +79,6 @@ class GradCAM(Gradient):
 
     def set_model_hook(self):    
         if 'yolo' in self.model_name:
-        if 'yolo' in self.model_name:
             fwd_handle, bwd_handle = [],[]
             for layer in self.layer:
                 layer.fwd_in = []
@@ -171,7 +170,6 @@ class GradCAM(Gradient):
             heatmap = F.relu(heatmap)
             self.heatmaps.append(heatmap)
             
-        if 'yolo' in self.model_name:
         if 'yolo' in self.model_name:
             return self.heatmaps, self.bboxes
         else:

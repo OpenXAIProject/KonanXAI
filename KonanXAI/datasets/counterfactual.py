@@ -1,5 +1,5 @@
 from KonanXAI.datasets import Datasets
-import glob
+from glob import glob
 import os
 import numpy as np
 import cv2
@@ -7,23 +7,19 @@ __all__= ["CFdatasets"]
 
 
 class CFDatasets(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework, src_path)
+    def __init__(self, framework, src_path, label = None):
+        Datasets.__init__(self, framework, src_path, label = None)
         self.classes = 1
         self.dataset_name = 'counterfactual'
-        self.framework = framework
-        self.src_path = src_path
-        self.labels = 0
-        
-        
-    def set_label(self, label):
-        self.labels = label
-        
-        
-        
+        self.make_cache = {}
+        self.label = label
+        self.load_src_path()
+
+   
+
     def load_src_path(self):
-        train_path = glob(self.src_path+"/training/{self.label}/*.*")
-        test_path = glob(self.src_path+"/testing/{self.label}/*.*")# 수정 필요
+        train_path = glob(self.src_path+"/training/" + f"{self.label}" + "/*.*")
+        test_path = glob(self.src_path+"/testing/" + f"{self.label}" + "/*.*")# 수정 필요
         self.train_items = []
         self.test_items = []
         for path in train_path:

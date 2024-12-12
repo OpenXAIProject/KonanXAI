@@ -16,7 +16,7 @@ head:
   weight_path: "./resnet50_mnist_epoch10.pt"
   cfg_path: ~
   data_resize: [256,256]
-  data_path: "../data/MNIST"
+  data_path: "../dataset/MNIST"
   model_name: resnet50
   framework: torch
   source: torchvision
@@ -29,18 +29,22 @@ explainer: {
   model_algorithm: Default,
   algorithm: cycleGAN,
   data_type: CFDatasets,
-  data_path: "../data/MNIST",
+  data_path: "../dataset/MNIST",
+  save_path: "./heatmap/counterfactual",
   data_resize: [256,256],
   input_label: 3, 
   target_label: 6,
-  gen_AtoB_weight_path: "./CF_cycleGAN/gen_AtoB.pth",
-  gen_BtoA_weight_path: "./CF_cycleGAN/gen_BtoA.pth",
-  disc_A_weight_path: "./CF_cycleGAN/disc_A.pth",
-  disc_B_weight_path: "./CF_cycleGAN/disc_B.pth",
-  CF_gen_AtoB_weight_path: "./CF_cycleGAN/CF_gen_AtoB.pth",
-  CF_gen_BtoA_weight_path: "./CF_cycleGAN/CF_gen_BtoA.pth",
-  CF_disc_A_weight_path: "./CF_cycleGAN/CF_disc_A.pth",
-  CF_disc_B_weight_path: "./CF_cycleGAN/CF_disc_B.pth",
+  cycleGAN_train: False,
+  CF_cycleGAN_train: False,
+  batch: 4,
+  gen_AtoB_weight_path: "./gen_AtoB.pth",
+  gen_BtoA_weight_path: "./gen_BtoA.pth",
+  disc_A_weight_path: "./disc_A.pth",
+  disc_B_weight_path: "./disc_B.pth",
+  CF_gen_AtoB_weight_path: "./CF_gen_AtoB.pth",
+  CF_gen_BtoA_weight_path: "./CF_gen_BtoA.pth",
+  CF_disc_A_weight_path: "./CF_disc_A.pth",
+  CF_disc_B_weight_path: "./CF_disc_B.pth",
   cycleGAN_learning_rate: 0.01,
   cycleGAN_epochs: 10,
   CF_learning_rate: 0.01,

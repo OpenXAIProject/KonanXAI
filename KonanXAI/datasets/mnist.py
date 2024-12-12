@@ -1,10 +1,21 @@
 from KonanXAI.datasets import Datasets
+from KonanXAI.utils.data_convert import convert_tensor
+try:
+    import darknet  
+except ImportError as e:
+    print(f"Darknet 관련 Dataset 사용 불가.{e}")
 import os
+import cv2
 from glob import glob
+import torch
+from PIL import Image
+import numpy as np
+from torchvision import transforms
 __all__= ["MNIST"]
+
 class MNIST(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework, src_path)
+    def __init__(self, framework, src_path, label = None):
+        super().__init__(framework, src_path, label = None)
         self.framework = framework
         self.src_path = src_path
         self.classes = 10
@@ -25,3 +36,5 @@ class MNIST(Datasets):
             label = os.path.dirname(path).split(os.sep)[-1].split(".")[0]
             label = int(label)
             self.test_items.append((path, label))
+
+    

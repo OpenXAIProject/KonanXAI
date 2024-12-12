@@ -9,7 +9,7 @@ try:
     from darknet.yolo import BBox
 except ImportError as e:
     pass
-__all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap']
+__all__= ['get_guided_heatmap', 'get_heatmap', 'get_kernelshap_image', 'get_lime_image', 'get_scale_heatmap', 'get_box', 'get_ig_heatmap', 'save_tensor']
 def deprocess_image(img):
     img = img - np.mean(img)
     img = img / (np.std(img) + 1e-5)
@@ -293,3 +293,7 @@ def compute_threshold_by_top_percentage(attributions, percentage=60, plot_distri
     if plot_distribution:
         raise NotImplementedError 
     return threshold
+
+def save_tensor(tensor, save_path):
+    tensor_to_numpy = np.array(tensor.squeeze(0).cpu().detach()*255).transpose(1,2,0)
+    cv2.imwrite(save_path, tensor_to_numpy)
