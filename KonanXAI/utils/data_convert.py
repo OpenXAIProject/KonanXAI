@@ -9,6 +9,7 @@ def convert_tensor(images, data_type, img_size):
         transforms.Resize(img_size, antialias=False),
         normalize
     ])
+        #images = tensor(images)
     else:
         tensor =  transforms.Compose([
         transforms.ToTensor(),
@@ -16,7 +17,7 @@ def convert_tensor(images, data_type, img_size):
     ])
         # normalize = transforms.Normalize(mean=[0.,0.,0.],std = [1., 1., 1.])
     if isinstance(images, Image.Image):
-        if data_type == 'mnist' or 'counterfactual':
+        if (data_type == 'mnist') or (data_type == 'counterfactual'):
             images = images.convert('L')
         else:            
             images = images.convert('RGB')

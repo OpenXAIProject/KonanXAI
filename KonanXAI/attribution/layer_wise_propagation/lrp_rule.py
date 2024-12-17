@@ -6,7 +6,7 @@ import torch.nn as nn
 import sys
 import numpy as np
 __all__ = []
-def safe_divide(relevance_in, z, eps=1e-9):
+def safe_divide(relevance_in, z, eps=1e-5):
     sign = torch.sign(z)
     sign[z==0] = 1
     eps = torch.tensor(eps, device='cuda:0')
@@ -81,15 +81,17 @@ class LRPModule:
         w_pos = self.module.weight.clamp(min=0)
         w_neg = self.module.weight.clamp(max=0)
 
+
         def forward(x_pos, x_neg, w_pos, w_neg):
             z1 = self.signed_forward(x_pos, w_pos)
             z2 = self.signed_forward(x_neg, w_neg)
 
-            s1 = safe_divide(R, z1)
-            s2 = safe_divide(R, z2)
+            z = z1+ z2
 
-            c1 = x_pos * self.gradprop(z1, x_pos, s1)[0]
-            c2 = x_neg * self.gradprop(z2, x_neg, s2)[0]
+            s = safe_divide(R, z)
+
+            c1 = x_pos * self.gradprop(z, x_pos, s)[0]
+            c2 = x_neg * self.gradprop(z, x_neg, s)[0]
             return c1 + c2
 
         outputs = []
@@ -106,6 +108,7 @@ class LRPModule:
             relevance_out = alpha * activator + beta * inhibitor
             outputs = relevance_out
 
+        print(torch.sum(outputs))
         return outputs
     
     # Abstract
@@ -210,15 +213,16 @@ class ConvNd(LRPModule):
             z1 = self.signed_forward(x_pos, w_pos)
             z2 = self.signed_forward(x_neg, w_neg)
 
-            s1 = safe_divide(rel, z1)
-            s2 = safe_divide(rel, z2)
+            z = z1 + z2
+
+            s = safe_divide(R, z)
 
             conv_bwd = {nn.Conv1d: F.conv_transpose1d, nn.Conv2d: F.conv_transpose2d, nn.Conv3d: F.conv_transpose3d}[type(self.module)]
         
-            c1 = conv_bwd(s1, weight=w_pos, bias=None, padding=self.module.padding, 
+            c1 = conv_bwd(s, weight=w_pos, bias=None, padding=self.module.padding, 
                             output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
                             dilation=self.module.dilation, groups=self.module.groups,)
-            c2 = conv_bwd(s2, weight=w_neg, bias=None, padding=self.module.padding, 
+            c2 = conv_bwd(s, weight=w_neg, bias=None, padding=self.module.padding, 
                             output_padding=(Hin-Hnew, Win-Wnew), stride=self.module.stride,
                             dilation=self.module.dilation, groups=self.module.groups,)
             c1 = c1 * x_pos
@@ -233,6 +237,7 @@ class ConvNd(LRPModule):
         if isinstance(R, dict):
             R[str(key)] = relevance_out
         
+
         return R if isinstance(R, dict) else relevance_out
     
 class Linear(LRPModule):
@@ -589,7 +594,7 @@ class Mul(LRPModule):
         return mR
     
     def signed_forward(self, x):
-        return self.mul(*x)
+        return torch.mul(*x)
     
     def alphabeta(self, R, rule, alpha):
         beta = 1 - alpha
@@ -615,16 +620,54 @@ class Mul(LRPModule):
 
 
         R = R.squeeze()
-        Z = self.forward(self.X)
-        S = safe_divide(R, Z)
-        C = self.gradprop(Z, self.X, S)[0]
-        if torch.is_tensor(self.X) == False:
-            outputs = []
-            outputs.append(self.X[0] * C)
-            outputs.append(self.X[1] * C)
-        else:
-            outputs = self.X * (C)
-        R = outputs
+
+        x0_pos = self.X[0].clamp(min=0)
+        x0_neg = self.X[0].clamp(max=0)
+        x1_pos = self.X[1].clamp(min=0)
+        x1_neg = self.X[1].clamp(max=0)
+
+        def forward(x0_pos, x0_neg, x1_pos, x1_neg):
+            result = []
+            x1 = []
+            x1.append(x0_pos)
+            x1.append(x1_pos)
+            z1 = self.signed_forward(x1)
+            x2 = []
+            x2.append(x0_neg)
+            x2.append(x1_neg)
+            z2 = self.signed_forward(x2)
+
+            z = z1 + z2
+            s = safe_divide(R, z)
+            
+
+            c1 = x0_pos * self.gradprop(z, x0_pos, s)[0]
+            c2 = x0_neg * self.gradprop(z, x0_neg, s)[0]
+            c3 = x1_pos * self.gradprop(z, x1_pos, s)[0]
+            c4 = x1_neg * self.gradprop(z, x1_neg, s)[0]
+            c3 = c3.squeeze(0)
+            c4 = c4.squeeze(0)
+            result.append(c1+c2)
+            result.append(c3+c4)
+            return result
+
+
+        activator = forward(x0_pos, x0_neg, x1_pos, x1_neg)
+        inhibitor = forward(x0_pos, x0_neg, x1_neg, x1_pos)
+
+        R = alpha * activator + beta * inhibitor
+        
+
+        # Z = self.forward(self.X)
+        # S = safe_divide(R, Z)
+        # C = self.gradprop(Z, self.X, S)[0]
+        # if torch.is_tensor(self.X) == False:
+        #     outputs = []
+        #     outputs.append(self.X[0] * C)
+        #     outputs.append(self.X[1] * C)
+        # else:
+        #     outputs = self.X * (C)
+        # R = outputs
 
         mR = ()
         for i, m in enumerate(self.modules):
@@ -934,11 +977,11 @@ class StochasticDepth(LRPModule):
     
     def alphabeta(self, R, rule, alpha):
         R = R.reshape(self.X.shape)
-        scaled_out = self.X * self.p
-        denominator = scaled_out + 1e-9 * torch.sign(scaled_out)
-        relevance_ratio = R / denominator
-        R = self.Y * relevance_ratio
-        R = R.reshape(self.X.shape)
+        # scaled_out = self.X * self.p
+        # denominator = scaled_out + 1e-9 * torch.sign(scaled_out)
+        # relevance_ratio = R / denominator
+        # R = self.Y * relevance_ratio
+        # R = R.reshape(self.X.shape)
         return R
 class Flatten(LRPModule):
     def __init__(self, prev_module):

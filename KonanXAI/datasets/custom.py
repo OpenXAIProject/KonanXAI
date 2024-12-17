@@ -4,8 +4,8 @@ from glob import glob
 from pathlib import Path
 __all__= ["CUSTOM"]
 class CUSTOM(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework, src_path)
+    def __init__(self, framework, src_path, label = None):
+        super().__init__(framework, src_path, label = None)
         self.framework = framework
         self.src_path = src_path
         self.dataset_name = 'imagenet'
@@ -14,10 +14,10 @@ class CUSTOM(Datasets):
         
     def load_src_path(self):
         def load_image(src_path):
-            extension_types = ['*.jpg','*.png','*.jpeg']
+            extension_types = ['*.jpg','*.png','*.jpeg', '*.JPEG']
             file_list = []
             for types in extension_types:
-                file_list.extend(glob(src_path+"/"+types))
+                file_list.extend(glob(os.path.join(src_path, types)))
             return [str(file) for file in file_list]
        
         train_path = load_image(self.src_path)

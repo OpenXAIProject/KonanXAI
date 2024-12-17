@@ -23,6 +23,7 @@ def normalize_heatmap(heatmap):
     heatmap = (heatmap - heatmap_min).div(heatmap_max-heatmap_min).data
     return heatmap
 
+
 def heatmap_tensor(origin_img, heatmaps, img_size, algorithm_type, framework):
     
     for i, heatmap in enumerate(heatmaps):

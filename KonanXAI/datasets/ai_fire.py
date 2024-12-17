@@ -5,8 +5,8 @@ import numpy as np
 import cv2
 __all__= ["AI_FIRE"]
 class AI_FIRE(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework = framework, src_path= src_path)
+    def __init__(self, framework, src_path, label = None):
+        super().__init__(framework = framework, src_path= src_path, label = None)
         self.classes = 5
         self.dataset_name = 'aifire'
         self.framework = framework

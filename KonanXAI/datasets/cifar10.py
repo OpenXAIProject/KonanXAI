@@ -9,8 +9,8 @@ import cv2
 __all__= ["CIFAR10"]
 
 class CIFAR10(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework, src_path)
+    def __init__(self, framework, src_path, label = None):
+        super().__init__(framework, src_path, label = None)
         self.framework = framework
         self.src_path = src_path
         self.dataset_name = "cifar10"

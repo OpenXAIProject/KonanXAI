@@ -108,7 +108,7 @@ class Project(Configuration):
             if self.framework == 'dtrain':
                 img_path = ["data/", self.dataset.image_name[i]]
             else:
-                img_path = self.dataset.test_items[i][0].split('\\')
+                img_path = self.dataset.test_items[i][0].split(os.sep)
             root = f"{self.save_path}{self.algorithm_name}_result/{img_path[-2]}"
             if os.path.isdir(root) == False:
                 os.makedirs(root)
@@ -116,7 +116,6 @@ class Project(Configuration):
             print(self.algorithm)
             print(self.algorithm)
             algorithm = self.algorithm(self.framework, self.model, data, self.config)
-            algorithm.data_type = self.dataset.dataset_name
             algorithm.data_type = self.dataset.dataset_name
             heatmap = algorithm.calculate(targets=output)
                 

@@ -3,8 +3,8 @@ import os
 from glob import glob
 __all__= ["COCO"]
 class COCO(Datasets):
-    def __init__(self, framework, src_path):
-        super().__init__(framework, src_path)
+    def __init__(self, framework, src_path, label = None):
+        super().__init__(framework, src_path, label = None)
         self.framework = framework
         self.src_path = src_path
         self.dataset_name = 'coco'
